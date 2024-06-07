@@ -95,7 +95,12 @@ class GaBoostingTabnetTuner:
         return gm_mean, true_values, predicted_values
 
     def fitness_func(self, ga_instance, solution, solution_idx):
-        gm_mean, true_values, predicted_values = self.eval_func(ga_instance, solution, solution_idx)
+        try:
+            gm_mean, true_values, predicted_values = self.eval_func(ga_instance, solution, solution_idx)
+        except:
+            gm_mean = 0
+            print("gmean: {}, n_estimators: {} - ERROR".format(gm_mean, solution[9]))
+            return 0
         print("gmean: {}, n_estimators: {}".format(gm_mean, solution[9]))
         return gm_mean
 
@@ -173,4 +178,20 @@ class GaBoostingTabnetTuner:
 
         ga_instance.run()
         return
+
+    def evaluate_experiment(self, data, loss_function, solution):
+        kf = StratifiedKFold(n_splits=5, random_state=42, shuffle=True)
+        self.loss_function = loss_function
+
+        self.X_orig, self.y_orig = data
+        self.train_indices = []
+        self.test_indices = []
+        for train_index, test_index in kf.split(self.X_orig, self.y_orig):
+            self.train_indices.append(train_index)
+            self.test_indices.append(test_index)
+
+        self.fitness_func(None, solution, None)
+        return
+
+
 

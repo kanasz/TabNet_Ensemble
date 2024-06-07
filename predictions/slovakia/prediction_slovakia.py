@@ -32,8 +32,8 @@ if __name__ == '__main__':
     num_parents = 20  # 10
     population = 40  # 20
     business_area = 'construction'
-    year = '13'
-    postfix = '10_11_12'
+    year = '16'
+    postfix = '13_14_15'
     '''
     start_time = time.time()
     actual_loss_function = LossFunction.CROSSENTROPYLOSS
