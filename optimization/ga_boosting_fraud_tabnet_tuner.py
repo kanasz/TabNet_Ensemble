@@ -49,10 +49,6 @@ class GaBoostingFraudTabnetTuner:
         n_enstimators = int(solution[9])
 
         X, y = self.X_orig.copy(), self.y_orig.copy()
-        X = X.values
-        y = y.to_numpy()
-
-        X, y = self.X_orig.copy(), self.y_orig.copy()
         numerical_cols = ['age_of_driver', 'safty_rating', 'annual_income', 'past_num_of_claims',
                           'liab_prct', 'claim_est_payout', 'age_of_vehicle', 'vehicle_price', 'vehicle_weight']
         categorical_cols = ['gender', 'living_status', 'marital_status', 'high_education_ind',

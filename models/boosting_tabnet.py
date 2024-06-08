@@ -4,9 +4,9 @@ from pytorch_tabnet.tab_model import TabNetClassifier
 
 class BoostingTabNet:
     def __init__(self, n_estimators, learning_rate, n_d, n_a, n_steps, gamma, lambda_sparse, momentum, n_shared,
-                 n_independent, device, seed = 40):
+                 n_independent, device, seed=40):
         self.n_estimators = n_estimators
-        self.learning_rate = learning_rate #1.0
+        self.learning_rate = learning_rate  # 1.0
         self.n_d = n_d
         self.n_a = n_a
         self.n_steps = n_steps
@@ -20,21 +20,19 @@ class BoostingTabNet:
         self.model_weights = []
         self.device = device
 
-
-    def fit(self, X, y, eval_metric, loss_fn, max_epochs,patience,batch_size,drop_last):
+    def fit(self, X, y, eval_metric, loss_fn, max_epochs, patience, batch_size, drop_last):
         # Initialize sample weights
         sample_weights = np.ones(len(y)) / len(y)
 
         for _ in range(self.n_estimators):
             # Train TabNet model
 
-
-
-            model = TabNetClassifier(n_a=self.n_a+_, n_d=self.n_d+_, n_steps=self.n_steps+_, gamma=self.gamma, verbose=0,
-                                     lambda_sparse=self.lambda_sparse, momentum=self.momentum, n_shared=self.n_shared+_,
-                                     n_independent=self.n_independent, seed=self.seed, device_name=self.device)
-            model.fit(X_train=X, y_train=y, max_epochs=max_epochs, weights=sample_weights,
-                      eval_metric=eval_metric, loss_fn=loss_fn, patience=patience, batch_size=batch_size, drop_last=drop_last)
+            model = TabNetClassifier(n_a=self.n_a + _, n_d=self.n_d + _, n_steps=self.n_steps, gamma=self.gamma,
+                                     verbose=0, lambda_sparse=self.lambda_sparse, momentum=self.momentum,
+                                     n_shared=self.n_shared, n_independent=self.n_independent, seed=self.seed,
+                                     device_name=self.device)
+            model.fit(X_train=X, y_train=y, max_epochs=max_epochs, weights=sample_weights, eval_metric=eval_metric,
+                      loss_fn=loss_fn, patience=patience, batch_size=batch_size, drop_last=drop_last)
 
             # Predict training data
             y_pred = model.predict(X)
