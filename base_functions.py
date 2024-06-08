@@ -4,28 +4,31 @@ from pathlib import Path
 import pandas as pd
 from imblearn.metrics import geometric_mean_score
 from sklearn.metrics import make_scorer, accuracy_score, f1_score, roc_auc_score
-#from imblearn.metrics import geometric_mean_score, sensitivity_score, specificity_score
+
+
+# from imblearn.metrics import geometric_mean_score, sensitivity_score, specificity_score
 
 def get_slovak_data(business_area, year, postfix):
-    #print("Loading Slovak data...")
+    # print("Loading Slovak data...")
     path_bankrupt = Path(__file__).parent / "data/slovak_data/parsed_data/bankrupt/bankrupt_{}_{}_year_{}.csv" \
         .format(business_area, year, postfix)
     path_non_bankrupt = Path(__file__).parent / "data/slovak_data/parsed_data/non_bankrupt/nonbankrupt_{}_{}_year_{}" \
                                                 ".csv".format(business_area, year, postfix)
-    #print("Data: {}".format(path_bankrupt))
+    # print("Data: {}".format(path_bankrupt))
     bankrupt_data = pd.read_csv(path_bankrupt)
     non_bankrupt_data = pd.read_csv(path_non_bankrupt)
-    #features = bankrupt_data.drop(["IS_BANKRUPT"], axis=1).append(non_bankrupt_data.drop(["IS_BANKRUPT"], axis=1))
-    #labels = bankrupt_data["IS_BANKRUPT"].append(non_bankrupt_data["IS_BANKRUPT"])
+    # features = bankrupt_data.drop(["IS_BANKRUPT"], axis=1).append(non_bankrupt_data.drop(["IS_BANKRUPT"], axis=1))
+    # labels = bankrupt_data["IS_BANKRUPT"].append(non_bankrupt_data["IS_BANKRUPT"])
 
-    features= pd.concat([bankrupt_data.drop(["IS_BANKRUPT"], axis=1), non_bankrupt_data.drop(["IS_BANKRUPT"], axis=1)])
-    labels = pd.concat([bankrupt_data["IS_BANKRUPT"],non_bankrupt_data["IS_BANKRUPT"]])
-    #print("Info: rows - {}, columns - {}".format(len(features), len(features.columns)))
+    features = pd.concat([bankrupt_data.drop(["IS_BANKRUPT"], axis=1), non_bankrupt_data.drop(["IS_BANKRUPT"], axis=1)])
+    labels = pd.concat([bankrupt_data["IS_BANKRUPT"], non_bankrupt_data["IS_BANKRUPT"]])
+    # print("Info: rows - {}, columns - {}".format(len(features), len(features.columns)))
     return features, labels
+
 
 def get_synthetic_data(contamination, features):
     path = Path(__file__).parent / "data/synthetic_data/synthetic_{}_contamination_{}_features.csv" \
-        .format(contamination,features)
+        .format(contamination, features)
 
     data = pd.read_csv(path)
     features = data.drop(["target"], axis=1)
@@ -35,14 +38,15 @@ def get_synthetic_data(contamination, features):
 
 def get_scoring_dict():
     scoring_dict = {
-        #'accuracy_score': make_scorer(accuracy_score),
-        #'f1_score': make_scorer(f1_score),
+        # 'accuracy_score': make_scorer(accuracy_score),
+        # 'f1_score': make_scorer(f1_score),
         'roc_auc_score': make_scorer(roc_auc_score),
         'geometric_mean_score': make_scorer(geometric_mean_score),
-        #'sensitivity_score': make_scorer(sensitivity_score),
-        #'specificity_score': make_scorer(specificity_score)
+        # 'sensitivity_score': make_scorer(sensitivity_score),
+        # 'specificity_score': make_scorer(specificity_score)
     }
     return scoring_dict
+
 
 def save_results(clf, data_origin, file_name, best_params, cv_results):
     print("Saving prediction results...")
@@ -62,5 +66,15 @@ def save_results(clf, data_origin, file_name, best_params, cv_results):
     path = Path(__file__).parent / "predictions/{}/results/{}/{}_best_params.csv".format(clf, data_origin, file_name)
     w = csv.writer(open(path, "w"))
     for key, val in best_params.items():
-        w.writerow([key.replace('model__',''), val])
+        w.writerow([key.replace('model__', ''), val])
     return
+
+
+def get_fraudulent_claim_on_cars_physical_damage_data():
+    path = Path(__file__).parent / "data/fraudulent_claim_on_cars_physical_damage/training data subsampled.csv"
+    data = pd.read_csv(path)
+    data = data.dropna()
+    features = data.drop(["fraud", "claim_number", "zip_code", "claim_date", "claim_day_of_week"], axis=1)
+    # features = pd.get_dummies(features, columns=['gender','living_status','accident_site','channel','vehicle_category','vehicle_color'])
+    labels = data['fraud']
+    return features, labels
