@@ -26,9 +26,13 @@ def get_slovak_data(business_area, year, postfix):
     return features, labels
 
 
-def get_synthetic_data(contamination, features):
-    path = Path(__file__).parent / "data/synthetic_data/synthetic_{}_contamination_{}_features.csv" \
-        .format(contamination, features)
+def get_synthetic_data(prefix, contamination, features, samples=None):
+    if samples is None:
+        path = Path(__file__).parent / "data/synthetic_data/{}_synthetic_{}_contamination_{}_features.csv" \
+            .format(prefix, contamination, features)
+    else:
+        path = Path(__file__).parent / "data/synthetic_data/{}_synthetic_{}_contamination_{}_features_{}_samples.csv" \
+            .format(prefix, contamination, features, samples)
 
     data = pd.read_csv(path)
     features = data.drop(["target"], axis=1)
