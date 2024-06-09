@@ -110,13 +110,16 @@ class GaBoostingFraudTabnetTuner:
         return gm_mean, true_values, predicted_values
 
     def fitness_func(self, ga_instance, solution, solution_idx):
+        start_time = time.time()
         try:
             gm_mean, true_values, predicted_values = self.eval_func(ga_instance, solution, solution_idx)
         except:
             gm_mean = 0
-            print("gmean: {}, n_estimators: {} - ERROR".format(gm_mean, solution[9]))
+            t = time.time() - start_time
+            print("gmean: {}, n_estimators: {}, {} seconds - ERROR".format(gm_mean, solution[9], t))
             return 0
-        print("gmean: {}, n_estimators: {}".format(gm_mean, solution[9]))
+        t = time.time() - start_time
+        print("gmean: {}, n_estimators: {}, {} seconds".format(gm_mean, solution[9], t))
         return gm_mean
 
     def run_experiment(self, data, fname, loss_function):

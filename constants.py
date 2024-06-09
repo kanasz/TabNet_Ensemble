@@ -21,7 +21,7 @@ tabnet_gene_types = [int, int, int, float, float, float, int, int, float]
 tabnet_gene_space = [
     {'low': 8, 'high': 64},  # n_d
     {'low': 8, 'high': 64},  # n_a
-    {'low': 1, 'high': 10},  # n_steps
+    {'low': 1, 'high': 1},  # n_steps
     {'low': 1, 'high': 5},  # gamma
     {'low': 1e-4, 'high': 1e-2},  # lambda
     {'low': 0.01, 'high': 0.8},  # momentum

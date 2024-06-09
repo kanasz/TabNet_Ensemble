@@ -27,7 +27,7 @@ class BoostingTabNet:
         for _ in range(self.n_estimators):
             # Train TabNet model
 
-            model = TabNetClassifier(n_a=self.n_a + _, n_d=self.n_d + _, n_steps=self.n_steps, gamma=self.gamma,
+            model = TabNetClassifier(n_a=self.n_a , n_d=self.n_d , n_steps=_+1, gamma=self.gamma,
                                      verbose=0, lambda_sparse=self.lambda_sparse, momentum=self.momentum,
                                      n_shared=self.n_shared, n_independent=self.n_independent, seed=self.seed,
                                      device_name=self.device)

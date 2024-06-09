@@ -20,7 +20,7 @@ if __name__ == '__main__':
     actual_loss_function = LossFunction.CROSSENTROPYLOSS
     tuner = GaBoostingFraudTabnetTuner(tabnet_max_epochs, num_generations, num_parents, population, device='cuda', use_smote=False)
     tuner.run_experiment(data,
-                         'results/BOOSTING_CROSSENTROPYLOSS_fraud'
+                         'results/BOOSTING_CROSSENTROPYLOSS_2_fraud'
                          , actual_loss_function)
     print("--- total: %s seconds ---" % (time.time() - start_time))
     print("Experiment info -> data: FRAUD, loss function: {}".format(actual_loss_function))
