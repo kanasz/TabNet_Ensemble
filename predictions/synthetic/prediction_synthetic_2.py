@@ -41,12 +41,11 @@ if __name__ == '__main__':
     tuner = GaBoostingTabnetTuner(tabnet_max_epochs, num_generations, num_parents, population, device='cuda',
                                   use_smote=False,
                                   use_new_model=False)
-    tuner.run_experiment(data, 'results_200_samples/CROSSENTROPYLOSS_synthetic_{}_contamination_{}_features_{}_epochs_{}_population_{}'
+    tuner.run_experiment(data, 'results_200_samples/CROSSENTROPYLOSS_2.2_synthetic_{}_contamination_{}_features_{}_epochs_{}_population_{}'
                          .format(contamination, features, samples, tabnet_max_epochs, population), actual_loss_function)
     print("--- total: %s seconds ---" % (time.time() - start_time))
     print("Experiment info -> data: {}, features: {}, loss function: {}".format(contamination, features,
                                                                                 actual_loss_function))
-    tuner.evaluate_experiment_from_pkl(data,actual_loss_function,"results/BOOSTING_CROSSENTROPYLOSS_2_construction_16_13_14_15_features_50_epochs_50_population")
 
 
 

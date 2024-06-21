@@ -281,6 +281,15 @@ genes_boosting_crossentropy_loss = {
         {'low': 0, 'high': 500}  # weight1
     ]
 }
+
+genes_bagging_crossentropy_loss = {
+    "types": tabnet_gene_types + [int, float, float],
+    "space": tabnet_gene_space + [
+        {'low': 1, 'high': 10},  # n_estimators
+        {'low': 0, 'high': 5},  # weight0
+        {'low': 0, 'high': 500}  # weight1
+    ]
+}
 '''
 genes_crossentropy_loss = {
     "types": tabnet_gene_types + [float, float, int, float],

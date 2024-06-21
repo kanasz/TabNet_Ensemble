@@ -7,14 +7,17 @@ from pygad import pygad
 from sklearn.impute import SimpleImputer
 from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import StandardScaler
+
+from models.bagging_tabnet import BaggingTabNet
 from models.boosting_tabnet import BoostingTabNet
-from optimization.ga_tabnet_functions import GMean, get_loss, get_boosting_gene_type_and_space
+from optimization.ga_tabnet_functions import GMean, get_loss, get_boosting_gene_type_and_space, \
+    get_bagging_gene_type_and_space
 
 seed = 42
 pygad.random.seed(42)
 
 
-class GaBoostingTabnetTuner:
+class GaBaggingTabnetTuner:
 
     def __init__(self, tabnet_max_epochs, num_generations, num_parents=10, population=20, device='cuda',
                  use_smote=False, use_new_model=False):
@@ -54,7 +57,7 @@ class GaBoostingTabnetTuner:
         fold = 0
         for index, train_index in enumerate(self.train_indices):
             test_index = self.test_indices[index]
-            tb_cls = BoostingTabNet(seed=42, n_d=n_d, n_a=n_a,
+            tb_cls = BaggingTabNet(seed=42, n_d=n_d, n_a=n_a,
                                     device=self.device,
                                     n_steps=n_steps, gamma=gamma, lambda_sparse=lambda_sparse, momentum=momentum,
                                     n_shared=n_shared, n_independent=n_independent, n_estimators=n_enstimators,
@@ -70,8 +73,7 @@ class GaBoostingTabnetTuner:
             X_valid_std = std_scaler.transform(X_valid_imp)
             cls_sum = np.sum(y_train)
             cls_num_list = [len(y_train) - cls_sum, cls_sum]
-            # loss_fn = get_loss(self.loss_function, solution[10:], cls_num_list, self.device)
-            loss_fn = get_loss(self.loss_function, solution[-2:], cls_num_list, self.device)
+            loss_fn = get_loss(self.loss_function, solution[10:], cls_num_list, self.device)
 
             if self.use_smote:
                 smote = SMOTE(random_state=11, k_neighbors=2)
@@ -95,14 +97,13 @@ class GaBoostingTabnetTuner:
 
     def fitness_func(self, ga_instance, solution, solution_idx):
         start_time = time.time()
-        # try:
-        gm_mean, true_values, predicted_values = self.eval_func(ga_instance, solution, solution_idx)
-
-        # except Exception as e:
-        #    gm_mean = 0
-        #    t = time.time() - start_time
-        #    print("gmean: {}, n_estimators: {}, {} seconds - ERROR".format(gm_mean, solution[9], t))
-        #    return 0
+        try:
+            gm_mean, true_values, predicted_values = self.eval_func(ga_instance, solution, solution_idx)
+        except:
+            gm_mean = 0
+            t = time.time() - start_time
+            print("gmean: {}, n_estimators: {}, {} seconds - ERROR".format(gm_mean, solution[9], t))
+            return 0
         t = time.time() - start_time
         print("gmean: {}, n_estimators: {}, {} seconds".format(gm_mean, solution[9], t))
 
@@ -117,7 +118,7 @@ class GaBoostingTabnetTuner:
 
         self.X_orig, self.y_orig = data
 
-        params = get_boosting_gene_type_and_space(loss_function)
+        params = get_bagging_gene_type_and_space(loss_function)
         self.train_indices = []
         self.test_indices = []
         for train_index, test_index in kf.split(self.X_orig, self.y_orig):
@@ -193,22 +194,12 @@ class GaBoostingTabnetTuner:
             self.train_indices.append(train_index)
             self.test_indices.append(test_index)
 
-        # self.fitness_func(None, solution, None)
-        result = self.eval_func(None, solution, None)
-
-        return result
+        self.fitness_func(None, solution, None)
+        return
 
     def evaluate_experiment_from_pkl(self, data, loss_function, filename):
         ga_instance = pygad.load(filename)
         solution = ga_instance.best_solutions[-1]
-        new_fitness, true_values, predicted_values = self.evaluate_experiment(data, loss_function, solution)
-
-        result = {
-            'fitness': new_fitness,
-            'true_values': true_values,
-            'predicted_values': predicted_values
-        }
-        with open(filename + '.txt', 'w') as data:
-            data.write(str(result))
-
+        self.evaluate_experiment(data, loss_function, solution)
         return
+

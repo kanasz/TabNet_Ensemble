@@ -1,5 +1,9 @@
 import os
 import time
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
 import numpy as np
 from imbalanced_ensemble.metrics import geometric_mean_score
 from imblearn.over_sampling import SMOTE
@@ -14,7 +18,7 @@ seed = 42
 pygad.random.seed(42)
 
 
-class GaBoostingTabnetTuner:
+class GaBoostingAidsTabnetTuner:
 
     def __init__(self, tabnet_max_epochs, num_generations, num_parents=10, population=20, device='cuda',
                  use_smote=False, use_new_model=False):
@@ -45,8 +49,23 @@ class GaBoostingTabnetTuner:
         n_enstimators = int(solution[9])
 
         X, y = self.X_orig.copy(), self.y_orig.copy()
-        X = X.values
-        y = y.to_numpy()
+        categorical_cols = ['trt', 'hemo', 'homo', 'drugs', 'oprior', 'z30', 'race', 'gender', 'str2', 'strat',
+                            'symptom',
+                            'treat', 'offtrt']
+        numerical_cols = ['time', 'age', 'wtkg', 'karnof', 'preanti', 'cd40', 'cd420', 'cd80', 'cd820']
+        preprocessor = ColumnTransformer(
+            transformers=[
+                ('num', Pipeline(steps=[
+                    ('imputer', SimpleImputer(strategy='median')),
+                    ('scaler', StandardScaler())]),
+                 numerical_cols),
+                ('cat', Pipeline(steps=[
+                    ('imputer', SimpleImputer(strategy='most_frequent')),
+                    ('encoder', OneHotEncoder(handle_unknown='ignore'))]),
+                 categorical_cols)
+            ]
+        )
+
         gmeans = []
 
         true_values = []
@@ -54,24 +73,20 @@ class GaBoostingTabnetTuner:
         fold = 0
         for index, train_index in enumerate(self.train_indices):
             test_index = self.test_indices[index]
-            tb_cls = BoostingTabNet(seed=42, n_d=n_d, n_a=n_a,
-                                    device=self.device,
-                                    n_steps=n_steps, gamma=gamma, lambda_sparse=lambda_sparse, momentum=momentum,
-                                    n_shared=n_shared, n_independent=n_independent, n_estimators=n_enstimators,
-                                    learning_rate=learning_rate)
-            X_train, X_valid = X[train_index], X[test_index]
-            y_train, y_valid = y[train_index], y[test_index]
-            imputer = SimpleImputer()
-            X_train_imp = imputer.fit_transform(X_train)
-            X_valid_imp = imputer.transform(X_valid)
+            tb_cls = BoostingTabNet(seed=42,  n_d=n_d, n_a=n_a,
+                                      device=self.device,
+                                      n_steps=n_steps, gamma=gamma, lambda_sparse=lambda_sparse, momentum=momentum,
+                                      n_shared=n_shared, n_independent=n_independent,n_estimators=n_enstimators, learning_rate=learning_rate)
 
-            std_scaler = StandardScaler()
-            X_train_std = std_scaler.fit_transform(X_train_imp)
-            X_valid_std = std_scaler.transform(X_valid_imp)
+            X_train_std = preprocessor.fit_transform(X.iloc[train_index])
+            X_valid_std = preprocessor.transform(X.iloc[test_index])
+            y_train, y_valid = np.array(y.iloc[train_index]), np.array(y.iloc[test_index])
+
             cls_sum = np.sum(y_train)
             cls_num_list = [len(y_train) - cls_sum, cls_sum]
-            # loss_fn = get_loss(self.loss_function, solution[10:], cls_num_list, self.device)
-            loss_fn = get_loss(self.loss_function, solution[-2:], cls_num_list, self.device)
+            loss_fn = get_loss(self.loss_function, solution[10:], cls_num_list, self.device)
+
+
 
             if self.use_smote:
                 smote = SMOTE(random_state=11, k_neighbors=2)
@@ -83,7 +98,7 @@ class GaBoostingTabnetTuner:
                        patience=100,
                        batch_size=3000,
                        drop_last=False)
-            fold = fold + 1
+            fold = fold+1
             y_pred = tb_cls.predict(X_valid_std)
             true_values.append(y_valid)
             predicted_values.append(y_pred)
@@ -95,17 +110,15 @@ class GaBoostingTabnetTuner:
 
     def fitness_func(self, ga_instance, solution, solution_idx):
         start_time = time.time()
-        # try:
-        gm_mean, true_values, predicted_values = self.eval_func(ga_instance, solution, solution_idx)
-
-        # except Exception as e:
-        #    gm_mean = 0
-        #    t = time.time() - start_time
-        #    print("gmean: {}, n_estimators: {}, {} seconds - ERROR".format(gm_mean, solution[9], t))
-        #    return 0
+        try:
+            gm_mean, true_values, predicted_values = self.eval_func(ga_instance, solution, solution_idx)
+        except:
+            gm_mean = 0
+            t = time.time() - start_time
+            print("gmean: {}, n_estimators: {}, {} seconds - ERROR".format(gm_mean, solution[9], t))
+            return 0
         t = time.time() - start_time
         print("gmean: {}, n_estimators: {}, {} seconds".format(gm_mean, solution[9], t))
-
         return gm_mean
 
     def run_experiment(self, data, fname, loss_function):
@@ -116,6 +129,7 @@ class GaBoostingTabnetTuner:
         num_parents_mating = self.num_parents
 
         self.X_orig, self.y_orig = data
+
 
         params = get_boosting_gene_type_and_space(loss_function)
         self.train_indices = []
@@ -135,7 +149,7 @@ class GaBoostingTabnetTuner:
             print('------------------------------------------------')
             print('last population fitness: {}'.format(last_population_fitness[0]))
             new_fitness, true_values, predicted_values = self.eval_func(ga_instance,
-                                                                        ga_instance.best_solutions[-1], None)
+                                                                                ga_instance.best_solutions[-1], None)
             result = {
                 'fitness': new_fitness,
                 'true_values': true_values,
@@ -193,22 +207,8 @@ class GaBoostingTabnetTuner:
             self.train_indices.append(train_index)
             self.test_indices.append(test_index)
 
-        # self.fitness_func(None, solution, None)
-        result = self.eval_func(None, solution, None)
-
-        return result
-
-    def evaluate_experiment_from_pkl(self, data, loss_function, filename):
-        ga_instance = pygad.load(filename)
-        solution = ga_instance.best_solutions[-1]
-        new_fitness, true_values, predicted_values = self.evaluate_experiment(data, loss_function, solution)
-
-        result = {
-            'fitness': new_fitness,
-            'true_values': true_values,
-            'predicted_values': predicted_values
-        }
-        with open(filename + '.txt', 'w') as data:
-            data.write(str(result))
-
+        self.fitness_func(None, solution, None)
         return
+
+
+

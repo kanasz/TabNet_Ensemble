@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -15,11 +16,12 @@ class CrossEntropyLoss(nn.Module):
         else:
             self.weight = torch.cuda.FloatTensor(weight)
 
-    def forward(self, x, target,features=None):
+    def forward(self, x, target):
+        true_val = target
         softmax_pred = torch.nn.Softmax(dim=-1)(x.to(torch.float64))
         if self.device=='cpu':
-            target = F.one_hot(target).to(torch.device('cpu')).float()  # Change to float here
+            target = F.one_hot(target,2).to(torch.device('cpu')).float()  # Change to float here
         else:
-            target = F.one_hot(target).to(torch.device('cuda')).float()  # Change to float here
+            target = F.one_hot(target,2).to(torch.device('cuda')).float()  # Change to float here
 
         return F.cross_entropy(softmax_pred, target, weight=self.weight)

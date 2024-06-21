@@ -27,13 +27,13 @@ class BoostingTabNet:
         for _ in range(self.n_estimators):
             # Train TabNet model
 
+
             model = TabNetClassifier(n_a=self.n_a , n_d=self.n_d , n_steps=_+1, gamma=self.gamma,
                                      verbose=0, lambda_sparse=self.lambda_sparse, momentum=self.momentum,
                                      n_shared=self.n_shared, n_independent=self.n_independent, seed=self.seed,
                                      device_name=self.device)
             model.fit(X_train=X, y_train=y, max_epochs=max_epochs, weights=sample_weights, eval_metric=eval_metric,
                       loss_fn=loss_fn, patience=patience, batch_size=batch_size, drop_last=drop_last)
-
             # Predict training data
             y_pred = model.predict(X)
 

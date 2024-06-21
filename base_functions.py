@@ -82,3 +82,11 @@ def get_fraudulent_claim_on_cars_physical_damage_data():
     # features = pd.get_dummies(features, columns=['gender','living_status','accident_site','channel','vehicle_category','vehicle_color'])
     labels = data['fraud']
     return features, labels
+
+def get_aids_data(features):
+    path = Path(__file__).parent / "data/aids_classification/aids_classification_{}.csv".format(features)
+    data = pd.read_csv(path)
+    data = data.dropna()
+    features = data.drop(["infected"], axis=1)
+    labels = data['infected']
+    return features, labels

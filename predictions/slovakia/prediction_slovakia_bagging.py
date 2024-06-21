@@ -6,7 +6,7 @@ import torch
 
 from base_functions import get_synthetic_data, get_slovak_data
 from constants import LossFunction
-from optimization.ga_boosting_tabnet_tuner import GaBoostingTabnetTuner
+from optimization.ga_bagging_tabnet_tuner import GaBaggingTabnetTuner
 
 
 seed = 42
@@ -32,8 +32,8 @@ if __name__ == '__main__':
     num_parents = 20  # 10
     population = 50  # 20
     business_area = 'construction'
-    year = '16'
-    postfix = '13_14_15'
+    year = '13'
+    postfix = '10_11_12'
     '''
     start_time = time.time()
     actual_loss_function = LossFunction.CROSSENTROPYLOSS
@@ -46,9 +46,9 @@ if __name__ == '__main__':
     start_time = time.time()
     actual_loss_function = LossFunction.CROSSENTROPYLOSS
     data = get_slovak_data(business_area, year, postfix)
-    tuner = GaBoostingTabnetTuner(tabnet_max_epochs, num_generations, num_parents, population, device='cuda', use_smote=False,
+    tuner = GaBaggingTabnetTuner(tabnet_max_epochs, num_generations, num_parents, population, device='cuda', use_smote=False,
                           use_new_model=True)
-    tuner.run_experiment(data, 'results/BOOSTING_CROSSENTROPYLOSS_2_{}_{}_{}_features_{}_epochs_50_population'
+    tuner.run_experiment(data, 'results/BAGGING_CROSSENTROPYLOSS_{}_{}_{}_features_{}_epochs_50_population'
                          .format(business_area, year, postfix, tabnet_max_epochs), actual_loss_function)
     print("--- total: %s seconds ---" % (time.time() - start_time))
 
