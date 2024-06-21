@@ -24,7 +24,7 @@ class BaggingTabNet:
     def fit(self, X, y, eval_metric, loss_fn, max_epochs, patience, batch_size, drop_last):
         for _ in range(self.n_estimators):
             # Bootstrap sampling
-            X_resampled, y_resampled = resample(X, y, replace=True, random_state=10)
+            X_resampled, y_resampled = resample(X, y, replace=True, random_state=None)
 
             # Train TabNet model
             model = TabNetClassifier(n_a=self.n_a, n_d=self.n_d, n_steps=self.n_steps, gamma=self.gamma,

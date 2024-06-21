@@ -14,7 +14,8 @@ from sklearn.preprocessing import StandardScaler
 
 from models.bagging_tabnet import BaggingTabNet
 from models.boosting_tabnet import BoostingTabNet
-from optimization.ga_tabnet_functions import GMean, get_loss, get_boosting_gene_type_and_space
+from optimization.ga_tabnet_functions import GMean, get_loss, get_boosting_gene_type_and_space, \
+    get_bagging_gene_type_and_space
 
 seed = 42
 pygad.random.seed(42)
@@ -134,7 +135,7 @@ class GaBaggingFraudTabnetTuner:
         self.X_orig, self.y_orig = data
 
 
-        params = get_boosting_gene_type_and_space(loss_function)
+        params = get_bagging_gene_type_and_space(loss_function)
         self.train_indices = []
         self.test_indices = []
         for train_index, test_index in kf.split(self.X_orig, self.y_orig):
