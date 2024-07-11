@@ -43,6 +43,9 @@ class GaBoostingTabnetTuner:
         n_independent = int(solution[7])
         learning_rate = (solution[8])
         n_enstimators = int(solution[9])
+        smote_p = float(solution[10])
+        smote_alpha = float(solution[11])
+        smote_beta = float(solution[12])
 
         X, y = self.X_orig.copy(), self.y_orig.copy()
         X = X.values
@@ -58,7 +61,7 @@ class GaBoostingTabnetTuner:
                                     device=self.device,
                                     n_steps=n_steps, gamma=gamma, lambda_sparse=lambda_sparse, momentum=momentum,
                                     n_shared=n_shared, n_independent=n_independent, n_estimators=n_enstimators,
-                                    learning_rate=learning_rate)
+                                    learning_rate=learning_rate, p=smote_p, alpha=smote_alpha, beta=smote_beta)
             X_train, X_valid = X[train_index], X[test_index]
             y_train, y_valid = y[train_index], y[test_index]
             imputer = SimpleImputer()
@@ -74,14 +77,14 @@ class GaBoostingTabnetTuner:
             loss_fn = get_loss(self.loss_function, solution[-2:], cls_num_list, self.device)
 
             if self.use_smote:
-                smote = SMOTE(random_state=11, k_neighbors=2)
+                smote = SMOTE(random_state=11, k_neighbors=5)
                 X_train_std, y_train = smote.fit_resample(X_train_std, y_train)
             tb_cls.fit(X_train_std, y_train,
                        eval_metric=[GMean],
                        loss_fn=loss_fn,
                        max_epochs=self.tabnet_max_epochs,
                        patience=100,
-                       batch_size=3000,
+                       batch_size=5000,
                        drop_last=False)
             fold = fold + 1
             y_pred = tb_cls.predict(X_valid_std)
@@ -95,14 +98,14 @@ class GaBoostingTabnetTuner:
 
     def fitness_func(self, ga_instance, solution, solution_idx):
         start_time = time.time()
-        # try:
-        gm_mean, true_values, predicted_values = self.eval_func(ga_instance, solution, solution_idx)
+        try:
+            gm_mean, true_values, predicted_values = self.eval_func(ga_instance, solution, solution_idx)
 
-        # except Exception as e:
-        #    gm_mean = 0
-        #    t = time.time() - start_time
-        #    print("gmean: {}, n_estimators: {}, {} seconds - ERROR".format(gm_mean, solution[9], t))
-        #    return 0
+        except Exception as e:
+            gm_mean = 0
+            t = time.time() - start_time
+            print("gmean: {}, n_estimators: {}, {} seconds - ERROR".format(gm_mean, solution[9], t))
+            return 0
         t = time.time() - start_time
         print("gmean: {}, n_estimators: {}, {} seconds".format(gm_mean, solution[9], t))
 
@@ -201,14 +204,16 @@ class GaBoostingTabnetTuner:
     def evaluate_experiment_from_pkl(self, data, loss_function, filename):
         ga_instance = pygad.load(filename)
         solution = ga_instance.best_solutions[-1]
+        #solution[-1] = 500
         new_fitness, true_values, predicted_values = self.evaluate_experiment(data, loss_function, solution)
 
         result = {
             'fitness': new_fitness,
             'true_values': true_values,
-            'predicted_values': predicted_values
+            'predicted_values': predicted_values,
+            'solution': solution
         }
-        with open(filename + '.txt', 'w') as data:
-            data.write(str(result))
-
+        #with open(filename + '.txt', 'w') as data:
+        #    data.write(str(result))
+        print(new_fitness)
         return

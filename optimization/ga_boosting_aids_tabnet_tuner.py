@@ -47,6 +47,9 @@ class GaBoostingAidsTabnetTuner:
         n_independent = int(solution[7])
         learning_rate = (solution[8])
         n_enstimators = int(solution[9])
+        smote_p = float(solution[10])
+        smote_alpha = float(solution[11])
+        smote_beta = float(solution[12])
 
         X, y = self.X_orig.copy(), self.y_orig.copy()
         categorical_cols = ['trt', 'hemo', 'homo', 'drugs', 'oprior', 'z30', 'race', 'gender', 'str2', 'strat',
@@ -73,10 +76,11 @@ class GaBoostingAidsTabnetTuner:
         fold = 0
         for index, train_index in enumerate(self.train_indices):
             test_index = self.test_indices[index]
-            tb_cls = BoostingTabNet(seed=42,  n_d=n_d, n_a=n_a,
-                                      device=self.device,
-                                      n_steps=n_steps, gamma=gamma, lambda_sparse=lambda_sparse, momentum=momentum,
-                                      n_shared=n_shared, n_independent=n_independent,n_estimators=n_enstimators, learning_rate=learning_rate)
+            tb_cls = BoostingTabNet(seed=42, n_d=n_d, n_a=n_a,
+                                    device=self.device,
+                                    n_steps=n_steps, gamma=gamma, lambda_sparse=lambda_sparse, momentum=momentum,
+                                    n_shared=n_shared, n_independent=n_independent, n_estimators=n_enstimators,
+                                    learning_rate=learning_rate, p=smote_p, alpha=smote_alpha, beta=smote_beta)
 
             X_train_std = preprocessor.fit_transform(X.iloc[train_index])
             X_valid_std = preprocessor.transform(X.iloc[test_index])
@@ -207,7 +211,24 @@ class GaBoostingAidsTabnetTuner:
             self.train_indices.append(train_index)
             self.test_indices.append(test_index)
 
-        self.fitness_func(None, solution, None)
+        result = self.fitness_func(None, solution, None)
+        return
+
+    def evaluate_experiment_from_pkl(self, data, loss_function, filename):
+        ga_instance = pygad.load(filename)
+        solution = ga_instance.best_solutions[-1]
+        #solution[-1] = 500
+        new_fitness, true_values, predicted_values = self.evaluate_experiment(data, loss_function, solution)
+
+        result = {
+            'fitness': new_fitness,
+            'true_values': true_values,
+            'predicted_values': predicted_values,
+            'solution': solution
+        }
+        #with open(filename + '.txt', 'w') as data:
+        #    data.write(str(result))
+        print(new_fitness)
         return
 
 

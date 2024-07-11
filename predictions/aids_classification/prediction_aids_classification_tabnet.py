@@ -18,7 +18,11 @@ if __name__ == '__main__':
     data = get_aids_data(samples)
     actual_loss_function = LossFunction.CROSSENTROPYLOSS
     tuner = GaBoostingAidsTabnetTuner(tabnet_max_epochs, num_generations, num_parents, population, device='cuda', use_smote=False)
-    tuner.run_experiment(data, 'results/CROSSENTROPYLOSS_AIDS_{}_samples_{}_epochs'.format(samples, tabnet_max_epochs),
+    tuner.run_experiment(data, 'results/CROSSENTROPYLOSS_AIDS_2_{}_samples_{}_epochs'.format(samples, tabnet_max_epochs),
                          actual_loss_function)
     print("--- total: %s seconds ---" % (time.time() - start_time))
     print("Experiment info -> data: {}, samples: {}, loss function: {}".format('AIDS', samples, actual_loss_function))
+
+
+    #tuner.evaluate_experiment_from_pkl(data, actual_loss_function,
+    #                                   "results/CROSSENTROPYLOSS_AIDS_2139_samples_50_epochs")

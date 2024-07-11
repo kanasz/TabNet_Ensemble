@@ -58,9 +58,9 @@ if __name__ == '__main__':
     # CONSTRUCTION 2016 - 0.9616855784
 
     tabnet_max_epochs = 50
-    data = get_slovak_data(business_area, '16', '13_14_15')
+    data = get_slovak_data(business_area, '13', '10_11_12')
     tuner = GaBoostingTabnetTuner(tabnet_max_epochs, num_generations, num_parents, population, device='cuda',
                                   use_smote=False,
                                   use_new_model=False)
     tuner.evaluate_experiment_from_pkl(data, actual_loss_function,
-                                       "results/BOOSTING_CROSSENTROPYLOSS_2_construction_16_13_14_15_features_50_epochs_50_population")
+                                       "results/BOOSTING_CROSSENTROPYLOSS_3_construction_13_10_11_12_features_50_epochs_50_population")

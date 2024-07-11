@@ -35,7 +35,7 @@ if __name__ == '__main__':
     #columns_to_scale = ['age_of_driver', 'safty_rating', 'annual_income', 'liab_prct', 'claim_est_payout', 'age_of_vehicle','vehicle_price','vehicle_weight']
     columns_to_scale = [0]
     actual_loss_function = LossFunction.CROSSENTROPYLOSS
-    tuner = GaBaggingFraudTabnetTuner(tabnet_max_epochs, num_generations, num_parents, population, device='cuda', use_smote=False)
+    tuner = GaBoostingFraudTabnetTuner(tabnet_max_epochs, num_generations, num_parents, population, device='cuda', use_smote=False)
     tuner.run_experiment(data,
                          'results/BAGGING_CROSSENTROPYLOSS_fraud'
                          , actual_loss_function)

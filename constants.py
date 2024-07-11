@@ -274,9 +274,13 @@ genes_boosting_vs_loss_mdr = {
 }
 
 genes_boosting_crossentropy_loss = {
-    "types": tabnet_gene_types + [int, float, float],
+    "types": tabnet_gene_types + [int, float, float, float, float, float],
     "space": tabnet_gene_space + [
         {'low': 1, 'high': 10},  # n_estimators
+        {'low': 0, 'high': 1},  # p
+        {'low': 0, 'high': 1},  # alpha
+        {'low': 0, 'high': 1},  # beta
+        #{'low': 0, 'high': 2},  # increase_steps
         {'low': 0, 'high': 5},  # weight0
         {'low': 0, 'high': 500}  # weight1
     ]
