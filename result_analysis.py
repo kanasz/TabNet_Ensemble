@@ -37,6 +37,7 @@ print("FRAUD")
 process_results("predictions/cars_damage_fraud/results/BOOSTING_CROSSENTROPYLOSS_4_fraud.txt")
 print("SYNTHETIC 01")
 process_results("predictions/synthetic/results_200_samples/CROSSENTROPYLOSS_01_synthetic_0.3_contamination_50_features_200_epochs_50_population_50.txt")
-
+print("SYNTHETIC 02")
+process_results("predictions/synthetic/results_200_samples/CROSSENTROPYLOSS_02_synthetic_0.1_contamination_100_features_200_epochs_50_population_50_samples_200.txt")
 print("SYNTHETIC 03")
 process_results("predictions/synthetic/results_200_samples/CROSSENTROPYLOSS_synthetic_0.02_contamination_200_features_200_epochs_70_population_50.txt")

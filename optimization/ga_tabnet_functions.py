@@ -9,7 +9,8 @@ from constants import LossFunction, genes_ib_loss, genes_vs_loss, genes_ldam_los
     genes_binary_vs_loss_mdr, genes_crossentropy_loss, genes_boosting_ib_loss, genes_boosting_vs_loss, \
     genes_boosting_ldam_loss, genes_boosting_focal_loss, genes_boosting_ib_focal_loss, genes_boosting_binary_vs_loss, \
     genes_boosting_vs_loss_mdr, genes_boosting_ldam_loss_mdr, genes_boosting_ib_loss_mdr, \
-    genes_boosting_binary_vs_loss_mdr, genes_boosting_crossentropy_loss, genes_bagging_crossentropy_loss
+    genes_boosting_binary_vs_loss_mdr, genes_boosting_crossentropy_loss, genes_bagging_crossentropy_loss, \
+    genes_oc_bagging_crossentropy_loss
 # from loss_functions.ib_loss import LDAMLoss, BinaryVSLoss, VSLoss, IBLoss
 from loss_functions.binary_vs_loss import BinaryVSLoss
 from loss_functions.binary_vs_loss_mdr import BinaryVSLossMDR
@@ -67,6 +68,7 @@ def get_gene_type_and_space(loss_function):
         return genes_crossentropy_loss
     return
 
+
 def get_boosting_gene_type_and_space(loss_function):
     if loss_function == LossFunction.IBLOSS:
         return genes_boosting_ib_loss
@@ -96,6 +98,12 @@ def get_bagging_gene_type_and_space(loss_function):
 
     if loss_function ==LossFunction.CROSSENTROPYLOSS:
         return genes_bagging_crossentropy_loss
+    return
+
+def get_oc_bagging_gene_type_and_space(loss_function):
+
+    if loss_function ==LossFunction.CROSSENTROPYLOSS:
+        return genes_oc_bagging_crossentropy_loss
     return
 
 

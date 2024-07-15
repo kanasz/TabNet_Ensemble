@@ -30,6 +30,19 @@ tabnet_gene_space = [
     {'low': 0.001, 'high': 1}  # learning_rate
 ]
 
+tabnet_gene_types = [int, int, int, float, float, float, int, int, float]
+tabnet_gene_space = [
+    {'low': 8, 'high': 64},  # n_d
+    {'low': 8, 'high': 64},  # n_a
+    {'low': 1, 'high': 1},  # n_steps
+    {'low': 1, 'high': 5},  # gamma
+    {'low': 1e-4, 'high': 1e-2},  # lambda
+    {'low': 0.01, 'high': 0.8},  # momentum
+    {'low': 1, 'high': 5},  # n_shared
+    {'low': 1, 'high': 5},  # n_independent
+    {'low': 0.001, 'high': 1}  # learning_rate
+]
+
 boosting_tabnet_gene_types = tabnet_gene_types + [int]
 boosting_tabnet_gene_space = tabnet_gene_space + [
     {'low': 3, 'high': 6},  # n_estimators
@@ -285,6 +298,16 @@ genes_boosting_crossentropy_loss = {
         {'low': 0, 'high': 500}  # weight1
     ]
 }
+
+genes_oc_bagging_crossentropy_loss = {
+    "types": tabnet_gene_types + [int, float, float],
+    "space": tabnet_gene_space + [
+        {'low': 1, 'high': 20},  # n_estimators
+        {'low': 0, 'high': 5},  # weight0
+        {'low': 0, 'high': 500}  # weight1
+    ]
+}
+
 
 genes_bagging_crossentropy_loss = {
     "types": tabnet_gene_types + [int, float, float],
