@@ -10,8 +10,10 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import StandardScaler
 
 from base_functions import resample_minority_samples
+from constants import CLUSTER_COUNT
 from models.boosting_tabnet import BoostingTabNet
 from models.oc_bagging_tabnet import OCBaggingTabNet
+from models.oc_bagging_tabnet_ensemble import OCBaggingTabnetEnsemble
 from optimization.ga_tabnet_functions import GMean, get_loss, get_boosting_gene_type_and_space, \
     get_oc_bagging_gene_type_and_space
 
@@ -19,8 +21,7 @@ seed = 42
 pygad.random.seed(42)
 
 
-
-class GaOCBaggingTabnetTuner:
+class GaOCBaggingTabnetEnsembleTuner:
 
     def __init__(self, tabnet_max_epochs, num_generations, num_parents=10, population=20, device='cuda'):
         self.tabnet_max_epochs = tabnet_max_epochs
@@ -36,19 +37,6 @@ class GaOCBaggingTabnetTuner:
 
     def eval_func(self, ga_instance, solution, solution_idx):
         start_time = time.time()
-        n_d = int(solution[0])
-        n_a = int(solution[1])
-        n_steps = int(solution[2])
-        gamma = np.float64(solution[3])
-        lambda_sparse = np.float64(solution[4])
-        momentum = np.float64(solution[5])
-        n_shared = int(solution[6])
-        n_independent = int(solution[7])
-        learning_rate = (solution[8])
-        n_enstimators = int(solution[9])
-        #smote_p = float(solution[10])
-        #smote_alpha = float(solution[11])
-        #smote_beta = float(solution[12])
 
         X, y = self.X_orig.copy(), self.y_orig.copy()
         X = X.values
@@ -58,15 +46,14 @@ class GaOCBaggingTabnetTuner:
         true_values = []
         predicted_values = []
         fold = 0
+        config_files = [
+            '../../models/configurations/CARS_FRAUD_CROSSENTROPY.json',
+            '../../models/configurations/AIDS_CROSSENTROPY.json'
+        ]
         for index, train_index in enumerate(self.train_indices):
             test_index = self.test_indices[index]
-            tb_cls = OCBaggingTabNet(seed=42, n_d=n_d, n_a=n_a,
-                                    device=self.device,
-                                    gamma=gamma, lambda_sparse=lambda_sparse, momentum=momentum,
-                                    n_shared=n_shared, n_independent=n_independent, n_estimators=n_enstimators,
-                                    learning_rate=learning_rate)
+            tb_cls = OCBaggingTabnetEnsemble(config_files, solution, self.device)
             X_train, X_valid = X[train_index], X[test_index]
-
 
             y_train, y_valid = y[train_index], y[test_index]
             imputer = SimpleImputer()
@@ -76,18 +63,18 @@ class GaOCBaggingTabnetTuner:
             std_scaler = StandardScaler()
             X_train_std = std_scaler.fit_transform(X_train_imp)
             X_valid_std = std_scaler.transform(X_valid_imp)
-
-            X_train_std, y_train = resample_minority_samples(X_train_std, y_train)
+            selected = solution[index * CLUSTER_COUNT:(index+1) * CLUSTER_COUNT]
+            X_train_std, y_train = resample_minority_samples(X_train_std, y_train, selected, cluster_count=CLUSTER_COUNT)
 
             cls_sum = np.sum(y_train)
             cls_num_list = [len(y_train) - cls_sum, cls_sum]
             # loss_fn = get_loss(self.loss_function, solution[10:], cls_num_list, self.device)
-            loss_fn = get_loss(self.loss_function, solution[-2:], cls_num_list, self.device)
 
 
             tb_cls.fit(X_train_std, y_train,
+                       solution=solution,
+                       cls_num_list = cls_num_list,
                        eval_metric=[GMean],
-                       loss_fn=loss_fn,
                        max_epochs=self.tabnet_max_epochs,
                        patience=100,
                        batch_size=5000,
@@ -126,7 +113,7 @@ class GaOCBaggingTabnetTuner:
 
         self.X_orig, self.y_orig = data
 
-        params = get_oc_bagging_gene_type_and_space(loss_function)
+        params = [{'low': 0, 'high': 2}] * CLUSTER_COUNT * 5
         self.train_indices = []
         self.test_indices = []
         for train_index, test_index in kf.split(self.X_orig, self.y_orig):
@@ -177,13 +164,13 @@ class GaOCBaggingTabnetTuner:
                                    parent_selection_type="sss",
                                    fitness_func=self.fitness_func,
                                    sol_per_pop=sol_per_pop,
-                                   num_genes=len(params['types']),
-                                   gene_type=params['types'],
+                                   num_genes=CLUSTER_COUNT * 5,
+                                   gene_type=[int] * CLUSTER_COUNT * 5,
                                    save_best_solutions=True,
                                    mutation_probability=0.1,
                                    save_solutions=True,
                                    mutation_percent_genes=0.1,
-                                   gene_space=params['space'],
+                                   gene_space=params,
                                    on_stop=on_stop,
                                    # on_fitness=callback_fitness,
                                    on_generation=callback_generation)

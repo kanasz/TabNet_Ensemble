@@ -1,9 +1,25 @@
 import csv
 import os
 from pathlib import Path
+
+import numpy as np
 import pandas as pd
 from imblearn.metrics import geometric_mean_score
+from sklearn.cluster import KMeans
 from sklearn.metrics import make_scorer, accuracy_score, f1_score, roc_auc_score
+from imblearn.over_sampling import SMOTE
+
+from constants import LossFunction
+from loss_functions.binary_vs_loss import BinaryVSLoss
+from loss_functions.binary_vs_loss_mdr import BinaryVSLossMDR
+from loss_functions.cross_entropy_loss import CrossEntropyLoss
+from loss_functions.ib_focal_loss import IBFocalLoss
+from loss_functions.ib_loss import IBLoss
+from loss_functions.ib_loss_mdr import IBLossMDR
+from loss_functions.ldam_loss import LDAMLoss
+from loss_functions.ldam_loss_mdr import LDAMLossMDR
+from loss_functions.vs_loss import VSLoss
+from loss_functions.vs_loss_mdr import VSLossMDR
 
 
 # from imblearn.metrics import geometric_mean_score, sensitivity_score, specificity_score
@@ -90,3 +106,65 @@ def get_aids_data(features):
     features = data.drop(["infected"], axis=1)
     labels = data['infected']
     return features, labels
+
+
+def resample_minority_samples(X_train, y_train, selected_resampled = None, syntetic_minority_count = 100, cluster_count = 30):
+    smote = SMOTE(sampling_strategy={1: sum(y_train == 1) + syntetic_minority_count},
+                  random_state=42)  # Assuming the minority class label is 1
+    X_res, y_res = smote.fit_resample(X_train, y_train)
+
+    n_samples_original = X_train.shape[0]
+    X_synthetic = X_res[n_samples_original:]
+    y_synthetic = y_res[n_samples_original:]
+
+    X_synthetic = X_synthetic[:syntetic_minority_count]
+    y_synthetic = y_synthetic[:syntetic_minority_count]
+
+
+    kmeans = KMeans(n_clusters=cluster_count, random_state=42)
+    kmeans.fit(X_synthetic)
+    X_reduced_synthetic = kmeans.cluster_centers_
+    y_reduced_synthetic = np.full(shape=cluster_count, fill_value=1)  # Assuming the minority class is labeled as 1
+    X_reduced_synthetic = X_reduced_synthetic[selected_resampled==True]
+    y_reduced_synthetic = y_reduced_synthetic[selected_resampled==True]
+
+    X_final = np.vstack((X_train, X_reduced_synthetic))
+    y_final = np.hstack((y_train, y_reduced_synthetic))
+    return X_final, y_final
+
+def get_loss(loss_function, params, cls_num_list, device):
+    if loss_function == LossFunction.BINARYVSLOSS:
+        return BinaryVSLoss(iota_pos=params[0], iota_neg=params[1], Delta_pos=params[2], Delta_neg=params[3],
+                            weight=[params[4], params[5]], device=device)
+    if loss_function == LossFunction.VSLOSS:
+        return VSLoss(cls_num_list, gamma=params[0], tau=params[1], weight=[params[2], params[3]], device=device)
+    if loss_function == LossFunction.IBLOSS:
+        return IBLoss(weight=[params[0], params[1]], alpha=params[2], epsilon=params[3], device=device)
+    if loss_function == LossFunction.IBFOCALLOSS:
+        return IBFocalLoss(weight=[params[0], params[1]], alpha=params[2], epsilon=params[3], gamma=params[4],
+                           device=device)
+    if loss_function == LossFunction.LDAMLOSS:
+        return LDAMLoss(cls_num_list=cls_num_list, weight=[params[1], params[2]], max_m=params[0], s=params[3],
+                        device=device)
+    if loss_function == LossFunction.LDAMLOSS:
+        return LDAMLoss(cls_num_list=cls_num_list, weight=[params[1], params[2]], max_m=params[0], s=params[3],
+                        device=device)
+    if loss_function == LossFunction.VSLOSSMDR:
+        return VSLossMDR(cls_num_list, gamma=params[0], tau=params[1], weight=[params[2], params[3]], l=params[4],
+                         device=device)
+    if loss_function == LossFunction.LDAMLOSSMDR:
+        return LDAMLossMDR(cls_num_list=cls_num_list, weight=[params[1], params[2]], max_m=params[0], s=params[3],
+                           l=params[4],
+                           device=device)
+    if loss_function == LossFunction.IBLOSSMDR:
+        return IBLossMDR(weight=[params[0], params[1]], alpha=params[2], epsilon=params[3], l=params[4], device=device)
+    if loss_function == LossFunction.BINARYVSLOSSMDR:
+        return BinaryVSLossMDR(iota_pos=params[0], iota_neg=params[1], Delta_pos=params[2], Delta_neg=params[3],
+                               weight=[params[4], params[5]], l=params[6], device=device)
+    if loss_function == LossFunction.CROSSENTROPYLOSS:
+        return CrossEntropyLoss(weight=[params[0], params[1]])
+    #if loss_function == LossFunction.BOUNDEDEXPONENTIALLOSS:
+    #    return BoundedExponentialLoss(eta=params[0], alpha=params[1])
+    #if loss_function == LossFunction.COMPLEMENTCROSSENTROPYLOSS:
+    #    return CCE(weight=[params[0], params[1]], balancing_factor=params[2])
+    return
