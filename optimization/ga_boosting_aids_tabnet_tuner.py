@@ -50,7 +50,6 @@ class GaBoostingAidsTabnetTuner:
         smote_p = float(solution[10])
         smote_alpha = float(solution[11])
         smote_beta = float(solution[12])
-
         X, y = self.X_orig.copy(), self.y_orig.copy()
         categorical_cols = ['trt', 'hemo', 'homo', 'drugs', 'oprior', 'z30', 'race', 'gender', 'str2', 'strat',
                             'symptom',
@@ -211,8 +210,8 @@ class GaBoostingAidsTabnetTuner:
             self.train_indices.append(train_index)
             self.test_indices.append(test_index)
 
-        result = self.fitness_func(None, solution, None)
-        return
+        result = self.eval_func(None, solution, None)
+        return result
 
     def evaluate_experiment_from_pkl(self, data, loss_function, filename):
         ga_instance = pygad.load(filename)
@@ -226,8 +225,8 @@ class GaBoostingAidsTabnetTuner:
             'predicted_values': predicted_values,
             'solution': solution
         }
-        #with open(filename + '.txt', 'w') as data:
-        #    data.write(str(result))
+        with open(filename + '.txt', 'w') as data:
+            data.write(str(result))
         print(new_fitness)
         return
 

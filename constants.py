@@ -1,7 +1,8 @@
 from enum import Enum
 
 RANDOM_STATE = 42
-CLUSTER_COUNT = 30
+CLUSTER_COUNT = 60
+WEAK_CLASSIFIERS_COUNT = 35
 
 class LossFunction(Enum):
     BINARYVSLOSS = "BinaryVsLoss"

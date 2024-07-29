@@ -23,7 +23,7 @@ class BinaryVSLoss(nn.Module):
             self.Delta_list = torch.cuda.FloatTensor(Delta_list)
             self.weight = torch.cuda.FloatTensor(weight)
 
-    def forward(self, x, target,features):
+    def forward(self, x, target,features=None):
         index = torch.zeros((x.shape[0], 2), dtype=torch.uint8)
         softmax_pred = torch.nn.Softmax(dim=-1)(x.to(torch.float64))
         if self.device=='cpu':

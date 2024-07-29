@@ -19,5 +19,5 @@ class FocalLoss(nn.Module):
         self.gamma = gamma
         self.weight = weight
 
-    def forward(self, input, target, features):
+    def forward(self, input, target, features=None):
         return focal_loss(F.cross_entropy(input, target, reduction='none', weight=self.weight), self.gamma)

@@ -9,7 +9,7 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import make_scorer, accuracy_score, f1_score, roc_auc_score
 from imblearn.over_sampling import SMOTE
 
-from constants import LossFunction
+from constants import LossFunction, WEAK_CLASSIFIERS_COUNT
 from loss_functions.binary_vs_loss import BinaryVSLoss
 from loss_functions.binary_vs_loss_mdr import BinaryVSLossMDR
 from loss_functions.cross_entropy_loss import CrossEntropyLoss
@@ -133,38 +133,48 @@ def resample_minority_samples(X_train, y_train, selected_resampled = None, synte
     return X_final, y_final
 
 def get_loss(loss_function, params, cls_num_list, device):
-    if loss_function == LossFunction.BINARYVSLOSS:
-        return BinaryVSLoss(iota_pos=params[0], iota_neg=params[1], Delta_pos=params[2], Delta_neg=params[3],
-                            weight=[params[4], params[5]], device=device)
-    if loss_function == LossFunction.VSLOSS:
-        return VSLoss(cls_num_list, gamma=params[0], tau=params[1], weight=[params[2], params[3]], device=device)
-    if loss_function == LossFunction.IBLOSS:
-        return IBLoss(weight=[params[0], params[1]], alpha=params[2], epsilon=params[3], device=device)
-    if loss_function == LossFunction.IBFOCALLOSS:
-        return IBFocalLoss(weight=[params[0], params[1]], alpha=params[2], epsilon=params[3], gamma=params[4],
-                           device=device)
-    if loss_function == LossFunction.LDAMLOSS:
-        return LDAMLoss(cls_num_list=cls_num_list, weight=[params[1], params[2]], max_m=params[0], s=params[3],
-                        device=device)
-    if loss_function == LossFunction.LDAMLOSS:
-        return LDAMLoss(cls_num_list=cls_num_list, weight=[params[1], params[2]], max_m=params[0], s=params[3],
-                        device=device)
-    if loss_function == LossFunction.VSLOSSMDR:
-        return VSLossMDR(cls_num_list, gamma=params[0], tau=params[1], weight=[params[2], params[3]], l=params[4],
-                         device=device)
-    if loss_function == LossFunction.LDAMLOSSMDR:
-        return LDAMLossMDR(cls_num_list=cls_num_list, weight=[params[1], params[2]], max_m=params[0], s=params[3],
-                           l=params[4],
-                           device=device)
-    if loss_function == LossFunction.IBLOSSMDR:
-        return IBLossMDR(weight=[params[0], params[1]], alpha=params[2], epsilon=params[3], l=params[4], device=device)
-    if loss_function == LossFunction.BINARYVSLOSSMDR:
-        return BinaryVSLossMDR(iota_pos=params[0], iota_neg=params[1], Delta_pos=params[2], Delta_neg=params[3],
-                               weight=[params[4], params[5]], l=params[6], device=device)
-    if loss_function == LossFunction.CROSSENTROPYLOSS:
-        return CrossEntropyLoss(weight=[params[0], params[1]])
-    #if loss_function == LossFunction.BOUNDEDEXPONENTIALLOSS:
-    #    return BoundedExponentialLoss(eta=params[0], alpha=params[1])
-    #if loss_function == LossFunction.COMPLEMENTCROSSENTROPYLOSS:
-    #    return CCE(weight=[params[0], params[1]], balancing_factor=params[2])
+    try:
+        if loss_function == LossFunction.BINARYVSLOSS:
+            return BinaryVSLoss(iota_pos=params[0], iota_neg=params[1], Delta_pos=params[2], Delta_neg=params[3],
+                                weight=[params[4], params[5]], device=device)
+        if loss_function == LossFunction.VSLOSS:
+            return VSLoss(cls_num_list, gamma=params[0], tau=params[1], weight=[params[2], params[3]], device=device)
+        if loss_function == LossFunction.IBLOSS:
+            return IBLoss(weight=[params[0], params[1]], alpha=params[2], epsilon=params[3], device=device)
+        if loss_function == LossFunction.IBFOCALLOSS:
+            return IBFocalLoss(weight=[params[0], params[1]], alpha=params[2], epsilon=params[3], gamma=params[4],
+                               device=device)
+        if loss_function == LossFunction.LDAMLOSS:
+            return LDAMLoss(cls_num_list=cls_num_list, weight=[params[1], params[2]], max_m=params[0], s=params[3],
+                            device=device)
+        if loss_function == LossFunction.LDAMLOSS:
+            return LDAMLoss(cls_num_list=cls_num_list, weight=[params[1], params[2]], max_m=params[0], s=params[3],
+                            device=device)
+        if loss_function == LossFunction.VSLOSSMDR:
+            return VSLossMDR(cls_num_list, gamma=params[0], tau=params[1], weight=[params[2], params[3]], l=params[4],
+                             device=device)
+        if loss_function == LossFunction.LDAMLOSSMDR:
+            return LDAMLossMDR(cls_num_list=cls_num_list, weight=[params[1], params[2]], max_m=params[0], s=params[3],
+                               l=params[4],
+                               device=device)
+        if loss_function == LossFunction.IBLOSSMDR:
+            return IBLossMDR(weight=[params[0], params[1]], alpha=params[2], epsilon=params[3], l=params[4], device=device)
+        if loss_function == LossFunction.BINARYVSLOSSMDR:
+            return BinaryVSLossMDR(iota_pos=params[0], iota_neg=params[1], Delta_pos=params[2], Delta_neg=params[3],
+                                   weight=[params[4], params[5]], l=params[6], device=device)
+        if loss_function == LossFunction.CROSSENTROPYLOSS:
+            return CrossEntropyLoss(weight=[params[0], params[1]])
+        #if loss_function == LossFunction.BOUNDEDEXPONENTIALLOSS:
+        #    return BoundedExponentialLoss(eta=params[0], alpha=params[1])
+        #if loss_function == LossFunction.COMPLEMENTCROSSENTROPYLOSS:
+        #    return CCE(weight=[params[0], params[1]], balancing_factor=params[2])
+    except Exception as e:
+        print(e)
     return
+
+def get_config_files(path):
+    files = []
+    dir_list = os.listdir(path)
+    for file in dir_list:
+        files.append(os.path.join(path, file))
+    return files[0:WEAK_CLASSIFIERS_COUNT]

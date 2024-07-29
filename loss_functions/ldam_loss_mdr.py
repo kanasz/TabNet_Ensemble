@@ -19,7 +19,7 @@ class LDAMLossMDR(nn.Module):
         self.weight = torch.cuda.FloatTensor(weight)
         self.l = l
 
-    def forward(self, x, target, features):
+    def forward(self, x, target, features=None):
         index = torch.zeros_like(x, dtype=torch.uint8)
         index.scatter_(1, target.data.view(-1, 1), 1)
 

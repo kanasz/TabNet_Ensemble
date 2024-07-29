@@ -17,6 +17,7 @@ class OCBaggingTabnetEnsemble:
         self.device = device
         self.loss_functions = []
         self.models = []
+        self.solutions = []
         self.load_models()
 
 
@@ -40,6 +41,7 @@ class OCBaggingTabnetEnsemble:
                 config = json.load(file)
 
             self.loss_functions.append(config["loss_function"])
+            self.solutions.append(config["solution"])
             model = TabNetClassifier(
                 verbose=0,
                 n_d=config["n_d"],
@@ -65,19 +67,22 @@ class OCBaggingTabnetEnsemble:
             self.models.append(model)
 
     def fit(self, X, y, eval_metric, max_epochs, patience, batch_size, drop_last, cls_num_list, solution):
-        self.load_models()
+        #self.load_models()
         # Train each model on a different bootstrap sample
 
         for idx, model in enumerate(self.models):
-            loss_fn = get_loss(LossFunction(self.loss_functions[idx]), solution[8:], cls_num_list, self.device)
-            model.fit(X, y,
-                      #eval_set=[(X, y)],
-                      eval_metric=eval_metric,
-                      loss_fn=loss_fn,
-                      max_epochs=max_epochs,
-                      patience=patience,
-                      batch_size=batch_size,
-                      drop_last=drop_last)
+            try:
+                loss_fn = get_loss(LossFunction(self.loss_functions[idx]), self.solutions[idx][8:], cls_num_list, self.device)
+                model.fit(X, y,
+                          #eval_set=[(X, y)],
+                          eval_metric=eval_metric,
+                          loss_fn=loss_fn,
+                          max_epochs=max_epochs,
+                          patience=patience,
+                          batch_size=batch_size,
+                          drop_last=drop_last)
+            except Exception as e:
+                print(e)
 
     def bagging_predict(self, X_test):
         predictions = np.zeros((X_test.shape[0], len(self.models)))

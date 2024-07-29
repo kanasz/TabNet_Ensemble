@@ -38,9 +38,9 @@ class BoostingTabNet:
                                      verbose=0, lambda_sparse=self.lambda_sparse, momentum=self.momentum,
                                      n_shared=self.n_shared, n_independent=self.n_independent, seed=self.seed,
                                      device_name=self.device)
+
             model.fit(X_train=X, y_train=y, max_epochs=max_epochs, weights=sample_weights, eval_metric=eval_metric,
                       loss_fn=loss_fn, patience=patience, batch_size=batch_size, drop_last=drop_last, augmentations=aug)
-
 
             # Predict training data
             y_pred = model.predict(X)

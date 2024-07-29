@@ -23,7 +23,7 @@ pygad.random.seed(42)
 
 class GaOCBaggingTabnetEnsembleTuner:
 
-    def __init__(self, tabnet_max_epochs, num_generations, num_parents=10, population=20, device='cuda'):
+    def __init__(self, tabnet_max_epochs, num_generations, num_parents=10, population=20, config_files = [], device='cuda'):
         self.tabnet_max_epochs = tabnet_max_epochs
         self.num_generations = num_generations
         self.num_parents = num_parents
@@ -34,6 +34,7 @@ class GaOCBaggingTabnetEnsembleTuner:
         self.train_indices = []
         self.test_indices = []
         self.device = device
+        self.config_files = config_files
 
     def eval_func(self, ga_instance, solution, solution_idx):
         start_time = time.time()
@@ -46,13 +47,14 @@ class GaOCBaggingTabnetEnsembleTuner:
         true_values = []
         predicted_values = []
         fold = 0
-        config_files = [
-            '../../models/configurations/CARS_FRAUD_CROSSENTROPY.json',
-            '../../models/configurations/AIDS_CROSSENTROPY.json'
-        ]
+
+        classifiers_mask = solution[0:len(self.config_files)]
+        #valid_classifiers = self.config_files[classifiers_mask==1]
+
+        valid_classifiers = [item for item, include in zip(self.config_files, classifiers_mask) if include]
         for index, train_index in enumerate(self.train_indices):
             test_index = self.test_indices[index]
-            tb_cls = OCBaggingTabnetEnsemble(config_files, solution, self.device)
+            tb_cls = OCBaggingTabnetEnsemble(valid_classifiers, solution[len(self.config_files):], self.device)
             X_train, X_valid = X[train_index], X[test_index]
 
             y_train, y_valid = y[train_index], y[test_index]
@@ -95,6 +97,7 @@ class GaOCBaggingTabnetEnsembleTuner:
             gm_mean, true_values, predicted_values = self.eval_func(ga_instance, solution, solution_idx)
 
         except Exception as e:
+            print(e)
             gm_mean = 0
             t = time.time() - start_time
             print("gmean: {}, n_estimators: {}, {} seconds - ERROR".format(gm_mean, solution[9], t))
@@ -113,7 +116,7 @@ class GaOCBaggingTabnetEnsembleTuner:
 
         self.X_orig, self.y_orig = data
 
-        params = [{'low': 0, 'high': 2}] * CLUSTER_COUNT * 5
+        params = [{'low': 0, 'high': 2}] * (CLUSTER_COUNT * 5 + len(self.config_files))
         self.train_indices = []
         self.test_indices = []
         for train_index, test_index in kf.split(self.X_orig, self.y_orig):
@@ -164,8 +167,8 @@ class GaOCBaggingTabnetEnsembleTuner:
                                    parent_selection_type="sss",
                                    fitness_func=self.fitness_func,
                                    sol_per_pop=sol_per_pop,
-                                   num_genes=CLUSTER_COUNT * 5,
-                                   gene_type=[int] * CLUSTER_COUNT * 5,
+                                   num_genes=CLUSTER_COUNT * 5 + len(self.config_files),
+                                   gene_type=[int] * CLUSTER_COUNT * 5 + [int] * len(self.config_files),
                                    save_best_solutions=True,
                                    mutation_probability=0.1,
                                    save_solutions=True,

@@ -22,7 +22,7 @@ class VSLossMDR(nn.Module):
         self.weight = torch.cuda.FloatTensor(weight)
         self.l = l
 
-    def forward(self, x, target, features):
+    def forward(self, x, target, features=None):
         softmax_pred = torch.nn.Softmax(dim=-1)(x.to(torch.float64))
 
         target = F.one_hot(target).float()  # Change to float here
