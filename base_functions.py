@@ -123,6 +123,9 @@ def resample_minority_samples(X_train, y_train, selected_resampled = None, synte
 
     kmeans = KMeans(n_clusters=cluster_count, random_state=42)
     kmeans.fit(X_synthetic)
+    if type(selected_resampled) is list:
+        selected_resampled = np.array(selected_resampled)
+
     X_reduced_synthetic = kmeans.cluster_centers_
     y_reduced_synthetic = np.full(shape=cluster_count, fill_value=1)  # Assuming the minority class is labeled as 1
     X_reduced_synthetic = X_reduced_synthetic[selected_resampled==True]

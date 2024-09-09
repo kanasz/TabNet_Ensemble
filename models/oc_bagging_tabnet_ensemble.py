@@ -44,6 +44,7 @@ class OCBaggingTabnetEnsemble:
             self.solutions.append(config["solution"])
             model = TabNetClassifier(
                 verbose=0,
+
                 n_d=config["n_d"],
                 n_a=config["n_a"],
                 n_steps=config["n_steps"],

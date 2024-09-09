@@ -66,10 +66,15 @@ class GaOCBaggingTabnetEnsembleTuner:
             X_train_std = std_scaler.fit_transform(X_train_imp)
             X_valid_std = std_scaler.transform(X_valid_imp)
             selected = solution[index * CLUSTER_COUNT:(index+1) * CLUSTER_COUNT]
-            X_train_std, y_train = resample_minority_samples(X_train_std, y_train, selected, cluster_count=CLUSTER_COUNT)
 
             cls_sum = np.sum(y_train)
             cls_num_list = [len(y_train) - cls_sum, cls_sum]
+
+            X_train_std, y_train = resample_minority_samples(X_train_std, y_train, selected, cluster_count=CLUSTER_COUNT)
+
+            #cls_sum = np.sum(y_train)
+            #cls_num_list = [len(y_train) - cls_sum, cls_sum]
+
             # loss_fn = get_loss(self.loss_function, solution[10:], cls_num_list, self.device)
 
 
@@ -103,7 +108,7 @@ class GaOCBaggingTabnetEnsembleTuner:
             print("gmean: {}, n_estimators: {}, {} seconds - ERROR".format(gm_mean, solution[9], t))
             return 0
         t = time.time() - start_time
-        print("gmean: {}, n_estimators: {}, {} seconds".format(gm_mean, solution[9], t))
+        print("gmean: {}, n_estimators: {}, {} seconds".format(gm_mean, np.sum(solution[0:len(self.config_files)]), t))
 
         return gm_mean
 
