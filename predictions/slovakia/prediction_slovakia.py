@@ -43,13 +43,3 @@ if __name__ == '__main__':
     tuner.run_experiment(data, 'results/BOOSTING_CROSSENTROPYLOSS_3_{}_{}_{}_features_{}_epochs_50_population'
                          .format(business_area, year, postfix, tabnet_max_epochs), actual_loss_function)
     print("--- total: %s seconds ---" % (time.time() - start_time))
-
-
-
-
-
-
-
-
-
-

@@ -95,7 +95,6 @@ def get_fraudulent_claim_on_cars_physical_damage_data():
     data = pd.read_csv(path)
     data = data.dropna()
     features = data.drop(["fraud", "claim_number", "zip_code", "claim_date", "claim_day_of_week"], axis=1)
-    # features = pd.get_dummies(features, columns=['gender','living_status','accident_site','channel','vehicle_category','vehicle_color'])
     labels = data['fraud']
     return features, labels
 
@@ -142,7 +141,24 @@ def get_aids_data(features):
     return features, labels
 
 
-def resample_minority_samples(X_train, y_train, selected_resampled=None, syntetic_minority_count=100, cluster_count=30):
+def get_taiwan_bankruptcy_data():
+    _path = Path(__file__).parent / "data/taiwan_data/taiwan_parsed_data.csv"
+    _data = pd.read_csv(_path)
+    _taiwan_features = _data.drop(["is_bankrupt"], axis=1)
+    _taiwan_labels = _data['is_bankrupt']
+    return _taiwan_features, _taiwan_labels
+
+
+def get_polish_bankruptcy_data(index: int):
+    _path = Path(__file__).parent / "data/polish_data/polish_{}year.csv".format(index)
+    _data = pd.read_csv(_path)
+    _polish_features = _data.drop(['is_bankrupt'], axis=1)
+    _polish_labels = _data['is_bankrupt']
+    return _polish_features, _polish_labels
+
+
+def resample_minority_samples(X_train, y_train, selected_resampled = None, syntetic_minority_count = 100,
+                              cluster_count = 30):
     smote = SMOTE(sampling_strategy={1: sum(y_train == 1) + syntetic_minority_count},
                   random_state=42, k_neighbors=SMOTE_K_NEIGHBORS)  # Assuming the minority class label is 1
     X_res, y_res = smote.fit_resample(X_train, y_train)
@@ -247,5 +263,4 @@ def load_keel_dat_file(file_path):
     # Convert data lines into a DataFrame
     data = [row.split(',') for row in data_lines]
     df = pd.DataFrame(data, columns=column_names)
-
     return df

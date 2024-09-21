@@ -1,5 +1,3 @@
-import json
-
 import numpy as np
 from imbalanced_ensemble.metrics import geometric_mean_score
 from sklearn.metrics import roc_auc_score
@@ -28,6 +26,7 @@ def process_results(path):
     print("gmean: {:.2f}±{}, auc: {:.2f}±{}".format(np.average(gmeans)*100,int(round(np.std(gmeans)*100)),
                                                     np.average(roc_aucs)*100,int(round(np.std(roc_aucs)*100))))
 
+"""
 print("CONSTRUCTION 2013")
 process_results("predictions/slovakia/results/BOOSTING_CROSSENTROPYLOSS_3_construction_13_10_11_12_features_50_epochs_50_population.txt")
 print("CONSTRUCTION 2014")
@@ -44,3 +43,7 @@ print("SYNTHETIC 02")
 process_results("predictions/synthetic/results_200_samples/CROSSENTROPYLOSS_02_synthetic_0.1_contamination_100_features_200_epochs_50_population_50_samples_200.txt")
 print("SYNTHETIC 03")
 process_results("predictions/synthetic/results_200_samples/CROSSENTROPYLOSS_synthetic_0.02_contamination_200_features_200_epochs_70_population_50.txt")
+"""
+
+print("Taiwan - boosting TabNet:")
+process_results("predictions/taiwan/results/BOOSTING_TABNET_CROSS_ENTROPY_LOSS.txt")
