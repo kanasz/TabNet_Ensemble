@@ -77,6 +77,7 @@ class OCBaggingTabnetEnsemble:
                 model.fit(X, y,
                           #eval_set=[(X, y)],
                           eval_metric=eval_metric,
+
                           loss_fn=loss_fn,
                           max_epochs=max_epochs,
                           patience=patience,

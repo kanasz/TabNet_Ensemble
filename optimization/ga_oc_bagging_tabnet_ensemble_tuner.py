@@ -10,7 +10,7 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import StandardScaler
 
 from base_functions import resample_minority_samples
-from constants import CLUSTER_COUNT
+from constants import CLUSTER_COUNT, SYNTHETIC_MINORITY_COUNT
 from models.boosting_tabnet import BoostingTabNet
 from models.oc_bagging_tabnet import OCBaggingTabNet
 from models.oc_bagging_tabnet_ensemble import OCBaggingTabnetEnsemble
@@ -70,7 +70,7 @@ class GaOCBaggingTabnetEnsembleTuner:
             cls_sum = np.sum(y_train)
             cls_num_list = [len(y_train) - cls_sum, cls_sum]
 
-            X_train_std, y_train = resample_minority_samples(X_train_std, y_train, selected, cluster_count=CLUSTER_COUNT)
+            X_train_std, y_train = resample_minority_samples(X_train_std, y_train, selected, cluster_count=CLUSTER_COUNT, syntetic_minority_count=SYNTHETIC_MINORITY_COUNT)
 
             #cls_sum = np.sum(y_train)
             #cls_num_list = [len(y_train) - cls_sum, cls_sum]
@@ -85,6 +85,7 @@ class GaOCBaggingTabnetEnsembleTuner:
                        max_epochs=self.tabnet_max_epochs,
                        patience=100,
                        batch_size=5000,
+
                        drop_last=False)
             fold = fold + 1
             y_pred = tb_cls.predict(X_valid_std)
@@ -98,15 +99,17 @@ class GaOCBaggingTabnetEnsembleTuner:
 
     def fitness_func(self, ga_instance, solution, solution_idx):
         start_time = time.time()
-        try:
-            gm_mean, true_values, predicted_values = self.eval_func(ga_instance, solution, solution_idx)
+        #try:
+        gm_mean, true_values, predicted_values = self.eval_func(ga_instance, solution, solution_idx)
 
+        '''
         except Exception as e:
             print(e)
             gm_mean = 0
             t = time.time() - start_time
             print("gmean: {}, n_estimators: {}, {} seconds - ERROR".format(gm_mean, solution[9], t))
             return 0
+        '''
         t = time.time() - start_time
         print("gmean: {}, n_estimators: {}, {} seconds".format(gm_mean, np.sum(solution[0:len(self.config_files)]), t))
 

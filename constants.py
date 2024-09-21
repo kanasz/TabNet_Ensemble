@@ -1,9 +1,10 @@
 from enum import Enum
 
 RANDOM_STATE = 42
-CLUSTER_COUNT = 60
-WEAK_CLASSIFIERS_COUNT = 35
-
+CLUSTER_COUNT = 800 #60
+WEAK_CLASSIFIERS_COUNT = 35 #55
+SYNTHETIC_MINORITY_COUNT = 1500 #100
+SMOTE_K_NEIGHBORS = 3 #6 - vo vsetkych okrem syntetic 03 je 6
 class LossFunction(Enum):
     BINARYVSLOSS = "BinaryVsLoss"
     FOCALLOSS = "FocalLoss"

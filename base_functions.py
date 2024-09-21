@@ -9,7 +9,7 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import make_scorer, accuracy_score, f1_score, roc_auc_score
 from imblearn.over_sampling import SMOTE
 
-from constants import LossFunction, WEAK_CLASSIFIERS_COUNT
+from constants import LossFunction, WEAK_CLASSIFIERS_COUNT, SMOTE_K_NEIGHBORS
 from loss_functions.binary_vs_loss import BinaryVSLoss
 from loss_functions.binary_vs_loss_mdr import BinaryVSLossMDR
 from loss_functions.cross_entropy_loss import CrossEntropyLoss
@@ -99,6 +99,40 @@ def get_fraudulent_claim_on_cars_physical_damage_data():
     labels = data['fraud']
     return features, labels
 
+
+def get_abalone_9_vs_18_data():
+    path = Path(__file__).parent / "data/abalone/abalone9-18.dat"
+    df = load_keel_dat_file(path)
+    features = df.drop(["Class"], axis=1)
+    df['Class'] = df['Class'].str.strip().str.lower()
+    df['Class'] = df['Class'].replace({'positive': 1, 'negative': 0})
+    return features, df['Class']
+
+def get_abalone_3_vs_11_data():
+    path = Path(__file__).parent / "data/abalone/abalone-3_vs_11.dat"
+    df = load_keel_dat_file(path)
+    features = df.drop(["Class"], axis=1)
+    df['Class'] = df['Class'].str.strip().str.lower()
+    df['Class'] = df['Class'].replace({'positive': 1, 'negative': 0})
+    return features, df['Class']
+
+def get_abalone_19_vs_10_11_12_13_data():
+    path = Path(__file__).parent / "data/abalone/abalone-19_vs_10-11-12-13.dat"
+    df = load_keel_dat_file(path)
+    features = df.drop(["Class"], axis=1)
+    df['Class'] = df['Class'].str.strip().str.lower()
+    df['Class'] = df['Class'].replace({'positive': 1, 'negative': 0})
+    return features, df['Class']
+
+def get_abalone_20_vs_8_9_10_data():
+    path = Path(__file__).parent / "data/abalone/abalone-20_vs_8-9-10.dat"
+    df = load_keel_dat_file(path)
+    features = df.drop(["Class"], axis=1)
+    df['Class'] = df['Class'].str.strip().str.lower()
+    df['Class'] = df['Class'].replace({'positive': 1, 'negative': 0})
+    return features, df['Class']
+
+
 def get_aids_data(features):
     path = Path(__file__).parent / "data/aids_classification/aids_classification_{}.csv".format(features)
     data = pd.read_csv(path)
@@ -108,9 +142,9 @@ def get_aids_data(features):
     return features, labels
 
 
-def resample_minority_samples(X_train, y_train, selected_resampled = None, syntetic_minority_count = 100, cluster_count = 30):
+def resample_minority_samples(X_train, y_train, selected_resampled=None, syntetic_minority_count=100, cluster_count=30):
     smote = SMOTE(sampling_strategy={1: sum(y_train == 1) + syntetic_minority_count},
-                  random_state=42)  # Assuming the minority class label is 1
+                  random_state=42, k_neighbors=SMOTE_K_NEIGHBORS)  # Assuming the minority class label is 1
     X_res, y_res = smote.fit_resample(X_train, y_train)
 
     n_samples_original = X_train.shape[0]
@@ -120,7 +154,6 @@ def resample_minority_samples(X_train, y_train, selected_resampled = None, synte
     X_synthetic = X_synthetic[:syntetic_minority_count]
     y_synthetic = y_synthetic[:syntetic_minority_count]
 
-
     kmeans = KMeans(n_clusters=cluster_count, random_state=42)
     kmeans.fit(X_synthetic)
     if type(selected_resampled) is list:
@@ -128,12 +161,13 @@ def resample_minority_samples(X_train, y_train, selected_resampled = None, synte
 
     X_reduced_synthetic = kmeans.cluster_centers_
     y_reduced_synthetic = np.full(shape=cluster_count, fill_value=1)  # Assuming the minority class is labeled as 1
-    X_reduced_synthetic = X_reduced_synthetic[selected_resampled==True]
-    y_reduced_synthetic = y_reduced_synthetic[selected_resampled==True]
+    X_reduced_synthetic = X_reduced_synthetic[selected_resampled == True]
+    y_reduced_synthetic = y_reduced_synthetic[selected_resampled == True]
 
     X_final = np.vstack((X_train, X_reduced_synthetic))
     y_final = np.hstack((y_train, y_reduced_synthetic))
     return X_final, y_final
+
 
 def get_loss(loss_function, params, cls_num_list, device):
     try:
@@ -161,7 +195,8 @@ def get_loss(loss_function, params, cls_num_list, device):
                                l=params[4],
                                device=device)
         if loss_function == LossFunction.IBLOSSMDR:
-            return IBLossMDR(weight=[params[0], params[1]], alpha=params[2], epsilon=params[3], l=params[4], device=device)
+            return IBLossMDR(weight=[params[0], params[1]], alpha=params[2], epsilon=params[3], l=params[4],
+                             device=device)
         if loss_function == LossFunction.BINARYVSLOSSMDR:
             return BinaryVSLossMDR(iota_pos=params[0], iota_neg=params[1], Delta_pos=params[2], Delta_neg=params[3],
                                    weight=[params[4], params[5]], l=params[6], device=device)
@@ -175,9 +210,42 @@ def get_loss(loss_function, params, cls_num_list, device):
         print(e)
     return
 
+
 def get_config_files(path):
     files = []
     dir_list = os.listdir(path)
     for file in dir_list:
         files.append(os.path.join(path, file))
     return files[0:WEAK_CLASSIFIERS_COUNT]
+
+
+import pandas as pd
+
+
+def load_keel_dat_file(file_path):
+    data_started = False
+    data_lines = []
+    column_names = []
+
+    # Open the .dat file and read it line by line
+    with open(file_path, 'r') as file:
+        for line in file:
+            line = line.strip()
+
+            # Check if data section has started
+            if data_started:
+                data_lines.append(line)
+
+            # Start reading data after @data marker
+            if line.lower() == '@data':
+                data_started = True
+
+            # Collect column names from the header (before @data)
+            elif line.startswith('@attribute'):
+                column_names.append(line.split()[1])
+
+    # Convert data lines into a DataFrame
+    data = [row.split(',') for row in data_lines]
+    df = pd.DataFrame(data, columns=column_names)
+
+    return df
