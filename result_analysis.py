@@ -4,6 +4,7 @@ import numpy as np
 from imbalanced_ensemble.metrics import geometric_mean_score
 from sklearn.metrics import roc_auc_score
 
+
 def process_results(path):
     # Open the file in read mode
     with open(path, 'r') as file:
@@ -11,7 +12,7 @@ def process_results(path):
         file_content = file.read()
 
     file_content = file_content.replace(" ","").replace("\n","")
-    file_content = file_content.replace("array(","").replace(")","").replace(",dtype=int64","").replace("dtype=int64,","")
+    file_content = file_content.replace("array(","").replace(")","").replace(",dtype=int64", "").replace("dtype=int64,","")
     # Evaluate the content to convert it to a dictionary
     data = eval(file_content)
 
@@ -25,7 +26,7 @@ def process_results(path):
         gmeans.append(gmean)
 
     print("gmean: {:.2f}±{}, auc: {:.2f}±{}".format(np.average(gmeans)*100,int(round(np.std(gmeans)*100)),
-                                                  np.average(roc_aucs)*100,int(round(np.std(roc_aucs)*100))))
+                                                    np.average(roc_aucs)*100,int(round(np.std(roc_aucs)*100))))
 
 print("CONSTRUCTION 2013")
 process_results("predictions/slovakia/results/BOOSTING_CROSSENTROPYLOSS_3_construction_13_10_11_12_features_50_epochs_50_population.txt")
