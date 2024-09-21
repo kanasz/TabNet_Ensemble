@@ -50,8 +50,9 @@ if __name__ == '__main__':
     print("--- total: %s seconds ---" % (time.time() - start_time))
     print("Experiment info -> data: {}, features: {}, loss function: {}".format(contamination, features,
                                                                                 actual_loss_function))
-    #tuner.evaluate_experiment_from_pkl(data, actual_loss_function,
-    #                                   'results_200_samples/OC_TABNET_ENSEMBLE_CROSSENTROPYLOSS_synthetic_0.3_CLUSTER_COUNT_{}_CLASSIFIER_COUNT_{}_SYNTH_COUNT_{}'.format(CLUSTER_COUNT, WEAK_CLASSIFIERS_COUNT, SYNTHETIC_MINORITY_COUNT))
+    tuner.evaluate_experiment_from_pkl(data, actual_loss_function,
+                                       'results/OC_TABNET_ENSEMBLE_CROSSENTROPYLOSS_abalone_9_vs_18_{}_CLUSTER_COUNT_{}_CLASSIFIER_COUNT_{}_SYNTH_COUNT_{}'
+                                       .format(CLUSTER_COUNT, WEAK_CLASSIFIERS_COUNT, SYNTHETIC_MINORITY_COUNT))
 
 
 

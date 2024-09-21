@@ -93,8 +93,8 @@ class GaOCBaggingTabnetTuner:
                        batch_size=5000,
                        drop_last=False)
             fold = fold + 1
-            y_pred = tb_cls.predict(X_valid_std)
-            true_values.append(y_valid)
+            y_pred = np.array(tb_cls.predict(X_valid_std))
+            true_values.append(np.array(y_valid))
             predicted_values.append(y_pred)
             gmean = geometric_mean_score(y_valid, y_pred)
             gmeans.append(gmean)

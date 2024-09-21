@@ -35,6 +35,6 @@ if __name__ == '__main__':
     data = get_polish_bankruptcy_data(index=5)
     tuner = GaBoostingTabnetTuner(tabnet_max_epochs, num_generations, num_parents, population, device='cuda',
                                   use_smote=False, use_new_model=True)
-    tuner.run_experiment(data=data, fname="results/BOOSTING_TABNET_CROSS_ENTROPY_LOSS",
+    tuner.run_experiment(data=data, fname="results/BOOSTING_TABNET_CROSS_ENTROPY_LOSS_2",
                          loss_function=actual_loss_function)
     print("--- total: %s seconds ---" % (time.time() - start_time))
