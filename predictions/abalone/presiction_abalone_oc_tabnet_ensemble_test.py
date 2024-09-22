@@ -4,7 +4,8 @@ import time
 import numpy as np
 import torch
 
-from base_functions import get_synthetic_data, get_slovak_data, get_config_files, get_abalone_9_vs_18_data
+from base_functions import get_synthetic_data, get_slovak_data, get_config_files, get_abalone_9_vs_18_data, \
+    get_abalone_20_vs_8_9_10_data, get_abalone_3_vs_11_data, get_abalone_19_vs_10_11_12_13_data
 from constants import LossFunction, CLUSTER_COUNT, WEAK_CLASSIFIERS_COUNT, SYNTHETIC_MINORITY_COUNT
 from models.oc_bagging_tabnet_ensemble_new import GaOCBaggingTabnetEnsembleTunerNew
 from optimization.ga_boosting_tabnet_tuner import GaBoostingTabnetTuner
@@ -40,12 +41,39 @@ if __name__ == '__main__':
     samples = 200
     actual_loss_function = LossFunction.CROSSENTROPYLOSS
 
-    data = get_abalone_9_vs_18_data()
+
     config_files = get_config_files("../../models/configurations")
     tuner = GaOCBaggingTabnetEnsembleTunerNew(tabnet_max_epochs, num_generations, num_parents, population, config_files=config_files, device='cuda',
                                               numerical_cols=numerical_cols, categorical_cols=categorical_cols)
+    data = get_abalone_20_vs_8_9_10_data()
+    tuner.evaluate_experiment_from_pkl(data, actual_loss_function,
+                                       'results/OC_TABNET_ENSEMBLE_CROSSENTROPYLOSS_abalone_20_vs_8_9_10_0.02_CLUSTER_COUNT_{}_CLASSIFIER_COUNT_{}_SYNTH_COUNT_{}'
+                                       .format(CLUSTER_COUNT, WEAK_CLASSIFIERS_COUNT, SYNTHETIC_MINORITY_COUNT))
+
+    tuner = GaOCBaggingTabnetEnsembleTunerNew(tabnet_max_epochs, num_generations, num_parents, population,
+                                              config_files=config_files, device='cuda',
+                                              numerical_cols=numerical_cols, categorical_cols=categorical_cols)
+    data = get_abalone_9_vs_18_data()
     tuner.evaluate_experiment_from_pkl(data, actual_loss_function,
                                        'results/OC_TABNET_ENSEMBLE_CROSSENTROPYLOSS_abalone_9_vs_18_0.02_CLUSTER_COUNT_{}_CLASSIFIER_COUNT_{}_SYNTH_COUNT_{}'
+                                       .format(CLUSTER_COUNT, WEAK_CLASSIFIERS_COUNT, SYNTHETIC_MINORITY_COUNT))
+
+    tuner = GaOCBaggingTabnetEnsembleTunerNew(tabnet_max_epochs, num_generations, num_parents, population,
+                                              config_files=config_files, device='cuda',
+                                              numerical_cols=numerical_cols, categorical_cols=categorical_cols)
+    data = get_abalone_3_vs_11_data()
+    tuner.evaluate_experiment_from_pkl(data, actual_loss_function,
+                                       'results/OC_TABNET_ENSEMBLE_CROSSENTROPYLOSS_abalone_3_vs_11_0.02_CLUSTER_COUNT_{}_CLASSIFIER_COUNT_{}_SYNTH_COUNT_{}'
+                                       .format(CLUSTER_COUNT, WEAK_CLASSIFIERS_COUNT, SYNTHETIC_MINORITY_COUNT))
+
+
+
+    tuner = GaOCBaggingTabnetEnsembleTunerNew(tabnet_max_epochs, num_generations, num_parents, population,
+                                              config_files=config_files, device='cuda',
+                                              numerical_cols=numerical_cols, categorical_cols=categorical_cols)
+    data = get_abalone_19_vs_10_11_12_13_data()
+    tuner.evaluate_experiment_from_pkl(data, actual_loss_function,
+                                       'results/OC_TABNET_ENSEMBLE_CROSSENTROPYLOSS_abalone_19_vs_10_11_12_13_0.02_CLUSTER_COUNT_{}_CLASSIFIER_COUNT_{}_SYNTH_COUNT_{}'
                                        .format(CLUSTER_COUNT, WEAK_CLASSIFIERS_COUNT, SYNTHETIC_MINORITY_COUNT))
 
 
