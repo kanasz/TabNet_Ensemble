@@ -88,8 +88,8 @@ class GaBoostingTabnetTuner:
                        drop_last=False)
             fold = fold + 1
             y_pred = tb_cls.predict(X_valid_std)
-            true_values.append(y_valid)
-            predicted_values.append(y_pred)
+            true_values.append(np.array(y_valid))
+            predicted_values.append(np.array(y_pred))
             gmean = geometric_mean_score(y_valid, y_pred)
             gmeans.append(gmean)
         gm_mean = np.mean(gmeans)
@@ -213,7 +213,7 @@ class GaBoostingTabnetTuner:
             'predicted_values': predicted_values,
             'solution': solution
         }
-        #with open(filename + '.txt', 'w') as data:
-        #    data.write(str(result))
+        with open(filename + '.txt', 'w') as data:
+            data.write(str(result))
         print(new_fitness)
         return

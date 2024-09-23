@@ -19,7 +19,9 @@ torch.cuda.manual_seed(seed)
 torch.cuda.manual_seed_all(seed)  # for multiGPUs.
 torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.deterministic = True
-
+import sys
+import numpy
+numpy.set_printoptions(threshold=sys.maxsize)
 
 # os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 # warnings.filterwarnings("ignore")

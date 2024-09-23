@@ -46,4 +46,4 @@ process_results("predictions/synthetic/results_200_samples/CROSSENTROPYLOSS_synt
 """
 
 print("Taiwan - boosting TabNet:")
-process_results("predictions/taiwan/results/BOOSTING_TABNET_CROSS_ENTROPY_LOSS.txt")
+process_results("predictions/taiwan/results/BOOSTING_TABNET_CROSS_ENTROPY_LOSS_2.txt")

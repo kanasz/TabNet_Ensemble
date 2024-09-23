@@ -34,7 +34,7 @@ if __name__ == '__main__':
     actual_loss_function = LossFunction.CROSSENTROPYLOSS
     data = get_taiwan_bankruptcy_data()
     tuner = GaBoostingTabnetTuner(tabnet_max_epochs, num_generations, num_parents, population, device='cuda',
-                                  use_smote=False, use_new_model=True)
+                                  use_smote=True, use_new_model=True)
     tuner.run_experiment(data=data, fname="results/BOOSTING_TABNET_CROSS_ENTROPY_LOSS_2",
                          loss_function=actual_loss_function)
     print("--- total: %s seconds ---" % (time.time() - start_time))
