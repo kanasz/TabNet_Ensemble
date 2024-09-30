@@ -87,8 +87,6 @@ class GaOCBaggingTabnetEnsembleTunerNew:
             X_train_std, y_train = resample_minority_samples(X_train_std, y_train, selected, cluster_count=CLUSTER_COUNT, syntetic_minority_count=SYNTHETIC_MINORITY_COUNT)
 
 
-
-
             tb_cls.fit(X_train_std, y_train,
                        solution=solution,
                        cls_num_list = cls_num_list,

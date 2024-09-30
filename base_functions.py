@@ -8,8 +8,9 @@ from imblearn.metrics import geometric_mean_score
 from sklearn.cluster import KMeans
 from sklearn.metrics import make_scorer, accuracy_score, f1_score, roc_auc_score
 from imblearn.over_sampling import SMOTE
+from sklearn.svm import SVC
 
-from constants import LossFunction, WEAK_CLASSIFIERS_COUNT, SMOTE_K_NEIGHBORS
+from constants import LossFunction, WEAK_CLASSIFIERS_COUNT, SMOTE_K_NEIGHBORS, Classifier, RANDOM_STATE
 from loss_functions.binary_vs_loss import BinaryVSLoss
 from loss_functions.binary_vs_loss_mdr import BinaryVSLossMDR
 from loss_functions.cross_entropy_loss import CrossEntropyLoss
@@ -99,6 +100,42 @@ def get_fraudulent_claim_on_cars_physical_damage_data():
     return features, labels
 
 
+def get_wine_quality_red_3_vs_5_data():
+    path = Path(__file__).parent / "data/wine/winequality-red-3_vs_5.dat"
+    df = load_keel_dat_file(path)
+    features = df.drop(["Class"], axis=1)
+    df['Class'] = df['Class'].str.strip().str.lower()
+    df['Class'] = df['Class'].replace({'positive': 1, 'negative': 0})
+    return features, df['Class']
+
+
+def get_wine_quality_red_8_vs_6_data():
+    path = Path(__file__).parent / "data/wine/winequality-red-8_vs_6.dat"
+    df = load_keel_dat_file(path)
+    features = df.drop(["Class"], axis=1)
+    df['Class'] = df['Class'].str.strip().str.lower()
+    df['Class'] = df['Class'].replace({'positive': 1, 'negative': 0})
+    return features, df['Class']
+
+
+def get_wine_quality_white_3_vs_7_data():
+    path = Path(__file__).parent / "data/wine/winequality-white-3_vs_7.dat"
+    df = load_keel_dat_file(path)
+    features = df.drop(["Class"], axis=1)
+    df['Class'] = df['Class'].str.strip().str.lower()
+    df['Class'] = df['Class'].replace({'positive': 1, 'negative': 0})
+    return features, df['Class']
+
+
+def get_wine_quality_white_9_vs_4_data():
+    path = Path(__file__).parent / "data/wine/winequality-white-9_vs_4.dat"
+    df = load_keel_dat_file(path)
+    features = df.drop(["Class"], axis=1)
+    df['Class'] = df['Class'].str.strip().str.lower()
+    df['Class'] = df['Class'].replace({'positive': 1, 'negative': 0})
+    return features, df['Class']
+
+
 def get_abalone_9_vs_18_data():
     path = Path(__file__).parent / "data/abalone/abalone9-18.dat"
     df = load_keel_dat_file(path)
@@ -106,6 +143,7 @@ def get_abalone_9_vs_18_data():
     df['Class'] = df['Class'].str.strip().str.lower()
     df['Class'] = df['Class'].replace({'positive': 1, 'negative': 0})
     return features, df['Class']
+
 
 def get_abalone_3_vs_11_data():
     path = Path(__file__).parent / "data/abalone/abalone-3_vs_11.dat"
@@ -115,6 +153,7 @@ def get_abalone_3_vs_11_data():
     df['Class'] = df['Class'].replace({'positive': 1, 'negative': 0})
     return features, df['Class']
 
+
 def get_abalone_19_vs_10_11_12_13_data():
     path = Path(__file__).parent / "data/abalone/abalone-19_vs_10-11-12-13.dat"
     df = load_keel_dat_file(path)
@@ -122,6 +161,7 @@ def get_abalone_19_vs_10_11_12_13_data():
     df['Class'] = df['Class'].str.strip().str.lower()
     df['Class'] = df['Class'].replace({'positive': 1, 'negative': 0})
     return features, df['Class']
+
 
 def get_abalone_20_vs_8_9_10_data():
     path = Path(__file__).parent / "data/abalone/abalone-20_vs_8-9-10.dat"
@@ -157,8 +197,8 @@ def get_polish_bankruptcy_data(index: int):
     return _polish_features, _polish_labels
 
 
-def resample_minority_samples(X_train, y_train, selected_resampled = None, syntetic_minority_count = 100,
-                              cluster_count = 30):
+def resample_minority_samples(X_train, y_train, selected_resampled=None, syntetic_minority_count=100,
+                              cluster_count=30):
     smote = SMOTE(sampling_strategy={1: sum(y_train == 1) + syntetic_minority_count},
                   random_state=42, k_neighbors=SMOTE_K_NEIGHBORS)  # Assuming the minority class label is 1
     X_res, y_res = smote.fit_resample(X_train, y_train)
@@ -264,3 +304,12 @@ def load_keel_dat_file(file_path):
     data = [row.split(',') for row in data_lines]
     df = pd.DataFrame(data, columns=column_names)
     return df
+
+
+def get_classifier(clf_type, solution):
+    if clf_type == Classifier.SVC:
+        clf = SVC(random_state=RANDOM_STATE, gamma=solution[0], C=solution[1])
+    if clf_type == Classifier.WeightedSVC:
+        clf = SVC(random_state=RANDOM_STATE, gamma=solution[0], C=solution[1],
+                  class_weight={0: solution[2], 1: solution[3]})
+    return clf

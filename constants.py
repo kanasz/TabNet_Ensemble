@@ -19,6 +19,11 @@ class LossFunction(Enum):
     CROSSENTROPYLOSS = "CROSSENTROPYLoss"
 
 
+class Classifier:
+    SVC = "SVC"
+    WeightedSVC = "WeightedSVC",
+
+
 tabnet_gene_types = [int, int, int, float, float, float, int, int, float]
 tabnet_gene_space = [
     {'low': 8, 'high': 64},  # n_d
@@ -317,6 +322,25 @@ genes_bagging_crossentropy_loss = {
         {'low': 1, 'high': 20},  # n_estimators
         {'low': 0, 'high': 5},  # weight0
         {'low': 0, 'high': 500}  # weight1
+    ]
+}
+
+
+genes_svc = {
+    "types":[float, float],
+    "space": [
+        {'low': 0.001, 'high': 100},    #gamma
+        {'low': 0.01, 'high': 100}      #C
+    ]
+}
+
+genes_weighted_svc = {
+    "types": [float, float, int, int],
+    "space": [
+        {'low': 0.001, 'high': 100},    #gamma
+        {'low': 0.01, 'high': 100},     #C
+        {'low': 1, 'high': 100},        #class 0 weight
+        {'low': 1, 'high': 100}         #class 1 weight
     ]
 }
 '''

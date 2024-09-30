@@ -46,7 +46,8 @@ class GaXGBoostTuner:
             scale_pos_weight = int(solution[7])
 
         X, y = self.X_orig.copy(), self.y_orig.copy()
-
+        preprocessor = ColumnTransformer(transformers=[])
+        '''
         preprocessor = ColumnTransformer(
             transformers=[
                 ('num', Pipeline(steps=[
@@ -60,6 +61,20 @@ class GaXGBoostTuner:
                  self.categorical_cols)
             ]
         )
+        '''
+        if self.numerical_cols is not None:
+            preprocessor.transformers.append(('num', Pipeline(steps=[
+                    ('imputer', SimpleImputer(strategy='median')),
+                    ('scaler', StandardScaler())
+                ]),
+                 self.numerical_cols))
+        if self.categorical_cols is not None:
+            preprocessor.transformers.append(('cat', Pipeline(steps=[
+                    ('imputer', SimpleImputer(strategy='most_frequent')),
+                    ('encoder', OneHotEncoder(handle_unknown='ignore'))
+                ]),
+                 self.categorical_cols))
+
         gmeans = []
 
         true_values = []

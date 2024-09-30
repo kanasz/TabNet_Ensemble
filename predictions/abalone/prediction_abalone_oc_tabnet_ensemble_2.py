@@ -8,6 +8,7 @@ from base_functions import get_synthetic_data, get_slovak_data, get_config_files
     get_abalone_19_vs_10_11_12_13_data, get_abalone_3_vs_11_data
 from constants import LossFunction, CLUSTER_COUNT, WEAK_CLASSIFIERS_COUNT, SYNTHETIC_MINORITY_COUNT
 from models.oc_bagging_tabnet_ensemble_new import GaOCBaggingTabnetEnsembleTunerNew
+from models.oc_bagging_tabnet_ensemble_parallel import GaOCBaggingTabnetEnsembleTunerParallel
 from optimization.ga_boosting_tabnet_tuner import GaBoostingTabnetTuner
 from optimization.ga_oc_bagging_tabnet_ensemble_tuner import GaOCBaggingTabnetEnsembleTuner
 
@@ -43,10 +44,10 @@ if __name__ == '__main__':
 
     data = get_abalone_3_vs_11_data()
     config_files = get_config_files("../../models/configurations")
-    tuner = GaOCBaggingTabnetEnsembleTunerNew(tabnet_max_epochs, num_generations, num_parents, population, config_files=config_files, device='cuda',
+    tuner = GaOCBaggingTabnetEnsembleTunerParallel(tabnet_max_epochs, num_generations, num_parents, population, config_files=config_files, device='cuda',
                                               numerical_cols=numerical_cols, categorical_cols=categorical_cols)
     tuner.run_experiment(data,
-                         'results/OC_TABNET_ENSEMBLE_CROSSENTROPYLOSS_abalone_3_vs_11_{}_CLUSTER_COUNT_{}_CLASSIFIER_COUNT_{}_SYNTH_COUNT_{}'
+                         'results/OC_TABNET_ENSEMBLE_CROSSENTROPYLOSS_abalone_3_vs_11_{}_CLUSTER_COUNT_{}_CLASSIFIER_COUNT_{}_SYNTH_COUNT_{}_2'
                          .format(contamination, CLUSTER_COUNT, WEAK_CLASSIFIERS_COUNT, SYNTHETIC_MINORITY_COUNT), actual_loss_function)
     print("--- total: %s seconds ---" % (time.time() - start_time))
     print("Experiment info -> data: {}, features: {}, loss function: {}".format(contamination, features,
