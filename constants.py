@@ -21,7 +21,10 @@ class LossFunction(Enum):
 
 class Classifier:
     SVC = "SVC"
-    WeightedSVC = "WeightedSVC",
+    WeightedSVC = "WeightedSVC"
+    BalancedCascade = "BCascade"
+    AdaCost = "AdaCost"
+    SelfPaced = "SelfPaced"
 
 
 tabnet_gene_types = [int, int, int, float, float, float, int, int, float]
@@ -328,7 +331,7 @@ genes_bagging_crossentropy_loss = {
 
 genes_svc = {
     "types":[float, float],
-    "space": [
+    "spaces": [
         {'low': 0.001, 'high': 100},    #gamma
         {'low': 0.01, 'high': 100}      #C
     ]
@@ -336,14 +339,66 @@ genes_svc = {
 
 genes_weighted_svc = {
     "types": [float, float, int, int],
-    "space": [
+    "spaces": [
         {'low': 0.001, 'high': 100},    #gamma
         {'low': 0.01, 'high': 100},     #C
         {'low': 1, 'high': 100},        #class 0 weight
         {'low': 1, 'high': 100}         #class 1 weight
     ]
 }
+
 '''
+genes_balanced_cascade = {
+    "model__n_estimators": [10, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500],
+    "model__base_estimator__criterion": ['gini', 'entropy'],
+    "model__base_estimator__splitter": ['best', 'random'],
+    "model__base_estimator__ccp_alpha": [0.1, 0.3, 0.5, 0.7, 0.9]
+}
+'''
+genes_balanced_cascade = {
+    "types":[int,int,int,float],
+    "spaces":[
+        {'low': 10, 'high': 500},
+        {'low': 0, 'high': 2},
+        {'low': 0, 'high': 2},
+        {'low': 0.1, 'high': 0.9}
+    ]
+}
+
+genes_adacost = {
+    "types":[int,float,int],
+    "spaces":[
+        {'low': 10, 'high': 500},
+        {'low': 0.001, 'high': 1},
+        {'low': 0, 'high': 2}
+    ]
+}
+
+genes_self_paced = {
+"types":[int,int,int,float],
+    "spaces":[
+        {'low': 10, 'high': 500},
+        {'low': 0, 'high': 2},
+        {'low': 0, 'high': 2},
+        {'low': 0.1, 'high': 0.9},
+    ]
+}
+'''
+
+params_imbalanced_ensemble_self_paced = {
+    "model__n_estimators": [10, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500],
+    "model__base_estimator__criterion": ['gini', 'entropy'],
+    "model__base_estimator__splitter": ['best', 'random'],
+    "model__base_estimator__ccp_alpha": [0.1, 0.3, 0.5, 0.7, 0.9]
+}
+
+params_imbalanced_ensemble_adacost = {
+    "model__n_estimators": [10, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500],
+    "model__learning_rate": [0.001, 0.01, 0.1, 1],
+    "model__algorithm": ['SAMME', 'SAMME.R']
+}
+
+
 genes_crossentropy_loss = {
     "types": tabnet_gene_types + [float, float, int, float],
     "space": tabnet_gene_space + [

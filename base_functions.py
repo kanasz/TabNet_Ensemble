@@ -9,6 +9,7 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import make_scorer, accuracy_score, f1_score, roc_auc_score
 from imblearn.over_sampling import SMOTE
 from sklearn.svm import SVC
+from sklearn.tree import DecisionTreeClassifier
 
 from constants import LossFunction, WEAK_CLASSIFIERS_COUNT, SMOTE_K_NEIGHBORS, Classifier, RANDOM_STATE
 from loss_functions.binary_vs_loss import BinaryVSLoss
@@ -21,7 +22,7 @@ from loss_functions.ldam_loss import LDAMLoss
 from loss_functions.ldam_loss_mdr import LDAMLossMDR
 from loss_functions.vs_loss import VSLoss
 from loss_functions.vs_loss_mdr import VSLossMDR
-
+import imbalanced_ensemble.ensemble as imb
 
 # from imblearn.metrics import geometric_mean_score, sensitivity_score, specificity_score
 
@@ -406,4 +407,27 @@ def get_classifier(clf_type, solution):
     if clf_type == Classifier.WeightedSVC:
         clf = SVC(random_state=RANDOM_STATE, gamma=solution[0], C=solution[1],
                   class_weight={0: solution[2], 1: solution[3]})
+    if clf_type ==Classifier.BalancedCascade:
+        criterion = 'gini'
+        if solution[1]!=0:
+            criterion='entropy'
+
+        splitter = 'best'
+        if solution[2]!=0:
+            splitter='random'
+        estimator = DecisionTreeClassifier(splitter=splitter, criterion=criterion, ccp_alpha=solution[3])
+        clf = imb.BalanceCascadeClassifier(random_state=RANDOM_STATE, n_estimators=solution[0], estimator=estimator)
+    if clf_type==Classifier.AdaCost:
+        algorithm = 'SAMME'
+        if solution[2] != 0:
+            algorithm = 'SAMME.R'
+        clf = imb.AdaCostClassifier(n_estimators=solution[0], learning_rate=solution[1],algorithm=algorithm)
+    if clf_type==Classifier.SelfPaced:
+        criterion = 'gini'
+        if solution[1] != 0:
+            criterion = 'entropy'
+        splitter = 'best'
+        if solution[2] != 0:
+            splitter = 'entropy'
+        clf = imb.SelfPacedEnsembleClassifier(estimator=DecisionTreeClassifier(criterion=criterion, splitter=splitter, ccp_alpha=solution[3]), random_state=RANDOM_STATE,n_estimators=solution[0])
     return clf

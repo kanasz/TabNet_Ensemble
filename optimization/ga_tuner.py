@@ -2,6 +2,8 @@ import os
 import time
 import numpy as np
 from imbalanced_ensemble.metrics import geometric_mean_score
+#from imbalanced_ensemble.sampler.over_sampling import ADASYN
+from imblearn.over_sampling import  ADASYN
 from imblearn.over_sampling import SMOTE
 from imblearn.pipeline import Pipeline
 from pygad import pygad
@@ -11,6 +13,7 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 
 from base_functions import get_classifier
+from constants import Classifier, genes_weighted_svc, genes_balanced_cascade, genes_svc, genes_adacost, genes_self_paced
 
 seed = 42
 pygad.random.seed(42)
@@ -19,7 +22,7 @@ pygad.random.seed(42)
 class GaTuner:
 
     def __init__(self, num_generations, num_parents=10, population=20, use_smote=True,  clf_type = None,
-                 numerical_cols = None, categorical_cols = None, k_neighbors = 2):
+                 numerical_cols = None, categorical_cols = None, k_neighbors = 2, use_adasyn=False):
         self.num_generations = num_generations
         self.num_parents = num_parents
         self.population = population
@@ -33,6 +36,7 @@ class GaTuner:
         self.categorical_cols = categorical_cols
         self.clf_type = clf_type
         self.k_neighbors = k_neighbors
+        self.use_adasyn = use_adasyn
 
     def eval_func(self, ga_instance, solution, solution_idx):
         X, y = self.X_orig.copy(), self.y_orig.copy()
@@ -62,13 +66,21 @@ class GaTuner:
 
             test_index = self.test_indices[index]
             if self.use_smote:
-
                 pipeline = Pipeline([
                     ('preprocessor', preprocessor),
                     #('scaler', StandardScaler()),
                     ('smote', SMOTE(random_state=42, k_neighbors=self.k_neighbors)),
                     ('clf', clf)
                 ])
+
+            elif self.use_adasyn:
+                pipeline = Pipeline([
+                    ('preprocessor', preprocessor),
+                    # ('scaler', StandardScaler()),
+                    ('adasyn', ADASYN(random_state=42, n_neighbors=self.k_neighbors, sampling_strategy='all')),
+                    ('clf', clf)
+                ])
+
             else:
                 pipeline = Pipeline([
                     ('preprocessor', preprocessor),
@@ -76,7 +88,10 @@ class GaTuner:
                     ('clf', clf)])
             X_train, X_valid = (X.iloc[train_index]), (X.iloc[test_index])
             y_train, y_valid = np.array(y)[train_index], np.array(y)[test_index]
-            pipeline.fit(X_train, y_train)
+            try:
+                pipeline.fit(X_train, y_train)
+            except:
+                return 0, None, None
             y_pred = pipeline.predict(X_valid)
             true_values.append(y_valid)
             predicted_values.append(y_pred)
@@ -95,23 +110,23 @@ class GaTuner:
     def run_experiment(self, data, fname):
         kf = StratifiedKFold(n_splits=5, random_state=42, shuffle=True)
 
-        gene_types = [float, int, int, int, float,float,float]
 
-        spaces = [
-            {'low': 0.001, 'high': 0.1},  # learning_rate
-            {'low': 100, 'high': 300},  # n_neighbors
-            {'low': 3, 'high': 5},  # max_depth
-            {'low': 1, 'high': 3},  # min_child_weight
-            {'low': 0, 'high': 0.2},  # gamma
-            {'low': 0.8, 'high': 1},  # subsample
-            {'low': 0.8, 'high': 1},  # colsample_bytree
+        if self.clf_type==Classifier.BalancedCascade:
+            gene_types = genes_balanced_cascade['types']
+            spaces = genes_balanced_cascade['spaces']
+        if self.clf_type==Classifier.SVC:
+            gene_types = genes_svc['types']
+            spaces = genes_svc['spaces']
+        if self.clf_type==Classifier.WeightedSVC:
+            gene_types = genes_weighted_svc['types']
+            spaces = genes_weighted_svc['spaces']
+        if self.clf_type ==Classifier.AdaCost:
+            gene_types = genes_adacost['types']
+            spaces = genes_adacost['spaces']
+        if self.clf_type ==Classifier.SelfPaced:
+            gene_types = genes_self_paced['types']
+            spaces = genes_self_paced['spaces']
 
-        ]
-        '''
-        if self.use_weighting:
-            gene_types.append(int)
-            spaces.append({'low': 1, 'high': 1000})
-        '''
         filename = fname
         sol_per_pop = self.population
         num_parents_mating = self.num_parents
