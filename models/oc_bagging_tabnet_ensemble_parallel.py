@@ -3,24 +3,17 @@ import sys
 import time
 import numpy as np
 from imbalanced_ensemble.metrics import geometric_mean_score
-from imblearn.over_sampling import SMOTE
+from imblearn.pipeline import Pipeline
 from joblib import Parallel, delayed
 from pygad import pygad
-from sklearn.cluster import KMeans
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.model_selection import StratifiedKFold
-from sklearn.preprocessing import StandardScaler
-
-from base_functions import resample_minority_samples
-from constants import CLUSTER_COUNT, SYNTHETIC_MINORITY_COUNT
-from models.boosting_tabnet import BoostingTabNet
-from models.oc_bagging_tabnet import OCBaggingTabNet
-from models.oc_bagging_tabnet_ensemble import OCBaggingTabnetEnsemble
-from optimization.ga_tabnet_functions import GMean, get_loss, get_boosting_gene_type_and_space, \
-    get_oc_bagging_gene_type_and_space
-from imblearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from base_functions import resample_minority_samples, custom_resample_minority_samples
+from constants import CLUSTER_COUNT, SYNTHETIC_MINORITY_COUNT
+from models.oc_bagging_tabnet_ensemble import OCBaggingTabnetEnsemble
+from optimization.ga_tabnet_functions import GMean
 
 seed = 42
 pygad.random.seed(42)
@@ -29,7 +22,10 @@ pygad.random.seed(42)
 class GaOCBaggingTabnetEnsembleTunerParallel:
 
     def __init__(self, tabnet_max_epochs,
-                 num_generations, num_parents=10, population=20, config_files = [], device='cuda', numerical_cols=None, categorical_cols=None):
+                 num_generations, num_parents=10, population=20, config_files = [], device='cuda',
+                 numerical_cols=None, categorical_cols=None,
+                 save_partial_output=False,
+                 sampling_algorithm=None, clustering_algorithm=None):
         self.tabnet_max_epochs = tabnet_max_epochs
         self.num_generations = num_generations
         self.num_parents = num_parents
@@ -43,27 +39,16 @@ class GaOCBaggingTabnetEnsembleTunerParallel:
         self.config_files = config_files
         self.categorical_cols = categorical_cols
         self.numerical_cols  = numerical_cols
+        self.save_partial_output = save_partial_output
+        self.resampling_algorithm = sampling_algorithm
+        self.clustering_algorithm = clustering_algorithm
 
     def parallel_fit(self, index, train_index, test_index, X, y, valid_classifiers, solution, CLUSTER_COUNT,
                      SYNTHETIC_MINORITY_COUNT, tb_cls, numerical_cols, categorical_cols, tabnet_max_epochs, device):
         X_train, X_valid = X.iloc[train_index], X.iloc[test_index]
         y_train, y_valid = y.iloc[train_index], y.iloc[test_index]
         preprocessor = ColumnTransformer(transformers=[])
-        '''
-        preprocessor = ColumnTransformer(
-            transformers=[
-                ('num', Pipeline(steps=[
-                    ('imputer', SimpleImputer(strategy='median')),
-                    ('scaler', StandardScaler())]),
-                 numerical_cols),
-                ('cat', Pipeline(steps=[
-                    ('imputer', SimpleImputer(strategy='most_frequent')),
-                    ('encoder', OneHotEncoder(handle_unknown='ignore'))
-                ]),
-                 categorical_cols)
-            ]
-        )
-        '''
+
         if self.numerical_cols is not None:
             preprocessor.transformers.append(('num', Pipeline(steps=[
                     ('imputer', SimpleImputer(strategy='median')),
@@ -85,9 +70,15 @@ class GaOCBaggingTabnetEnsembleTunerParallel:
         cls_sum = np.sum(y_train)
         cls_num_list = [len(y_train) - cls_sum, cls_sum]
 
+        '''
         X_train_std, y_train = resample_minority_samples(X_train_std, y_train, selected, cluster_count=CLUSTER_COUNT,
                                                          syntetic_minority_count=SYNTHETIC_MINORITY_COUNT)
-
+        '''
+        X_train_std, y_train = custom_resample_minority_samples(X_train_std, y_train, selected,
+                                                                cluster_count=CLUSTER_COUNT,
+                                                                syntetic_minority_count=SYNTHETIC_MINORITY_COUNT,
+                                                                resampling_algorithm=self.resampling_algorithm,
+                                                                clustering_algorithm=self.clustering_algorithm)
         tb_cls.fit(X_train_std, y_train,
                    solution=solution,
                    cls_num_list=cls_num_list,
@@ -162,17 +153,10 @@ class GaOCBaggingTabnetEnsembleTunerParallel:
         arr = self.filename.split("/")
         arr[-1] = "{}_{}".format(gm_mean,arr[-1])
         f = "/".join(arr)
-        with open(f + '.txt', 'w') as data:
-            data.write(str(result))
+        if self.save_partial_output:
+            with open(f + '.txt', 'w') as data:
+                data.write(str(result))
 
-        '''
-        except Exception as e:
-            print(e)
-            gm_mean = 0
-            t = time.time() - start_time
-            print("gmean: {}, n_estimators: {}, {} seconds - ERROR".format(gm_mean, solution[9], t))
-            return 0
-        '''
         t = time.time() - start_time
         print("gmean: {}, n_estimators: {}, {} seconds".format(gm_mean, np.sum(solution[0:len(self.config_files)]), t))
 

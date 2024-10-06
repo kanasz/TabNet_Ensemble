@@ -11,7 +11,8 @@ from imblearn.over_sampling import SMOTE
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 
-from constants import LossFunction, WEAK_CLASSIFIERS_COUNT, SMOTE_K_NEIGHBORS, Classifier, RANDOM_STATE
+from constants import LossFunction, WEAK_CLASSIFIERS_COUNT, SMOTE_K_NEIGHBORS, Classifier, RANDOM_STATE, genes_svc, \
+    genes_fttransformer
 from loss_functions.binary_vs_loss import BinaryVSLoss
 from loss_functions.binary_vs_loss_mdr import BinaryVSLossMDR
 from loss_functions.cross_entropy_loss import CrossEntropyLoss
@@ -23,6 +24,9 @@ from loss_functions.ldam_loss_mdr import LDAMLossMDR
 from loss_functions.vs_loss import VSLoss
 from loss_functions.vs_loss_mdr import VSLossMDR
 import imbalanced_ensemble.ensemble as imb
+
+from models.ft_transformer import FTTransformer, FTTransformerWrapper
+
 
 # from imblearn.metrics import geometric_mean_score, sensitivity_score, specificity_score
 
@@ -320,6 +324,38 @@ def resample_minority_samples(X_train, y_train, selected_resampled=None, synteti
     return X_final, y_final
 
 
+def custom_resample_minority_samples(X_train, y_train, selected_resampled=None, syntetic_minority_count=100,
+                              cluster_count=30, resampling_algorithm=None, clustering_algorithm = None):
+
+    if resampling_algorithm is None:
+        resampling_algorithm = SMOTE(sampling_strategy={1: sum(y_train == 1) + syntetic_minority_count},
+                  random_state=42, k_neighbors=SMOTE_K_NEIGHBORS)  # Assuming the minority class label is 1
+    if clustering_algorithm is None:
+        clustering_algorithm = KMeans(n_clusters=cluster_count, random_state=42)
+
+    X_res, y_res = resampling_algorithm.fit_resample(X_train, y_train)
+
+    n_samples_original = X_train.shape[0]
+    X_synthetic = X_res[n_samples_original:]
+    y_synthetic = y_res[n_samples_original:]
+
+    X_synthetic = X_synthetic[:syntetic_minority_count]
+    y_synthetic = y_synthetic[:syntetic_minority_count]
+
+    clustering_algorithm.fit(X_synthetic)
+    if type(selected_resampled) is list:
+        selected_resampled = np.array(selected_resampled)
+
+    X_reduced_synthetic = clustering_algorithm.cluster_centers_
+    y_reduced_synthetic = np.full(shape=cluster_count, fill_value=1)  # Assuming the minority class is labeled as 1
+    X_reduced_synthetic = X_reduced_synthetic[selected_resampled == True]
+    y_reduced_synthetic = y_reduced_synthetic[selected_resampled == True]
+
+    X_final = np.vstack((X_train, X_reduced_synthetic))
+    y_final = np.hstack((y_train, y_reduced_synthetic))
+    return X_final, y_final
+
+
 def get_loss(loss_function, params, cls_num_list, device):
     try:
         if loss_function == LossFunction.BINARYVSLOSS:
@@ -401,7 +437,7 @@ def load_keel_dat_file(file_path):
     return df
 
 
-def get_classifier(clf_type, solution):
+def get_classifier(clf_type, solution, input_dim = 0):
     if clf_type == Classifier.SVC:
         clf = SVC(random_state=RANDOM_STATE, gamma=solution[0], C=solution[1])
     if clf_type == Classifier.WeightedSVC:
@@ -430,4 +466,25 @@ def get_classifier(clf_type, solution):
         if solution[2] != 0:
             splitter = 'entropy'
         clf = imb.SelfPacedEnsembleClassifier(estimator=DecisionTreeClassifier(criterion=criterion, splitter=splitter, ccp_alpha=solution[3]), random_state=RANDOM_STATE,n_estimators=solution[0])
+    if clf_type==Classifier.FTTransformer:
+        tf_model = FTTransformer(
+            categories=(),
+            num_continuous=input_dim,
+            dim=solution[1],  # dimension, paper set at 32
+            dim_out=1,  # binary prediction, but could be anything
+            depth=solution[2],  # depth, paper recommended 6
+            heads=solution[3],  # heads, paper recommends 8
+            attn_dropout=solution[4],  # post-attention dropout
+            ff_dropout=solution[5]  # feed forward dropout
+        )
+
+        clf = FTTransformerWrapper(transformer_model=tf_model, lr=solution[0], batch_size=10000)
+
     return clf
+
+
+def get_classifier_params(clf_type):
+    if clf_type == Classifier.SVC:
+        return genes_svc
+    if clf_type ==Classifier.FTTransformer:
+        return genes_fttransformer

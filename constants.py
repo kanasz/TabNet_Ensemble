@@ -3,6 +3,7 @@ from enum import Enum
 RANDOM_STATE = 42
 CLUSTER_COUNT = 800 #60
 WEAK_CLASSIFIERS_COUNT = 35 #55
+#WEAK_CLASSIFIERS_COUNT = 55
 SYNTHETIC_MINORITY_COUNT = 1500 #100
 SMOTE_K_NEIGHBORS = 3 #6 - vo vsetkych okrem syntetic 03 je 6
 class LossFunction(Enum):
@@ -25,6 +26,7 @@ class Classifier:
     BalancedCascade = "BCascade"
     AdaCost = "AdaCost"
     SelfPaced = "SelfPaced"
+    FTTransformer = "FTTransformer"
 
 
 tabnet_gene_types = [int, int, int, float, float, float, int, int, float]
@@ -380,7 +382,20 @@ genes_self_paced = {
         {'low': 10, 'high': 500},
         {'low': 0, 'high': 2},
         {'low': 0, 'high': 2},
-        {'low': 0.1, 'high': 0.9},
+        {'low': 0.1, 'high': 0.9}
+
+    ]
+}
+
+genes_fttransformer = {
+    "types":[float, int, int, int, float, float],
+    "spaces": [
+        {'low': 0.001, 'high':0.005},
+        {'low': 10, 'high':32}, #dim
+        {'low': 1, 'high':5}, #depth
+        {'low': 2, 'high':16}, #heads
+        {'low': 0.1, 'high':0.3}, # attn_dropout
+        {'low': 0.1, 'high':0.3}, # ff_dropout
     ]
 }
 '''
