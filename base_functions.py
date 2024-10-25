@@ -1,16 +1,18 @@
 import csv
 import os
 from pathlib import Path
-
+from imblearn.pipeline import Pipeline
 import numpy as np
 import pandas as pd
 from imblearn.metrics import geometric_mean_score
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, MeanShift, estimate_bandwidth
 from sklearn.metrics import make_scorer, accuracy_score, f1_score, roc_auc_score
 from imblearn.over_sampling import SMOTE
+from sklearn.model_selection import StratifiedKFold
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
-
+from sklearn.compose import ColumnTransformer
+from sklearn.impute import SimpleImputer
 from constants import LossFunction, WEAK_CLASSIFIERS_COUNT, SMOTE_K_NEIGHBORS, Classifier, RANDOM_STATE, genes_svc, \
     genes_fttransformer
 from loss_functions.binary_vs_loss import BinaryVSLoss
@@ -24,6 +26,7 @@ from loss_functions.ldam_loss_mdr import LDAMLossMDR
 from loss_functions.vs_loss import VSLoss
 from loss_functions.vs_loss_mdr import VSLossMDR
 import imbalanced_ensemble.ensemble as imb
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
 
 from models.ft_transformer import FTTransformer, FTTransformerWrapper
 
@@ -325,6 +328,43 @@ def resample_minority_samples(X_train, y_train, selected_resampled=None, synteti
 
 
 def custom_resample_minority_samples(X_train, y_train, selected_resampled=None, syntetic_minority_count=100,
+                              resampling_algorithm=None, clustering_algorithm = None):
+
+    if resampling_algorithm is None:
+        resampling_algorithm = SMOTE(sampling_strategy={1: sum(y_train == 1) + syntetic_minority_count},
+                  random_state=42, k_neighbors=SMOTE_K_NEIGHBORS)  # Assuming the minority class label is 1
+    if clustering_algorithm is None:
+        #clustering_algorithm = KMeans(n_clusters=cluster_count, random_state=42)
+        clustering_algorithm = KMeans(random_state=42)
+
+    X_res, y_res = resampling_algorithm.fit_resample(X_train, y_train)
+
+    if type(selected_resampled) is list:
+        selected_resampled = np.array(selected_resampled)
+
+    n_samples_original = X_train.shape[0]
+    X_synthetic = X_res[n_samples_original:]
+    y_synthetic = y_res[n_samples_original:]
+
+    X_synthetic = X_synthetic[:syntetic_minority_count]
+    y_synthetic = y_synthetic[:syntetic_minority_count]
+    X_synthetic = X_synthetic[selected_resampled == True]
+    y_synthetic = y_synthetic[selected_resampled == True]
+    clustering_algorithm.fit(X_synthetic)
+
+
+    X_reduced_synthetic = clustering_algorithm.cluster_centers_
+    y_reduced_synthetic = np.full(shape=len(X_reduced_synthetic), fill_value=1)  # Assuming the minority class is labeled as 1
+    #X_reduced_synthetic = X_reduced_synthetic[selected_resampled == True]
+    #y_reduced_synthetic = y_reduced_synthetic[selected_resampled == True]
+
+    X_final = np.vstack((X_train, X_reduced_synthetic))
+    y_final = np.hstack((y_train, y_reduced_synthetic))
+    return X_final, y_final
+
+
+
+def custom_resample_minority_clusters(X_train, y_train, selected_resampled=None, syntetic_minority_count=100,
                               cluster_count=30, resampling_algorithm=None, clustering_algorithm = None):
 
     if resampling_algorithm is None:
@@ -346,8 +386,13 @@ def custom_resample_minority_samples(X_train, y_train, selected_resampled=None, 
     if type(selected_resampled) is list:
         selected_resampled = np.array(selected_resampled)
 
-    X_reduced_synthetic = clustering_algorithm.cluster_centers_
-    y_reduced_synthetic = np.full(shape=cluster_count, fill_value=1)  # Assuming the minority class is labeled as 1
+    if hasattr(clustering_algorithm, 'cluster_centers_'):
+        X_reduced_synthetic = clustering_algorithm.cluster_centers_
+    elif hasattr(clustering_algorithm, 'means_'):
+        X_reduced_synthetic = clustering_algorithm.means_
+
+    #y_reduced_synthetic = np.full(shape=cluster_count, fill_value=1)  # Assuming the minority class is labeled as 1
+    y_reduced_synthetic = np.full(shape=X_reduced_synthetic.shape[0], fill_value=1)
     X_reduced_synthetic = X_reduced_synthetic[selected_resampled == True]
     y_reduced_synthetic = y_reduced_synthetic[selected_resampled == True]
 
@@ -488,3 +533,64 @@ def get_classifier_params(clf_type):
         return genes_svc
     if clf_type ==Classifier.FTTransformer:
         return genes_fttransformer
+
+
+
+def get_preprocessor(numerical_cols, categorical_cols):
+    preprocessor = ColumnTransformer(transformers=[])
+
+    if numerical_cols is not None:
+        preprocessor.transformers.append(('num', Pipeline(steps=[
+            ('imputer', SimpleImputer(strategy='median')),
+            ('scaler', StandardScaler())
+        ]),
+                                          numerical_cols))
+    if categorical_cols is not None:
+        preprocessor.transformers.append(('cat', Pipeline(steps=[
+            ('imputer', SimpleImputer(strategy='most_frequent')),
+            ('encoder', OneHotEncoder(handle_unknown='ignore'))
+        ]),
+                                          categorical_cols))
+    return preprocessor
+
+def get_meanshift_cluster_counts(X, y, numerical_cols, categorical_cols):
+    skf = StratifiedKFold(n_splits=5, random_state=42, shuffle=True)
+    preprocessor = get_preprocessor(numerical_cols, categorical_cols)
+
+    def create_meanshift_pipeline(bandwidth=None):
+        return Pipeline(steps=[
+            ('meanshift', MeanShift(bandwidth=bandwidth))  # Apply MeanShift clustering
+        ])
+    clusters = []
+    bandwidths = []
+    for train_index, test_index in skf.split(X, y):
+        X_train, X_test = X.iloc[train_index], X.iloc[test_index]
+        y_train, y_test = y.iloc[train_index], y.iloc[test_index]
+
+        # Step 5: Preprocess training data (imputation, scaling, one-hot encoding)
+        X_train_preprocessed = preprocessor.fit_transform(X_train)
+        X_test_preprocessed = preprocessor.transform(X_test)
+
+        # Step 6: Apply SMOTE to oversample the minority class in the training set
+        smote = SMOTE(random_state=42)
+        X_resampled, y_resampled = smote.fit_resample(X_train_preprocessed, y_train)
+
+        # Step 7: Separate the synthetic samples for the minority class
+        n_generated_samples = len(X_resampled) - len(X_train_preprocessed)  # Number of synthetic samples
+        synthetic_samples = X_resampled[-n_generated_samples:]  # Synthetic samples are at the end
+        synthetic_labels = y_resampled[-n_generated_samples:]  # Corresponding labels for synthetic samples
+
+        # Step 8: Cluster only the synthetic samples
+        bandwidth = estimate_bandwidth(synthetic_samples, quantile=0.05)
+        bandwidths.append(bandwidth)
+        clustering_pipeline = create_meanshift_pipeline(bandwidth)
+        clustering_pipeline.fit(synthetic_samples)
+
+        cluster_centers = clustering_pipeline.named_steps['meanshift'].cluster_centers_
+        y_reduced_synthetic = np.full(shape=cluster_centers.shape[0], fill_value=1)
+        final = np.vstack((X_train_preprocessed, cluster_centers))
+        y_final = np.hstack((y_train, y_reduced_synthetic))
+        #print(len(cluster_centers))
+        clusters.append(len(cluster_centers))
+
+    return clusters, bandwidths
