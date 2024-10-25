@@ -553,7 +553,7 @@ def get_preprocessor(numerical_cols, categorical_cols):
                                           categorical_cols))
     return preprocessor
 
-def get_meanshift_cluster_counts(X, y, numerical_cols, categorical_cols):
+def get_meanshift_cluster_counts(X, y, numerical_cols, categorical_cols, smote=None):
     skf = StratifiedKFold(n_splits=5, random_state=42, shuffle=True)
     preprocessor = get_preprocessor(numerical_cols, categorical_cols)
 
@@ -572,7 +572,8 @@ def get_meanshift_cluster_counts(X, y, numerical_cols, categorical_cols):
         X_test_preprocessed = preprocessor.transform(X_test)
 
         # Step 6: Apply SMOTE to oversample the minority class in the training set
-        smote = SMOTE(random_state=42)
+        if smote == None:
+            smote = SMOTE(random_state=42)
         X_resampled, y_resampled = smote.fit_resample(X_train_preprocessed, y_train)
 
         # Step 7: Separate the synthetic samples for the minority class
