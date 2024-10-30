@@ -193,20 +193,22 @@ class GaOCBaggingTabnetEnsembleTunerParallel:
                 #    new_nonzero_indices = np.random.choice(zero_indices, n - len(nonzero_indices), replace=False)
                 #    chromosome[new_nonzero_indices] = np.random.uniform(-1.0, 1.0, len(new_nonzero_indices))
 
-                # If there are more than n nonzero genes, set excess to zero
-                if len(nonzero_indices) > max_classifier_count:
-                    excess_indices = np.random.choice(nonzero_indices, len(nonzero_indices) - max_classifier_count, replace=False)
-                    chromosome[excess_indices] = 0
+
 
                 if np.random.rand() <= ga_instance.mutation_probability:
                     num_genes_to_mutate = max(1, int((ga_instance.mutation_percent_genes / 100) * (len(chromosome) - 35)))
-                    mutation_indices = np.random.choice(range(35, len(chromosome)), num_genes_to_mutate, replace=False)
+                    mutation_indices = np.random.choice(range(0, len(chromosome)), num_genes_to_mutate, replace=False)
 
                     # Apply mutation to selected genes as integers
                     for i in mutation_indices:
                         if gene_type[i - 35] == int:
                             chromosome[i] = np.random.randint(ga_instance.gene_space[i - 35]["low"], ga_instance.gene_space[i - 35]["high"] + 1)
 
+                # If there are more than n nonzero genes, set excess to zero
+                if len(nonzero_indices) > max_classifier_count:
+                    excess_indices = np.random.choice(nonzero_indices, len(nonzero_indices) - max_classifier_count,
+                                                      replace=False)
+                    chromosome[excess_indices] = 0
 
             print(offspring.shape)
             return offspring
