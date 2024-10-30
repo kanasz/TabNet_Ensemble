@@ -101,8 +101,13 @@ for dataset in datasets:
 '''
 classifiers = ['XGBOOST','XGBOOST_SMOTE',
                 'SVC_SMOTE','SVC_WEIGHTED','AdasynSVC','Adacost','SelfPaced',
-               'OC_TABNET_ENSEMBLE_CROSSENTROPYLOSS'
+               'OC_TABNET_ENSEMBLE_CROSSENTROPYLOSS',
+               'OC_TABNET_ENSEMBLE_ADASYN_KMEANS',
+               'OC_TABNET_ENSEMBLE_SMOTE_GMM',
+               'OC_TABNET_ENSEMBLE_SMOTE_MEANSHIFT'
                ]
+
+
 folder_path = "predictions/{}/results"
 results_folders = {
     "synthetic":['synthetic_01', 'synthetic_02', 'synthetic_03'],

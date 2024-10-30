@@ -61,7 +61,7 @@ if __name__ == '__main__':
     tuner = GaOCBaggingTabnetEnsembleTunerParallel(tabnet_max_epochs, num_generations, num_parents, population, config_files=config_files, device='cuda',
                                               numerical_cols=numerical_cols, categorical_cols=categorical_cols)
     tuner.run_experiment(data,
-                         'results/OC_TABNET_ENSEMBLE_CROSSENTROPYLOSS_wine_quality_red_3_vs_5_CLUSTER_COUNT_{}_CLASSIFIER_COUNT_{}_SYNTH_COUNT_{}_2'
+                         'results/OC_TABNET_ENSEMBLE_CROSSENTROPYLOSS_red_3_vs_5_CLUSTER_COUNT_{}_CLASSIFIER_COUNT_{}_SYNTH_COUNT_{}_2'
                          .format( CLUSTER_COUNT, WEAK_CLASSIFIERS_COUNT, SYNTHETIC_MINORITY_COUNT), actual_loss_function)
     print("--- total: %s seconds ---" % (time.time() - start_time))
 

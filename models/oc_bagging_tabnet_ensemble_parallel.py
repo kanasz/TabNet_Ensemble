@@ -45,6 +45,7 @@ class GaOCBaggingTabnetEnsembleTunerParallel:
 
     def parallel_fit(self, index, train_index, test_index, X, y, solution,
                       tb_cls,  tabnet_max_epochs):
+        print("PARALLEL_FIT {}".format(index))
         X_train, X_valid = X.iloc[train_index], X.iloc[test_index]
         y_train, y_valid = y.iloc[train_index], y.iloc[test_index]
         preprocessor = get_preprocessor(self.numerical_cols, self.categorical_cols)
@@ -141,28 +142,32 @@ class GaOCBaggingTabnetEnsembleTunerParallel:
 
     def fitness_func(self, ga_instance, solution, solution_idx):
         start_time = time.time()
-        #try:
-        gm_mean, true_values, predicted_values = self.eval_func(ga_instance, solution, solution_idx)
+        gm_mean = 0
+        try:
+            gm_mean, true_values, predicted_values = self.eval_func(ga_instance, solution, solution_idx)
+            if np.sum(solution[0:len(self.config_files)]) == 0:
+                print("ERROR 0 clfs")
+                return 0
+            result = {
+                'fitness': gm_mean,
+                'true_values': true_values,
+                'predicted_values': predicted_values,
+                'solution': np.array(solution)
+            }
+            arr = self.filename.split("/")
+            arr[-1] = "{}_{}".format(gm_mean,arr[-1])
+            f = "/".join(arr)
+            if self.save_partial_output:
+                with open(f + '.txt', 'w') as data:
+                    data.write(str(result))
 
-        result = {
-            'fitness': gm_mean,
-            'true_values': true_values,
-            'predicted_values': predicted_values,
-            'solution': np.array(solution)
-        }
-        arr = self.filename.split("/")
-        arr[-1] = "{}_{}".format(gm_mean,arr[-1])
-        f = "/".join(arr)
-        if self.save_partial_output:
-            with open(f + '.txt', 'w') as data:
-                data.write(str(result))
-
-        t = time.time() - start_time
-        print("gmean: {}, n_estimators: {}, {} seconds".format(gm_mean, np.sum(solution[0:len(self.config_files)]), t))
-
+            t = time.time() - start_time
+            print("gmean: {}, n_estimators: {}, {} seconds".format(gm_mean, np.sum(solution[0:len(self.config_files)]), t))
+        except:
+            print("error")
         return gm_mean
 
-    def run_experiment(self, data, fname):
+    def run_experiment(self, data, fname, max_classifier_count = None):
         kf = StratifiedKFold(n_splits=5, random_state=42, shuffle=True)
         self.filename = fname
         sol_per_pop = self.population
@@ -176,6 +181,53 @@ class GaOCBaggingTabnetEnsembleTunerParallel:
         for train_index, test_index in kf.split(self.X_orig, self.y_orig):
             self.train_indices.append(train_index)
             self.test_indices.append(test_index)
+
+        def custom_mutation(offspring, ga_instance):
+            print(offspring.shape)
+            for chromosome in offspring:
+                nonzero_indices = np.where(chromosome[:35] != 0)[0]
+
+                # If there are fewer than n nonzero genes, add more
+                #if len(nonzero_indices) < n:
+                #    zero_indices = np.where(chromosome == 0)[0]
+                #    new_nonzero_indices = np.random.choice(zero_indices, n - len(nonzero_indices), replace=False)
+                #    chromosome[new_nonzero_indices] = np.random.uniform(-1.0, 1.0, len(new_nonzero_indices))
+
+                # If there are more than n nonzero genes, set excess to zero
+                if len(nonzero_indices) > max_classifier_count:
+                    excess_indices = np.random.choice(nonzero_indices, len(nonzero_indices) - max_classifier_count, replace=False)
+                    chromosome[excess_indices] = 0
+
+                if np.random.rand() <= ga_instance.mutation_probability:
+                    num_genes_to_mutate = max(1, int((ga_instance.mutation_percent_genes / 100) * (len(chromosome) - 35)))
+                    mutation_indices = np.random.choice(range(35, len(chromosome)), num_genes_to_mutate, replace=False)
+
+                    # Apply mutation to selected genes as integers
+                    for i in mutation_indices:
+                        if gene_type[i - 35] == int:
+                            chromosome[i] = np.random.randint(ga_instance.gene_space[i - 35]["low"], ga_instance.gene_space[i - 35]["high"] + 1)
+
+
+            print(offspring.shape)
+            return offspring
+
+        def custom_initial_population(gene_space, num_parents_mating, max_classifier_count):
+            print('CUSTOM POPULATION')
+            population = []
+            m = len(gene_space)
+            for _ in range(num_parents_mating):
+                chromosome = np.zeros(m, dtype=int)
+
+                # Initialize the first 35 genes with exactly n nonzero integer values
+                nonzero_indices = np.random.choice(35, max_classifier_count, replace=False)
+                chromosome[nonzero_indices] = np.ones((1,max_classifier_count)) #np.random.randint(low=0, high=2, size=max_classifier_count)
+
+                # Initialize genes from 35 to m according to gene_space and gene_type
+                for i in range(35, m):
+                    if gene_type[i - 35] == int:
+                        chromosome[i] = np.random.randint(gene_space[i - 35]["low"], gene_space[i - 35]["high"] )
+                population.append(chromosome)
+            return np.array(population)
 
         def callback_generation(ga_instance):
             print("Generation : {gen}".format(gen=ga_instance.generations_completed))
@@ -224,13 +276,19 @@ class GaOCBaggingTabnetEnsembleTunerParallel:
         if exists:
             ga_instance = pygad.load(self.filename)
         else:
+            mutation_type= "random"
+            initial_population  = None
+            if max_classifier_count is not None:
+                mutation_type = custom_mutation
+                initial_population = custom_initial_population(params, num_parents_mating=sol_per_pop,
+                                                               max_classifier_count=max_classifier_count)
             ga_instance = pygad.GA(num_generations=self.num_generations,
 
                                    random_seed=42,
-                                   mutation_type="random",
                                    #parallel_processing=['process', 15],
                                    num_parents_mating=num_parents_mating,
-
+                                   initial_population=initial_population,
+                                    mutation_type  =mutation_type,
                                    crossover_type="single_point",
                                    parent_selection_type="sss",
                                    fitness_func=self.fitness_func,

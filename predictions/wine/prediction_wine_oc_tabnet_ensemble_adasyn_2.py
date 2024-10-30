@@ -5,8 +5,10 @@ import numpy as np
 import torch
 from sklearn.cluster import KMeans
 
-from base_functions import get_wine_quality_white_3_vs_7_data, get_config_files, get_wine_quality_red_3_vs_5_data
-from constants import Classifier, SMOTE_K_NEIGHBORS, SYNTHETIC_MINORITY_COUNT, CLUSTER_COUNT, LossFunction
+from base_functions import get_wine_quality_white_3_vs_7_data, get_config_files, get_wine_quality_red_3_vs_5_data, \
+    get_wine_quality_white_9_vs_4_data
+from constants import Classifier, SMOTE_K_NEIGHBORS, LossFunction, WEAK_CLASSIFIERS_COUNT, SYNTHETIC_MINORITY_COUNT, \
+    CLUSTER_COUNT
 from models.oc_bagging_tabnet_ensemble_parallel import GaOCBaggingTabnetEnsembleTunerParallel
 from optimization.ga_tuner import GaTuner
 from imblearn.over_sampling import ADASYN
@@ -30,7 +32,7 @@ if __name__ == '__main__':
     population = 50  # 20
     start_time = time.time()
     actual_loss_function = LossFunction.CROSSENTROPYLOSS
-    data = get_wine_quality_red_3_vs_5_data()
+    data = get_wine_quality_white_9_vs_4_data()
     numerical_columns = list(data[0].columns.values)
 
     sampling_strategy = {1: sum(data[1] == 1) + SYNTHETIC_MINORITY_COUNT}
@@ -43,12 +45,12 @@ if __name__ == '__main__':
 
     config_files = get_config_files("../../models/configurations")
     tuner = GaOCBaggingTabnetEnsembleTunerParallel(tabnet_max_epochs, num_generations, num_parents, population,
+                                                   cluster_count=CLUSTER_COUNT,
                                                    config_files=config_files, device='cuda',
                                                    clustering_algorithm=clustering_algorithm,
                                                    sampling_algorithm=sampling_algorithm, numerical_cols=numerical_columns,
                                                    categorical_cols=None)
-    tuner.run_experiment(data, 'results/OC_TABNET_ENSEMBLE_ADASYN_KMEANS_wine_3_vs_7',
-                         loss_function=actual_loss_function)
+    tuner.run_experiment(data, 'results/OC_TABNET_ENSEMBLE_ADASYN_KMEANS_{}_white_9_vs_4'.format(WEAK_CLASSIFIERS_COUNT))
     print("--- total: %s seconds ---" % (time.time() - start_time))
 
 
