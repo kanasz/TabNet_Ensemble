@@ -31,8 +31,8 @@ from imblearn.over_sampling import ADASYN
 if __name__ == '__main__':
     tabnet_max_epochs = 50
     num_generations = 50
-    num_parents = 2  # 10
-    population = 3  # 20
+    num_parents = 2  # 20
+    population = 3  # 50
     start_time = time.time()
     actual_loss_function = LossFunction.CROSSENTROPYLOSS
     data = get_abalone_20_vs_8_9_10_data()

@@ -45,7 +45,6 @@ class GaOCBaggingTabnetEnsembleTunerParallel:
 
     def parallel_fit(self, index, train_index, test_index, X, y, solution,
                       tb_cls,  tabnet_max_epochs):
-        print("PARALLEL_FIT {}".format(index))
         X_train, X_valid = X.iloc[train_index], X.iloc[test_index]
         y_train, y_valid = y.iloc[train_index], y.iloc[test_index]
         preprocessor = get_preprocessor(self.numerical_cols, self.categorical_cols)
@@ -183,9 +182,9 @@ class GaOCBaggingTabnetEnsembleTunerParallel:
             self.test_indices.append(test_index)
 
         def custom_mutation(offspring, ga_instance):
-            print(offspring.shape)
+            #print(offspring.shape)
             for chromosome in offspring:
-                nonzero_indices = np.where(chromosome[:35] != 0)[0]
+
 
                 # If there are fewer than n nonzero genes, add more
                 #if len(nonzero_indices) < n:
@@ -194,27 +193,29 @@ class GaOCBaggingTabnetEnsembleTunerParallel:
                 #    chromosome[new_nonzero_indices] = np.random.uniform(-1.0, 1.0, len(new_nonzero_indices))
 
 
+                num_genes_to_mutate = max(1, int((ga_instance.mutation_percent_genes ) * (len(chromosome))))
+                mutation_indices = np.random.choice(range(0, len(chromosome)), num_genes_to_mutate, replace=False)
 
-                if np.random.rand() <= ga_instance.mutation_probability:
-                    num_genes_to_mutate = max(1, int((ga_instance.mutation_percent_genes / 100) * (len(chromosome) - 35)))
-                    mutation_indices = np.random.choice(range(0, len(chromosome)), num_genes_to_mutate, replace=False)
+                # Apply mutation to selected genes as integers
+                for i in mutation_indices:
+                    rnd = np.random.rand()
+                    #print("RANDOM: {}".format(rnd))
+                    if rnd <= ga_instance.mutation_probability:
+                        if gene_type[i][0] == int:
+                            chromosome[i] = np.random.randint(ga_instance.gene_space[i]["low"], ga_instance.gene_space[i]["high"])
 
-                    # Apply mutation to selected genes as integers
-                    for i in mutation_indices:
-                        if gene_type[i - 35] == int:
-                            chromosome[i] = np.random.randint(ga_instance.gene_space[i - 35]["low"], ga_instance.gene_space[i - 35]["high"] + 1)
-
+                nonzero_indices = np.where(chromosome[:35] != 0)[0]
                 # If there are more than n nonzero genes, set excess to zero
                 if len(nonzero_indices) > max_classifier_count:
                     excess_indices = np.random.choice(nonzero_indices, len(nonzero_indices) - max_classifier_count,
                                                       replace=False)
                     chromosome[excess_indices] = 0
 
-            print(offspring.shape)
+            #print(offspring.shape)
             return offspring
 
         def custom_initial_population(gene_space, num_parents_mating, max_classifier_count):
-            print('CUSTOM POPULATION')
+            #print('CUSTOM POPULATION')
             population = []
             m = len(gene_space)
             for _ in range(num_parents_mating):
@@ -232,10 +233,10 @@ class GaOCBaggingTabnetEnsembleTunerParallel:
             return np.array(population)
 
         def callback_generation(ga_instance):
-            print("Generation : {gen}".format(gen=ga_instance.generations_completed))
-            print("Fitness    : {fitness}".format(
-                fitness=ga_instance.best_solution(pop_fitness=ga_instance.last_generation_fitness)[1]))
-            print("Solution   : {solution}".format(solution=ga_instance.best_solutions[-1]))
+            print("Generation : {gen}, Fitness: {fitness}".format(gen=ga_instance.generations_completed, fitness=ga_instance.best_solution(pop_fitness=ga_instance.last_generation_fitness)[1]))
+            #print("Fitness    : {fitness}".format(
+            #    fitness=ga_instance.best_solution(pop_fitness=ga_instance.last_generation_fitness)[1]))
+            #print("Solution   : {solution}".format(solution=ga_instance.best_solutions[-1]))
             ga_instance.save(filename=self.filename)
             sys.stdout.flush()
 
