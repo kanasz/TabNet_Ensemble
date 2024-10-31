@@ -210,6 +210,10 @@ class GaOCBaggingTabnetEnsembleTunerParallel:
                     excess_indices = np.random.choice(nonzero_indices, len(nonzero_indices) - max_classifier_count,
                                                       replace=False)
                     chromosome[excess_indices] = 0
+                if len(nonzero_indices) < max_classifier_count:
+                    zero_indices = np.where(chromosome[:35] == 0)[0]
+                    new_nonzero_indices = np.random.choice(zero_indices, max_classifier_count - len(nonzero_indices), replace=False)
+                    chromosome[new_nonzero_indices] = 1
 
             #print(offspring.shape)
             return offspring

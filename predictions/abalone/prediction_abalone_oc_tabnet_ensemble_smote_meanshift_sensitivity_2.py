@@ -36,7 +36,7 @@ if __name__ == '__main__':
     start_time = time.time()
     actual_loss_function = LossFunction.CROSSENTROPYLOSS
     data = get_abalone_20_vs_8_9_10_data()
-    cfl_count = 6
+    cfl_count = 8
     numerical_cols = ['Length', 'Diameter', 'Height', 'Whole_weight', 'Shucked_weight', 'Viscera_weight',
                       'Shell_weight']
     categorical_cols = ['Sex']
