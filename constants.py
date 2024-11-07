@@ -27,8 +27,9 @@ class Classifier:
     AdaCost = "AdaCost"
     SelfPaced = "SelfPaced"
     FTTransformer = "FTTransformer"
+    TabNet = "TabNet"
 
-
+'''
 tabnet_gene_types = [int, int, int, float, float, float, int, int, float]
 tabnet_gene_space = [
     {'low': 8, 'high': 64},  # n_d
@@ -41,8 +42,8 @@ tabnet_gene_space = [
     {'low': 1, 'high': 5},  # n_independent
     {'low': 0.001, 'high': 1}  # learning_rate
 ]
-
-tabnet_gene_types = [int, int, int, float, float, float, int, int, float]
+'''
+tabnet_gene_types = [int, int, int, float, float, float, int, int]
 tabnet_gene_space = [
     {'low': 8, 'high': 64},  # n_d
     {'low': 8, 'high': 64},  # n_a
@@ -52,7 +53,7 @@ tabnet_gene_space = [
     {'low': 0.01, 'high': 0.8},  # momentum
     {'low': 1, 'high': 5},  # n_shared
     {'low': 1, 'high': 5},  # n_independent
-    {'low': 0.001, 'high': 1}  # learning_rate
+    #{'low': 0.001, 'high': 1}  # learning_rate
 ]
 
 boosting_tabnet_gene_types = tabnet_gene_types + [int]

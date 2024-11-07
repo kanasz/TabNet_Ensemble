@@ -49,15 +49,19 @@ if __name__ == '__main__':
     sampling_algorithm = ADASYN( sampling_strategy={1: sum(data[1] == 1) + SYNTHETIC_MINORITY_COUNT},
                                random_state=42, n_neighbors=SMOTE_K_NEIGHBORS)
 
-    clustering_algorithm = KMeans(n_clusters=CLUSTER_COUNT, random_state=42)
+    #synthetic_count = int(len((data[1]) - np.sum(data[1])) / 5)
+    #sampling_strategy = {1: sum(data[1] == 1) + synthetic_count}
+    #cluster_count = int(synthetic_count / SMOTE_K_NEIGHBORS)
+
+    #clustering_algorithm = KMeans(n_clusters=CLUSTER_COUNT, random_state=42)
 
     config_files = get_config_files("../../models/configurations")
     tuner = GaOCBaggingTabnetEnsembleTunerParallel(tabnet_max_epochs, num_generations, num_parents, population,
-                                           config_files=config_files, device='cuda', clustering_algorithm=clustering_algorithm,
+                                           config_files=config_files, device='cuda',
                                            sampling_algorithm=sampling_algorithm, numerical_cols=numerical_cols)
     tuner.run_experiment(data,
-                         'results_200_samples/OC_TABNET_ENSEMBLE_ADASYN_KMEANS_synthetic_{}_CLUSTER_COUNT_{}_CLASSIFIER_COUNT_{}_SYNTH_COUNT_{}'
-                         .format(contamination, CLUSTER_COUNT, WEAK_CLASSIFIERS_COUNT, SYNTHETIC_MINORITY_COUNT), actual_loss_function)
+                         'results_adasyn/OC_TABNET_ENSEMBLE_ADASYN_KMEANS_synthetic_{}_CLUSTER_COUNT_{}_CLASSIFIER_COUNT_{}_SYNTH_COUNT_{}'
+                         .format(contamination, CLUSTER_COUNT, WEAK_CLASSIFIERS_COUNT, SYNTHETIC_MINORITY_COUNT))
     print("--- total: %s seconds ---" % (time.time() - start_time))
     print("Experiment info -> data: {}, features: {}, loss function: {}".format(contamination, features,
                                                                                 actual_loss_function))

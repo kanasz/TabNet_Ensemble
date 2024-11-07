@@ -162,8 +162,8 @@ class GaOCBaggingTabnetEnsembleTunerParallel:
 
             t = time.time() - start_time
             print("gmean: {}, n_estimators: {}, {} seconds".format(gm_mean, np.sum(solution[0:len(self.config_files)]), t))
-        except:
-            print("error")
+        except Exception as e:
+            print("error: {}".format(e))
         return gm_mean
 
     def run_experiment(self, data, fname, max_classifier_count = None):

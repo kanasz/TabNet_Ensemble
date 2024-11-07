@@ -5,6 +5,7 @@ from imblearn.pipeline import Pipeline
 import numpy as np
 import pandas as pd
 from imblearn.metrics import geometric_mean_score
+from pytorch_tabnet.tab_model import TabNetClassifier
 from sklearn.cluster import KMeans, MeanShift, estimate_bandwidth
 from sklearn.metrics import make_scorer, accuracy_score, f1_score, roc_auc_score
 from imblearn.over_sampling import SMOTE
@@ -525,6 +526,19 @@ def get_classifier(clf_type, solution, input_dim = 0):
 
         clf = FTTransformerWrapper(transformer_model=tf_model, lr=solution[0], batch_size=10000)
 
+    if clf_type==Classifier.TabNet:
+        clf = TabNetClassifier(
+            n_d= solution[0],
+            n_a=solution[1],
+            n_steps=solution[2],
+            gamma=solution[3],
+            lambda_sparse=solution[4],
+            momentum=solution[5],
+            n_shared=solution[6],
+            n_independent=solution[7],
+            verbose=0
+        )
+
     return clf
 
 
@@ -582,7 +596,7 @@ def get_meanshift_cluster_counts(X, y, numerical_cols, categorical_cols, smote=N
         synthetic_labels = y_resampled[-n_generated_samples:]  # Corresponding labels for synthetic samples
 
         # Step 8: Cluster only the synthetic samples
-        bandwidth = estimate_bandwidth(synthetic_samples, quantile=0.05)
+        bandwidth = estimate_bandwidth(synthetic_samples, quantile=0.05) # 0.05
         bandwidths.append(bandwidth)
         clustering_pipeline = create_meanshift_pipeline(bandwidth)
         clustering_pipeline.fit(synthetic_samples)

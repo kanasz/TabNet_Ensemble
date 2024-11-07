@@ -13,7 +13,8 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 
 from base_functions import get_classifier
-from constants import Classifier, genes_weighted_svc, genes_balanced_cascade, genes_svc, genes_adacost, genes_self_paced
+from constants import Classifier, genes_weighted_svc, genes_balanced_cascade, genes_svc, genes_adacost, \
+    genes_self_paced, tabnet_gene_types, tabnet_gene_space
 
 seed = 42
 pygad.random.seed(42)
@@ -22,7 +23,7 @@ pygad.random.seed(42)
 class GaTuner:
 
     def __init__(self, num_generations, num_parents=10, population=20, use_smote=True,  clf_type = None,
-                 numerical_cols = None, categorical_cols = None, k_neighbors = 2, use_adasyn=False):
+                 numerical_cols = None, categorical_cols = None, k_neighbors = 2, use_adasyn=False, save_partial_output=False):
         self.num_generations = num_generations
         self.num_parents = num_parents
         self.population = population
@@ -36,7 +37,8 @@ class GaTuner:
         self.categorical_cols = categorical_cols
         self.clf_type = clf_type
         self.k_neighbors = k_neighbors
-        self.use_adasyn = use_adasyn
+        self.use_adasyn = use_adasyn,
+        self.save_partial_output = save_partial_output
 
     def eval_func(self, ga_instance, solution, solution_idx):
         X, y = self.X_orig.copy(), self.y_orig.copy()
@@ -105,9 +107,24 @@ class GaTuner:
         gm_mean, true_values, predicted_values = self.eval_func(ga_instance, solution, solution_idx)
         t = time.time() - start_time
         print("gmean: {0:.10f}, {1:.2f} seconds".format(gm_mean, t))
+
+        result = {
+            'fitness': gm_mean,
+            'true_values': true_values,
+            'predicted_values': predicted_values,
+            'solution': np.array(solution)
+        }
+
+        arr = self.filename.split("/")
+        arr[-1] = "{}_{}".format(gm_mean, arr[-1])
+        f = "/".join(arr)
+        if self.save_partial_output:
+            with open(f + '.txt', 'w') as data:
+                data.write(str(result))
         return gm_mean
 
     def run_experiment(self, data, fname):
+        self.filename = fname
         kf = StratifiedKFold(n_splits=5, random_state=42, shuffle=True)
 
 
@@ -126,6 +143,10 @@ class GaTuner:
         if self.clf_type ==Classifier.SelfPaced:
             gene_types = genes_self_paced['types']
             spaces = genes_self_paced['spaces']
+        if self.clf_type ==Classifier.TabNet:
+            gene_types = tabnet_gene_types
+            spaces = tabnet_gene_space
+
 
         filename = fname
         sol_per_pop = self.population
