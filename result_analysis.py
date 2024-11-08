@@ -100,7 +100,7 @@ for dataset in datasets:
                         process_results(file_path)
 '''
 classifiers = ['XGBOOST','XGBOOST_SMOTE',
-                'SVC_SMOTE','SVC_WEIGHTED','AdasynSVC','Adacost','SelfPaced',
+                'SVC_SMOTE','SVC_WEIGHTED','AdasynSVC','Adacost','SelfPaced', 'TabNetSmote',
                'OC_TABNET_ENSEMBLE_CROSSENTROPYLOSS',
                'OC_TABNET_ENSEMBLE_ADASYN_KMEANS',
                'OC_TABNET_ENSEMBLE_SMOTE_GMM',

@@ -139,6 +139,17 @@ def get_glass_5_data():
     df['Class'] = df['Class'].replace({'positive': 1, 'negative': 0})
     return features, df['Class']
 
+
+def get_sensitivity_synthetic_data(id, contamination, features, samples):
+
+    path = Path(__file__).parent / "data/sensitivity_synthetic/{}_sensitivity_synthetic_imb_{}_features_{}_samples_{}.csv" \
+            .format(id, contamination, features, samples)
+
+    data = pd.read_csv(path)
+    features = data.drop(["target"], axis=1)
+    labels = data['target']
+    return features, labels
+
 def get_yeast_3_data():
     path = Path(__file__).parent / "data/yeast/yeast3.dat"
     df = load_keel_dat_file(path)
