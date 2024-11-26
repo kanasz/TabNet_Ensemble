@@ -23,11 +23,12 @@ class IBLossMDR(nn.Module):
             self.epsilon = torch.FloatTensor([epsilon]).to(torch.device('cpu')).float()
             self.alpha = torch.FloatTensor([alpha]).to(torch.device('cpu')).float()
         else:
-            self.weight = torch.cuda.FloatTensor(weight)
-            self.epsilon = torch.cuda.FloatTensor([epsilon])
-            self.alpha = torch.cuda.FloatTensor([alpha])
+            self.weight = torch.cuda.FloatTensor(weight).to(torch.device(self.device))
+            self.epsilon = torch.cuda.FloatTensor([epsilon]).to(torch.device(self.device))
+            self.alpha = torch.cuda.FloatTensor([alpha]).to(torch.device(self.device))
 
     def forward(self, input, target, features):
+
         grads = torch.sum(torch.abs(F.softmax(input, dim=1) - F.one_hot(target, num_classes)), 1)  # N * 1
         features = torch.sum(features,dim=1)/features.shape[1]
         ib = grads * features.reshape(-1)
@@ -36,4 +37,5 @@ class IBLossMDR(nn.Module):
         softmax_pred = torch.nn.Softmax(dim=-1)(input.to(torch.float64))
         pred_class = torch.argmax(softmax_pred, dim=1)
         loss = loss + (self.l / 2) * (((1 / 2) - torch.mean(pred_class.to(torch.float64))) ** 2)
-        return loss
+
+        return loss.to(torch.device(self.device))

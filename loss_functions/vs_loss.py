@@ -17,11 +17,18 @@ class VSLoss(nn.Module):
         iota_list = tau * np.log(cls_probs)
         Delta_list = temp
 
-        self.iota_list = torch.cuda.FloatTensor(iota_list)
-        self.Delta_list = torch.cuda.FloatTensor(Delta_list)
-        self.weight = torch.cuda.FloatTensor(weight)
+        self.device = torch.device(device)  # Ensure all tensors are on cuda:0
+        self.iota_list = iota_list.to(self.device) if isinstance(iota_list, torch.Tensor) else torch.FloatTensor(
+            iota_list).to(self.device)
+        self.Delta_list = Delta_list.to(self.device) if isinstance(Delta_list, torch.Tensor) else torch.FloatTensor(
+            Delta_list).to(self.device)
+        self.weight = weight.to(self.device) if isinstance(weight, torch.Tensor) else torch.FloatTensor(weight).to(self.device)
+        #self.iota_list = torch.cuda.FloatTensor(iota_list)
+        #self.Delta_list = torch.cuda.FloatTensor(Delta_list)
+        #self.weight = torch.cuda.FloatTensor(weight)
 
     def forward(self, x, target, features=None):
+
         softmax_pred = torch.nn.Softmax(dim=-1)(x.to(torch.float64))
 
         target = F.one_hot(target).float()  # Change to float here
@@ -29,4 +36,5 @@ class VSLoss(nn.Module):
         output = softmax_pred / self.Delta_list + self.iota_list
         loss = F.cross_entropy(output, target)
         #print(loss)
-        return loss
+
+        return loss.to(torch.device(self.device))

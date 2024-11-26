@@ -14,14 +14,15 @@ class CrossEntropyLoss(nn.Module):
         if self.device == 'cpu':
             self.weight = torch.FloatTensor(weight)
         else:
-            self.weight = torch.cuda.FloatTensor(weight)
+            self.weight = torch.cuda.FloatTensor(weight).to(torch.device(self.device))
 
     def forward(self, x, target):
+
         true_val = target
         softmax_pred = torch.nn.Softmax(dim=-1)(x.to(torch.float64))
         if self.device=='cpu':
             target = F.one_hot(target,2).to(torch.device('cpu')).float()  # Change to float here
         else:
-            target = F.one_hot(target,2).to(torch.device('cuda')).float()  # Change to float here
+            target = F.one_hot(target,2).to(torch.device(self.device)).float()  # Change to float here
 
-        return F.cross_entropy(softmax_pred, target, weight=self.weight)
+        return F.cross_entropy(softmax_pred, target, weight=self.weight).to(torch.device(self.device))

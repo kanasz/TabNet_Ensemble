@@ -17,21 +17,21 @@ class BinaryVSLoss(nn.Module):
             self.Delta_list = torch.FloatTensor(Delta_list).to(torch.device('cpu'))
             self.weight = torch.FloatTensor(weight)
         else:
-            iota_list = torch.tensor([iota_neg, iota_pos]).to(torch.device('cuda')).float()
-            Delta_list = torch.tensor([Delta_neg, Delta_pos]).to(torch.device('cuda')).float()
-            self.iota_list = torch.cuda.FloatTensor(iota_list)
-            self.Delta_list = torch.cuda.FloatTensor(Delta_list)
-            self.weight = torch.cuda.FloatTensor(weight)
+            iota_list = torch.tensor([iota_neg, iota_pos]).to(torch.device(self.device)).float()
+            Delta_list = torch.tensor([Delta_neg, Delta_pos]).to(torch.device(self.device)).float()
+            self.iota_list = torch.cuda.FloatTensor(iota_list).to(torch.device(self.device))
+            self.Delta_list = torch.cuda.FloatTensor(Delta_list).to(torch.device(self.device))
+            self.weight = torch.cuda.FloatTensor(weight).to(torch.device(self.device))
 
     def forward(self, x, target,features=None):
-        index = torch.zeros((x.shape[0], 2), dtype=torch.uint8)
-        softmax_pred = torch.nn.Softmax(dim=-1)(x.to(torch.float64))
+        index = torch.zeros((x.shape[0], 2), dtype=torch.uint8).to(torch.device(self.device))
+        softmax_pred = torch.nn.Softmax(dim=-1)(x.to(torch.float64)).to(torch.device(self.device))
         if self.device=='cpu':
             target = F.one_hot(target).to(torch.device('cpu')).float()  # Change to float here
             index_float = index.type(torch.FloatTensor)
         else:
-            target = F.one_hot(target).to(torch.device('cuda')).float()  # Change to float here
-            index_float = index.type(torch.cuda.FloatTensor)
+            target = F.one_hot(target).to(torch.device(self.device)).float()  # Change to float here
+            index_float = index.type(torch.cuda.FloatTensor).to(torch.device(self.device)).float()
         index_float.scatter_(1, target.long(), 1)
         batch_iota = torch.matmul(self.iota_list, index_float.t())
         batch_Delta = torch.matmul(self.Delta_list, index_float.t())
@@ -41,4 +41,5 @@ class BinaryVSLoss(nn.Module):
 
         output = softmax_pred * batch_Delta - batch_iota
         #output = x * batch_Delta - batch_iota
-        return F.binary_cross_entropy_with_logits(30 * output, target, weight=self.weight)
+        res = F.binary_cross_entropy_with_logits(30 * output, target, weight=self.weight).to(torch.device(self.device))
+        return res

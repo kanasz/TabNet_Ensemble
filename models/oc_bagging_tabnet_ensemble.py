@@ -1,5 +1,6 @@
 import json
 import numpy as np
+import torch
 from sklearn.utils import resample
 from sklearn.model_selection import train_test_split
 from pytorch_tabnet.tab_model import TabNetClassifier
@@ -72,8 +73,12 @@ class OCBaggingTabnetEnsemble:
         # Train each model on a different bootstrap sample
 
         for idx, model in enumerate(self.models):
+            loss_fn = get_loss(LossFunction(self.loss_functions[idx]), self.solutions[idx][8:], cls_num_list,
+                               self.device)
             try:
-                loss_fn = get_loss(LossFunction(self.loss_functions[idx]), self.solutions[idx][8:], cls_num_list, self.device)
+                #X_t = torch.tensor(X).to(self.device)
+                #y_t = torch.tensor(y).to(self.device)
+
                 model.fit(X, y,
                           #eval_set=[(X, y)],
                           eval_metric=eval_metric,
@@ -84,7 +89,9 @@ class OCBaggingTabnetEnsemble:
                           batch_size=batch_size,
                           drop_last=drop_last)
             except Exception as e:
-                print(e)
+                print("OCBaggingTabnetEnsemble ERROR:{}".format(e))
+                print(loss_fn)
+                print('-----------------------------------------------------')
 
     def bagging_predict(self, X_test):
         predictions = np.zeros((X_test.shape[0], len(self.models)))

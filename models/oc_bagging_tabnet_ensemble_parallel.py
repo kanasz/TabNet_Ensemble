@@ -57,7 +57,7 @@ class GaOCBaggingTabnetEnsembleTunerParallel:
         else:
             type = self.clustering_params["type"]
             if type=="MS":
-                clustering_algorithm = MeanShift(bandwidth=self.clustering_params["bandwidths"][index])
+                clustering_algorithm =self.clustering_params["algs"][index] #MeanShift(bandwidth=self.clustering_params["bandwidths"][index])
                 if index==0:
                     start_index = 0
                     end_index = self.clustering_params['clusters'][0]
@@ -69,16 +69,15 @@ class GaOCBaggingTabnetEnsembleTunerParallel:
                     end_index = np.sum(self.clustering_params['clusters'][0:index+1])
 
                 selected = solution[start_index:end_index]
+
         cls_sum = np.sum(y_train)
         cls_num_list = [len(y_train) - cls_sum, cls_sum]
-
 
         X_train_std, y_train = custom_resample_minority_clusters(X_train_std, y_train, selected,
                                                                     cluster_count=self.cluster_count,
                                                                     syntetic_minority_count=self.synthetic_minority_count,
                                                                     resampling_algorithm=self.resampling_algorithm,
                                                                     clustering_algorithm=clustering_algorithm)
-
         '''
         X_train_std, y_train = custom_resample_minority_samples(X_train_std, y_train, selected,
                                                                 #cluster_count=CLUSTER_COUNT,
@@ -142,28 +141,28 @@ class GaOCBaggingTabnetEnsembleTunerParallel:
     def fitness_func(self, ga_instance, solution, solution_idx):
         start_time = time.time()
         gm_mean = 0
-        try:
-            gm_mean, true_values, predicted_values = self.eval_func(ga_instance, solution, solution_idx)
-            if np.sum(solution[0:len(self.config_files)]) == 0:
-                print("ERROR 0 clfs")
-                return 0
-            result = {
-                'fitness': gm_mean,
-                'true_values': true_values,
-                'predicted_values': predicted_values,
-                'solution': np.array(solution)
-            }
-            arr = self.filename.split("/")
-            arr[-1] = "{}_{}".format(gm_mean,arr[-1])
-            f = "/".join(arr)
-            if self.save_partial_output:
-                with open(f + '.txt', 'w') as data:
-                    data.write(str(result))
+        #try:
+        gm_mean, true_values, predicted_values = self.eval_func(ga_instance, solution, solution_idx)
+        if np.sum(solution[0:len(self.config_files)]) == 0:
+            print("ERROR 0 clfs")
+            return 0
+        result = {
+            'fitness': gm_mean,
+            'true_values': true_values,
+            'predicted_values': predicted_values,
+            'solution': np.array(solution)
+        }
+        arr = self.filename.split("/")
+        arr[-1] = "{}_{}".format(gm_mean, arr[-1])
+        f = "/".join(arr)
+        if self.save_partial_output:
+            with open(f + '.txt', 'w') as data:
+                data.write(str(result))
 
-            t = time.time() - start_time
-            print("gmean: {}, n_estimators: {}, {} seconds".format(gm_mean, np.sum(solution[0:len(self.config_files)]), t))
-        except Exception as e:
-            print("error: {}".format(e))
+        t = time.time() - start_time
+        print("gmean: {}, n_estimators: {}, {} seconds".format(gm_mean, np.sum(solution[0:len(self.config_files)]), t))
+        #except Exception as e:
+        #    print("error: {}".format(e))
         return gm_mean
 
     def run_experiment(self, data, fname, max_classifier_count = None):
@@ -272,9 +271,14 @@ class GaOCBaggingTabnetEnsembleTunerParallel:
             sys.stdout.flush()
 
         exists = os.path.exists(self.filename + '.pkl')
-        num_genes = self.cluster_count * 5 + len(self.config_files)
-        gene_type = [int] * self.cluster_count * 5 + [int] * len(self.config_files)
-        params = [{'low': 0, 'high': 2}] * (self.cluster_count * 5 + len(self.config_files))
+        if self.clustering_algorithm is not None:
+            num_genes = self.cluster_count * 5 + len(self.config_files)
+            gene_type = [int] * self.cluster_count * 5 + [int] * len(self.config_files)
+            params = [{'low': 0, 'high': 2}] * (self.cluster_count * 5 + len(self.config_files))
+        else:
+            num_genes =  len(self.config_files)
+            gene_type = [int] * len(self.config_files)
+            params = [{'low': 0, 'high': 2}] * len(self.config_files)
         if self.clustering_params is not None:
             if self.clustering_params["type"]=="MS":
                 gene_type = [int] * np.sum(self.clustering_params["clusters"]) + [int] * len(self.config_files)
@@ -308,6 +312,7 @@ class GaOCBaggingTabnetEnsembleTunerParallel:
                                    mutation_percent_genes=0.1,
                                    gene_space=params,
                                    on_stop=on_stop,
+
                                    # on_fitness=callback_fitness,
                                    on_generation=callback_generation)
 

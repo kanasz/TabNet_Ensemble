@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from imblearn.over_sampling import SMOTE
 
-from base_functions import get_config_files, get_meanshift_cluster_counts, get_glass_2_data
+from base_functions import get_config_files, get_meanshift_cluster_counts, get_glass_2_data, get_glass_5_data
 from constants import LossFunction
 from models.oc_bagging_tabnet_ensemble_parallel import GaOCBaggingTabnetEnsembleTunerParallel
 
@@ -31,7 +31,7 @@ if __name__ == '__main__':
     population = 50  # 20
     start_time = time.time()
     actual_loss_function = LossFunction.CROSSENTROPYLOSS
-    data = get_glass_2_data()
+    data = get_glass_5_data()
     numerical_cols = numerical_cols = list(data[0].columns.values)
     categorical_cols = None
     sampling_algorithm = SMOTE(random_state=42, k_neighbors=3)

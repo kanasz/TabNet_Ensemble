@@ -38,7 +38,7 @@ if __name__ == '__main__':
     data = get_wine_quality_red_8_vs_6_data()
     numerical_cols = numerical_cols = list(data[0].columns.values)
     categorical_cols = None
-    cfl_count = 4
+    cfl_count = 1
     clusters, bandwidths = get_meanshift_cluster_counts(data[0], data[1], numerical_cols, categorical_cols)
     sampling_algorithm = SMOTE(random_state=42)
     clustering_params = {

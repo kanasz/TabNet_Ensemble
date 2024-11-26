@@ -382,8 +382,8 @@ def custom_resample_minority_clusters(X_train, y_train, selected_resampled=None,
     if resampling_algorithm is None:
         resampling_algorithm = SMOTE(sampling_strategy={1: sum(y_train == 1) + syntetic_minority_count},
                   random_state=42, k_neighbors=SMOTE_K_NEIGHBORS)  # Assuming the minority class label is 1
-    if clustering_algorithm is None:
-        clustering_algorithm = KMeans(n_clusters=cluster_count, random_state=42)
+    #if clustering_algorithm is None:
+    #    clustering_algorithm = KMeans(n_clusters=cluster_count, random_state=42)
 
     X_res, y_res = resampling_algorithm.fit_resample(X_train, y_train)
 
@@ -391,26 +391,40 @@ def custom_resample_minority_clusters(X_train, y_train, selected_resampled=None,
     X_synthetic = X_res[n_samples_original:]
     y_synthetic = y_res[n_samples_original:]
 
-    X_synthetic = X_synthetic[:syntetic_minority_count]
-    y_synthetic = y_synthetic[:syntetic_minority_count]
 
-    clustering_algorithm.fit(X_synthetic)
-    if type(selected_resampled) is list:
-        selected_resampled = np.array(selected_resampled)
 
-    if hasattr(clustering_algorithm, 'cluster_centers_'):
-        X_reduced_synthetic = clustering_algorithm.cluster_centers_
-    elif hasattr(clustering_algorithm, 'means_'):
-        X_reduced_synthetic = clustering_algorithm.means_
 
-    #y_reduced_synthetic = np.full(shape=cluster_count, fill_value=1)  # Assuming the minority class is labeled as 1
-    y_reduced_synthetic = np.full(shape=X_reduced_synthetic.shape[0], fill_value=1)
-    X_reduced_synthetic = X_reduced_synthetic[selected_resampled == True]
-    y_reduced_synthetic = y_reduced_synthetic[selected_resampled == True]
 
-    X_final = np.vstack((X_train, X_reduced_synthetic))
-    y_final = np.hstack((y_train, y_reduced_synthetic))
-    return X_final, y_final
+    if clustering_algorithm is not None:
+        X_synthetic = X_synthetic[:syntetic_minority_count]
+        y_synthetic = y_synthetic[:syntetic_minority_count]
+
+        clustering_algorithm.fit(X_synthetic)
+        if type(selected_resampled) is list:
+            selected_resampled = np.array(selected_resampled)
+
+        if hasattr(clustering_algorithm, 'cluster_centers_'):
+            X_reduced_synthetic = clustering_algorithm.cluster_centers_
+        elif hasattr(clustering_algorithm, 'means_'):
+            X_reduced_synthetic = clustering_algorithm.means_
+
+        #y_reduced_synthetic = np.full(shape=cluster_count, fill_value=1)  # Assuming the minority class is labeled as 1
+        y_reduced_synthetic = np.full(shape=X_reduced_synthetic.shape[0], fill_value=1)
+        if len(X_reduced_synthetic) > len(selected_resampled):
+            X_reduced_synthetic = X_reduced_synthetic[0:len(selected_resampled)]
+            y_reduced_synthetic = y_reduced_synthetic[0:len(selected_resampled)]
+        elif len(X_reduced_synthetic) < len(selected_resampled):
+            selected_resampled = selected_resampled[:len(X_reduced_synthetic)]
+
+        X_reduced_synthetic = X_reduced_synthetic[selected_resampled == True]
+        y_reduced_synthetic = y_reduced_synthetic[selected_resampled == True]
+
+        X_final = np.vstack((X_train, X_reduced_synthetic))
+        y_final = np.hstack((y_train, y_reduced_synthetic))
+
+        return X_final, y_final
+    else:
+        return X_res, y_res
 
 
 def get_loss(loss_function, params, cls_num_list, device):
@@ -445,13 +459,13 @@ def get_loss(loss_function, params, cls_num_list, device):
             return BinaryVSLossMDR(iota_pos=params[0], iota_neg=params[1], Delta_pos=params[2], Delta_neg=params[3],
                                    weight=[params[4], params[5]], l=params[6], device=device)
         if loss_function == LossFunction.CROSSENTROPYLOSS:
-            return CrossEntropyLoss(weight=[params[0], params[1]])
+            return CrossEntropyLoss(weight=[params[0], params[1]], device=device)
         #if loss_function == LossFunction.BOUNDEDEXPONENTIALLOSS:
         #    return BoundedExponentialLoss(eta=params[0], alpha=params[1])
         #if loss_function == LossFunction.COMPLEMENTCROSSENTROPYLOSS:
         #    return CCE(weight=[params[0], params[1]], balancing_factor=params[2])
     except Exception as e:
-        print(e)
+        print('ERROR: {}'.format(e))
     return
 
 
@@ -588,6 +602,7 @@ def get_meanshift_cluster_counts(X, y, numerical_cols, categorical_cols, smote=N
         ])
     clusters = []
     bandwidths = []
+    algs = []
     for train_index, test_index in skf.split(X, y):
         X_train, X_test = X.iloc[train_index], X.iloc[test_index]
         y_train, y_test = y.iloc[train_index], y.iloc[test_index]
@@ -618,5 +633,6 @@ def get_meanshift_cluster_counts(X, y, numerical_cols, categorical_cols, smote=N
         y_final = np.hstack((y_train, y_reduced_synthetic))
         #print(len(cluster_centers))
         clusters.append(len(cluster_centers))
+        algs.append(clustering_pipeline['meanshift'])
 
-    return clusters, bandwidths
+    return clusters, bandwidths, algs
