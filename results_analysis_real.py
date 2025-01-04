@@ -15,18 +15,34 @@ def split_array(selected_samples, samples_counts):
         start += count
     return subarrays
 
-base_folder = 'predictions/{}/results_sensitivity'
-model_name = 'OC_TABNET_ENSEMBLE_SMOTE_MEANSHIFT_{}_{}'
-datasets = [('abalone','abalone_20_vs_8_9_10'),
+base_folder = 'predictions/{}/results'
+model_name = 'OC_TABNET_ENSEMBLE_SMOTE_MEANSHIFT_{}'
+datasets = [
+            ('abalone','abalone_9_vs_18'),
+            ('abalone','abalone_19_vs_10_11_12_13'),
+            ('abalone','abalone_20_vs_8_9_10'),
+            ('ecoli','ecoli_0_2_3_4_vs_5'),
+            ('ecoli','ecoli_0_3_4_vs_5'),
+            ('ecoli','ecoli_0_4_6_vs_5'),
             ('ecoli','ecoli_0_vs_1'),
+            ('glass','glass_0_1_6_vs_5'),
+            ('glass','glass_2'),
+            ('glass', 'glass_4'),
             ('glass','glass_5'),
+            ('wine','red_3_vs_5'),
             ('wine','red_8_vs_6'),
-            ('yeast','yeast_3')]
+            ('wine','white_3_vs_7'),
+            ('wine','white_9_vs_4'),
+            ('yeast','yeast_3'),
+            ('yeast','yeast_4'),
+            ('yeast','yeast_5'),
+            ('yeast','yeast_6')
+]
 #datasets = [('ecoli','ecoli_0_vs_1')]
 #datasets = [('glass','glass_5')]
 #datasets = [('wine','red_8_vs_6')]
 #datasets = [('yeast','yeast_3')]
-classifiers_count = ['2','4','6','8','10','14','18']
+
 
 dataset_folds_counts = {
     'abalone':[17, 15, 18, 18, 16],
@@ -71,42 +87,30 @@ def process_results(path):
 all_counts = None
 all_counts_unaggregated = None
 for ds in datasets:
+    print(ds)
     ds_base_folder = base_folder.format(ds[0])
     array = None
     selected_samples = None
-    for clf in classifiers_count:
-        file_name = model_name.format(clf, ds[1])
-        file_path = "{}/{}".format(ds_base_folder, file_name)
+
+    file_name = model_name.format(ds[1])
+    file_path = "{}/{}".format(ds_base_folder, file_name)
         #print("ds[1]")
-        results = process_results(file_path+".txt")
-        best_solution, best_fitness = process_ga(file_path)
-        clf_count = np.sum(best_solution[0:WEAK_CLASSIFIERS_COUNT])
-        samples_count = np.sum(best_solution[WEAK_CLASSIFIERS_COUNT:])
-        if array is None:
-            array =best_solution[0:WEAK_CLASSIFIERS_COUNT]
-        else:
-            array = np.vstack((array, best_solution[0:WEAK_CLASSIFIERS_COUNT]))
-        if selected_samples is None:
-            selected_samples = best_solution[WEAK_CLASSIFIERS_COUNT:]
-        else:
-            selected_samples = np.vstack((selected_samples, best_solution[WEAK_CLASSIFIERS_COUNT:]))
-        print("{} {}: {} / {}".format(ds[1], clf, results, clf_count))
-
-
-        samples_counts = dataset_folds_counts[ds[0]]
+    results = process_results(file_path+".txt")
+    best_solution, best_fitness = process_ga(file_path)
+    clf_count = np.sum(best_solution[0:WEAK_CLASSIFIERS_COUNT])
+    samples_count = np.sum(best_solution[WEAK_CLASSIFIERS_COUNT:])
+    if array is None:
+        array =best_solution[0:WEAK_CLASSIFIERS_COUNT]
+    else:
+        array = np.vstack((array, best_solution[0:WEAK_CLASSIFIERS_COUNT]))
+    if selected_samples is None:
         selected_samples = best_solution[WEAK_CLASSIFIERS_COUNT:]
-        splitted = split_array(selected_samples, samples_counts)
-        print("{}/{}\t{}/{}\t{}/{}\t{}/{}\t{}/{}".format(
-            np.sum(splitted[0]),len(splitted[0]),
-            np.sum(splitted[1]), len(splitted[1]),
-            np.sum(splitted[2]), len(splitted[2]),
-            np.sum(splitted[3]), len(splitted[3]),
-            np.sum(splitted[4]), len(splitted[4])
-        ))
+    else:
+        selected_samples = np.vstack((selected_samples, best_solution[WEAK_CLASSIFIERS_COUNT:]))
+    print("{} {} / {}".format(ds[1], results, clf_count))
 
-        #print("{} {}: {}/{}".format(ds[1], clf, samples_count, len(best_solution[WEAK_CLASSIFIERS_COUNT:])))
 
-    #print(array)
+
     clf_sum = (np.sum(array, axis=0))
     if all_counts_unaggregated is None:
         all_counts_unaggregated = array
@@ -127,5 +131,8 @@ column_names = ['Column1', 'Column2', 'Column3', 'Column4']
 # Create a pandas DataFrame
 df = pd.DataFrame(all_counts)
 df_unaggregated = pd.DataFrame(all_counts_unaggregated)
-df.to_csv("counts.csv")
-df_unaggregated.to_csv("unaggregated.csv")
+
+print(df)
+print(df_unaggregated)
+df.to_csv("counts_real.csv")
+df_unaggregated.to_csv("unaggregated_real.csv")

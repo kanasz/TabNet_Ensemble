@@ -40,12 +40,13 @@ if __name__ == '__main__':
     numerical_cols = ['Length', 'Diameter', 'Height', 'Whole_weight', 'Shucked_weight', 'Viscera_weight',
                       'Shell_weight']
     categorical_cols = ['Sex']
-    clusters, bandwidths = get_meanshift_cluster_counts(data[0], data[1], numerical_cols, categorical_cols)
+    clusters, bandwidths, algs = get_meanshift_cluster_counts(data[0], data[1], numerical_cols, categorical_cols)
     sampling_algorithm = SMOTE(random_state=42)
     clustering_params = {
         "bandwidths":bandwidths,
         "clusters":clusters,
-        "type":"MS"
+        "type":"MS",
+        "algs":algs
     }
     config_files = get_config_files("../../models/configurations")
     tuner = GaOCBaggingTabnetEnsembleTunerParallel(tabnet_max_epochs, num_generations, num_parents, population,

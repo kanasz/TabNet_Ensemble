@@ -6,9 +6,9 @@ import torch
 from sklearn.cluster import KMeans
 
 from base_functions import get_abalone_9_vs_18_data, \
-    get_config_files, get_meanshift_cluster_counts, get_abalone_3_vs_11_data, get_abalone_19_vs_10_11_12_13_data, \
-    get_abalone_20_vs_8_9_10_data, get_yeast_3_data
-from constants import LossFunction, SMOTE_K_NEIGHBORS
+    get_config_files, get_meanshift_cluster_counts, get_wine_quality_white_9_vs_4_data, get_ecoli_0_vs_1_data, \
+    get_yeast_3_data, get_yeast_4_data, get_yeast_6_data, get_glass_0_1_6_vs_5_data, get_glass_2_data
+from constants import LossFunction, SMOTE_K_NEIGHBORS, SYNTHETIC_MINORITY_COUNT
 from models.oc_bagging_tabnet_ensemble_parallel import GaOCBaggingTabnetEnsembleTunerParallel
 from sklearn import cluster, datasets, mixture
 from imblearn.over_sampling import SMOTE
@@ -35,12 +35,17 @@ if __name__ == '__main__':
     population = 50  # 20
     start_time = time.time()
     actual_loss_function = LossFunction.CROSSENTROPYLOSS
-    data = get_yeast_3_data()
+    data = get_glass_2_data()
     numerical_cols = numerical_cols = list(data[0].columns.values)
     categorical_cols = None
-    cfl_count = 2
-    clusters, bandwidths, algs = get_meanshift_cluster_counts(data[0], data[1], numerical_cols, categorical_cols)
-    sampling_algorithm = SMOTE(random_state=42)
+    sampling_strategy = {1: sum(data[1] == 1) + SYNTHETIC_MINORITY_COUNT}
+    n_neighbors = SMOTE_K_NEIGHBORS
+    sampling_algorithm = ADASYN(sampling_strategy=sampling_strategy,
+                                random_state=42, n_neighbors=n_neighbors)
+
+    clusters, bandwidths, algs = get_meanshift_cluster_counts(data[0], data[1], numerical_cols, categorical_cols,
+                                                        smote=sampling_algorithm)
+
     clustering_params = {
         "bandwidths":bandwidths,
         "clusters":clusters,
@@ -52,5 +57,5 @@ if __name__ == '__main__':
                                                     config_files=config_files, device='cuda', sampling_algorithm=sampling_algorithm,
                                                     numerical_cols=numerical_cols, categorical_cols=categorical_cols,
                                                     save_partial_output=True,clustering_params = clustering_params)
-    tuner.run_experiment(data, 'results_sensitivity/{}/OC_TABNET_ENSEMBLE_SMOTE_MEANSHIFT_{}_yeast_3'.format(cfl_count, cfl_count), max_classifier_count=cfl_count)
+    tuner.run_experiment(data, 'results/adasyn_meanshift_glass_2/OC_TABNET_ENSEMBLE_ADASYN_MEANSHIFT_glass_2')
     print("--- total: %s seconds ---" % (time.time() - start_time))

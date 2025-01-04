@@ -39,12 +39,13 @@ if __name__ == '__main__':
     numerical_cols = numerical_cols = list(data[0].columns.values)
     categorical_cols = None
     cfl_count = 2
-    clusters, bandwidths = get_meanshift_cluster_counts(data[0], data[1], numerical_cols, categorical_cols)
+    clusters, bandwidths, algs = get_meanshift_cluster_counts(data[0], data[1], numerical_cols, categorical_cols)
     sampling_algorithm = SMOTE(random_state=42)
     clustering_params = {
         "bandwidths":bandwidths,
         "clusters":clusters,
-        "type":"MS"
+        "type":"MS",
+        "algs":algs
     }
     config_files = get_config_files("../../models/configurations")
     tuner = GaOCBaggingTabnetEnsembleTunerParallel(tabnet_max_epochs, num_generations, num_parents, population,

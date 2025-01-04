@@ -104,7 +104,8 @@ classifiers = ['XGBOOST','XGBOOST_SMOTE',
                'OC_TABNET_ENSEMBLE_CROSSENTROPYLOSS',
                'OC_TABNET_ENSEMBLE_ADASYN_KMEANS',
                'OC_TABNET_ENSEMBLE_SMOTE_GMM',
-               'OC_TABNET_ENSEMBLE_SMOTE_MEANSHIFT'
+               'OC_TABNET_ENSEMBLE_SMOTE_MEANSHIFT',
+                'OC_TABNET_ENSEMBLE_ADASYN_MEANSHIFT'
                ]
 
 
@@ -140,5 +141,7 @@ for folder in results_folders.keys():
 
 print(df)
 df.to_csv("aggregated.csv", index=None)
+
+
 
 
