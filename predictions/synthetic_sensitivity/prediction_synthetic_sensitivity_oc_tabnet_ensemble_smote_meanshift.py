@@ -43,13 +43,17 @@ if __name__ == '__main__':
     numerical_cols = numerical_cols = list(data[0].columns.values)
     categorical_cols = None
     sampling_algorithm = SMOTE(random_state=42, k_neighbors=3)
-    clusters, bandwidths = get_meanshift_cluster_counts(data[0], data[1], numerical_cols, categorical_cols,sampling_algorithm)
+
+    clusters, bandwidths, algs = get_meanshift_cluster_counts(data[0], data[1], numerical_cols, categorical_cols,
+                                                              smote=sampling_algorithm)
 
     clustering_params = {
-        "bandwidths":bandwidths,
-        "clusters":clusters,
-        "type":"MS"
+        "bandwidths": bandwidths,
+        "clusters": clusters,
+        "type": "MS",
+        "algs": algs
     }
+
     config_files = get_config_files("../../models/configurations")
     tuner = GaOCBaggingTabnetEnsembleTunerParallel(tabnet_max_epochs, num_generations, num_parents, population,
                                                     config_files=config_files, device='cuda', sampling_algorithm=sampling_algorithm,

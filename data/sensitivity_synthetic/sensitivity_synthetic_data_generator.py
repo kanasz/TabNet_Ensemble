@@ -41,7 +41,7 @@ def generate_imbalanced_dataset(ratio, size, n_informative, n_redundant,n_featur
 if __name__ == "__main__":
 
     contaminations = [2, 5,10,20, 50]
-
+    '''
     print("GENERATING 250 SAMPLES DATASETS")
     for contamination in contaminations:
         n_features = 20
@@ -142,6 +142,40 @@ if __name__ == "__main__":
         df = pd.concat([pd.DataFrame(X, columns=columns), pd.Series(y, name='target')], axis=1)
         df.to_csv(
             '06_sensitivity_synthetic_imb_{}_features_{}_samples_{}.csv'.format(str(1/contamination),
+                                                                                                  str(n_features), n_train),
+            index=None)
+        #plot_tsne(X, y)
+        print(np.sum(y))
+    '''
+    for contamination in contaminations:
+        n_features = 100
+        n_informative = 70
+        n_train = 300
+        n_clusters_per_class = 10
+        n_redundant = 10
+        n_classes = 2
+        X, y = generate_imbalanced_dataset(contamination, n_train, n_informative, n_redundant, n_features,n_clusters_per_class)
+        columns = [f"feature{i + 1}" for i in range(n_features)]
+        df = pd.concat([pd.DataFrame(X, columns=columns), pd.Series(y, name='target')], axis=1)
+        df.to_csv(
+            '07_sensitivity_synthetic_imb_{}_features_{}_samples_{}.csv'.format(str(1/contamination),
+                                                                                                  str(n_features), n_train),
+            index=None)
+        #plot_tsne(X, y)
+        print(np.sum(y))
+
+    for contamination in contaminations:
+        n_features = 50
+        n_informative = 30
+        n_train = 300
+        n_clusters_per_class = 10
+        n_redundant = 10
+        n_classes = 2
+        X, y = generate_imbalanced_dataset(contamination, n_train, n_informative, n_redundant, n_features,n_clusters_per_class)
+        columns = [f"feature{i + 1}" for i in range(n_features)]
+        df = pd.concat([pd.DataFrame(X, columns=columns), pd.Series(y, name='target')], axis=1)
+        df.to_csv(
+            '08_sensitivity_synthetic_imb_{}_features_{}_samples_{}.csv'.format(str(1/contamination),
                                                                                                   str(n_features), n_train),
             index=None)
         #plot_tsne(X, y)
