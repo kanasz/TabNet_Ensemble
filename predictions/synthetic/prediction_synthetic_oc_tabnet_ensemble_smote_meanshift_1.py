@@ -6,7 +6,8 @@ import torch
 from sklearn.cluster import KMeans
 
 from base_functions import get_abalone_9_vs_18_data, \
-    get_config_files, get_meanshift_cluster_counts, get_wine_quality_white_9_vs_4_data, get_synthetic_data
+    get_config_files, get_meanshift_cluster_counts, get_wine_quality_white_9_vs_4_data, get_synthetic_data, \
+    get_sensitivity_synthetic_data
 from constants import LossFunction, SMOTE_K_NEIGHBORS
 from models.oc_bagging_tabnet_ensemble_parallel import GaOCBaggingTabnetEnsembleTunerParallel
 from sklearn import cluster, datasets, mixture
@@ -35,25 +36,28 @@ if __name__ == '__main__':
     start_time = time.time()
     actual_loss_function = LossFunction.CROSSENTROPYLOSS
 
-    contamination = '0.3'
+    contamination = '0.05'
     features = 50
-    samples = 200
+    samples = 300
+    id = '08'
 
-    data = get_synthetic_data('01', contamination, features)
-    numerical_cols = numerical_cols = list(data[0].columns.values)
+    data = get_sensitivity_synthetic_data(id, contamination, features, samples)
+    numerical_cols = list(data[0].columns.values)
     categorical_cols = None
     sampling_algorithm = SMOTE(random_state=42, k_neighbors=3)
-    clusters, bandwidths = get_meanshift_cluster_counts(data[0], data[1], numerical_cols, categorical_cols,sampling_algorithm)
+    clusters, bandwidths, algs = get_meanshift_cluster_counts(data[0], data[1], numerical_cols, categorical_cols,
+                                                              smote=sampling_algorithm)
 
     clustering_params = {
-        "bandwidths":bandwidths,
-        "clusters":clusters,
-        "type":"MS"
+        "bandwidths": bandwidths,
+        "clusters": clusters,
+        "type": "MS",
+        "algs": algs
     }
     config_files = get_config_files("../../models/configurations")
     tuner = GaOCBaggingTabnetEnsembleTunerParallel(tabnet_max_epochs, num_generations, num_parents, population,
                                                     config_files=config_files, device='cuda', sampling_algorithm=sampling_algorithm,
                                                     numerical_cols=numerical_cols, categorical_cols=categorical_cols,
                                                     save_partial_output=True,clustering_params = clustering_params)
-    tuner.run_experiment(data, 'results/mean_shift/OC_TABNET_ENSEMBLE_SMOTE_MEANSHIFT_synthetic_{}'.format(contamination))
+    tuner.run_experiment(data, 'results/mean_shift/TEST_OC_TABNET_ENSEMBLE_SMOTE_MEANSHIFT_synthetic_{}'.format(contamination))
     print("--- total: %s seconds ---" % (time.time() - start_time))

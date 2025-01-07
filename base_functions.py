@@ -598,7 +598,7 @@ def get_meanshift_cluster_counts(X, y, numerical_cols, categorical_cols, smote=N
 
     def create_meanshift_pipeline(bandwidth=None):
         return Pipeline(steps=[
-            ('meanshift', MeanShift(bandwidth=bandwidth))  # Apply MeanShift clustering
+            ('meanshift', MeanShift(bandwidth=bandwidth, n_jobs=5))  # Apply MeanShift clustering
         ])
     clusters = []
     bandwidths = []

@@ -35,10 +35,10 @@ if __name__ == '__main__':
     population = 50  # 20
     start_time = time.time()
     actual_loss_function = LossFunction.CROSSENTROPYLOSS
-    id = "01"
+    id = "07"
     contamination="0.5"
-    features = "20"
-    samples = "250"
+    features = "100"
+    samples = "300"
     data = get_sensitivity_synthetic_data(id, contamination, features, samples)
     numerical_cols = numerical_cols = list(data[0].columns.values)
     categorical_cols = None
@@ -59,6 +59,6 @@ if __name__ == '__main__':
                                                     config_files=config_files, device='cuda', sampling_algorithm=sampling_algorithm,
                                                     numerical_cols=numerical_cols, categorical_cols=categorical_cols,
                                                     save_partial_output=True,clustering_params = clustering_params)
-    tuner.run_experiment(data, 'results/smote_meanshift_ss/OC_TABNET_ENSEMBLE_SMOTE_MEANSHIFT_ss_{}_imb_{}_feat_{}_samples_{}'
+    tuner.run_experiment(data, 'results/smote_meanshift_ss_07_0.5/OC_TABNET_ENSEMBLE_SMOTE_MEANSHIFT_ss_{}_imb_{}_feat_{}_samples_{}'
                          .format(id, contamination, features, samples))
     print("--- total: %s seconds ---" % (time.time() - start_time))
