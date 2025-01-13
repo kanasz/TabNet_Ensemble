@@ -22,7 +22,7 @@ class GaOCBaggingTabnetEnsembleTunerParallel:
                  numerical_cols=None, categorical_cols=None,
                  save_partial_output=False,
                  sampling_algorithm=None, clustering_algorithm=None, synthetic_minority_count = 1500, cluster_count = 300,
-                 clustering_params = None):
+                 clustering_params = None, use_cluster_centers = True):
         self.tabnet_max_epochs = tabnet_max_epochs
         self.num_generations = num_generations
         self.num_parents = num_parents
@@ -42,6 +42,7 @@ class GaOCBaggingTabnetEnsembleTunerParallel:
         self.synthetic_minority_count = synthetic_minority_count
         self.cluster_count = cluster_count
         self.clustering_params = clustering_params
+        self.use_cluster_centers = use_cluster_centers
 
     def parallel_fit(self, index, train_index, test_index, X, y, solution,
                       tb_cls,  tabnet_max_epochs):
@@ -58,17 +59,12 @@ class GaOCBaggingTabnetEnsembleTunerParallel:
             type = self.clustering_params["type"]
             if type=="MS":
                 clustering_algorithm =self.clustering_params["algs"][index] #MeanShift(bandwidth=self.clustering_params["bandwidths"][index])
-                if index==0:
-                    start_index = 0
-                    end_index = self.clustering_params['clusters'][0]
-                elif index==4:
-                    start_index = np.sum(self.clustering_params['clusters'][0:4])
-                    end_index = np.sum(self.clustering_params['clusters'])
-                else:
-                    start_index = np.sum(self.clustering_params['clusters'][0:index])
-                    end_index = np.sum(self.clustering_params['clusters'][0:index+1])
-
-                selected = solution[start_index:end_index]
+                start_indices = np.cumsum([0] + self.clustering_params['clusters'][:-1]) + len(self.config_files)
+                end_indices = np.cumsum(self.clustering_params['clusters']) + + len(self.config_files)
+                #print("{}:{}:{}".format(len(solution),start_indices[index],end_indices[index]))
+                selected = solution[start_indices[index]:end_indices[index]]
+                #print(len(selected))
+                #print(self.clustering_params['clusters'])
 
         cls_sum = np.sum(y_train)
         cls_num_list = [len(y_train) - cls_sum, cls_sum]
@@ -77,7 +73,8 @@ class GaOCBaggingTabnetEnsembleTunerParallel:
                                                                     cluster_count=self.cluster_count,
                                                                     syntetic_minority_count=self.synthetic_minority_count,
                                                                     resampling_algorithm=self.resampling_algorithm,
-                                                                    clustering_algorithm=clustering_algorithm)
+                                                                    clustering_algorithm=clustering_algorithm,
+                                                                    use_cluster_centers=self.use_cluster_centers)
         '''
         X_train_std, y_train = custom_resample_minority_samples(X_train_std, y_train, selected,
                                                                 #cluster_count=CLUSTER_COUNT,

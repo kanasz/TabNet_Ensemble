@@ -56,6 +56,6 @@ if __name__ == '__main__':
     tuner = GaOCBaggingTabnetEnsembleTunerParallel(tabnet_max_epochs, num_generations, num_parents, population,
                                                     config_files=config_files, device='cuda', sampling_algorithm=sampling_algorithm,
                                                     numerical_cols=numerical_cols, categorical_cols=categorical_cols,
-                                                    save_partial_output=True,clustering_params = clustering_params)
-    tuner.run_experiment(data, 'results/adasyn_meanshift_yeast_4/OC_TABNET_ENSEMBLE_ADASYN_MEANSHIFT_yeast_4')
+                                                    save_partial_output=True,clustering_params = clustering_params, use_cluster_centers=False)
+    tuner.run_experiment(data, 'results/adasyn_meanshift_yeast_4/UNCLUSTERED_OC_TABNET_ENSEMBLE_ADASYN_MEANSHIFT_yeast_4')
     print("--- total: %s seconds ---" % (time.time() - start_time))
