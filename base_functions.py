@@ -377,7 +377,7 @@ def custom_resample_minority_samples(X_train, y_train, selected_resampled=None, 
 
 
 def custom_resample_minority_clusters(X_train, y_train, selected_resampled=None, syntetic_minority_count=100,
-                              cluster_count=30, resampling_algorithm=None, clustering_algorithm = None):
+                              cluster_count=30, resampling_algorithm=None, clustering_algorithm = None, use_cluster_centers = True):
 
     if resampling_algorithm is None:
         resampling_algorithm = SMOTE(sampling_strategy={1: sum(y_train == 1) + syntetic_minority_count},
@@ -410,14 +410,23 @@ def custom_resample_minority_clusters(X_train, y_train, selected_resampled=None,
 
         #y_reduced_synthetic = np.full(shape=cluster_count, fill_value=1)  # Assuming the minority class is labeled as 1
         y_reduced_synthetic = np.full(shape=X_reduced_synthetic.shape[0], fill_value=1)
-        if len(X_reduced_synthetic) > len(selected_resampled):
-            X_reduced_synthetic = X_reduced_synthetic[0:len(selected_resampled)]
-            y_reduced_synthetic = y_reduced_synthetic[0:len(selected_resampled)]
-        elif len(X_reduced_synthetic) < len(selected_resampled):
-            selected_resampled = selected_resampled[:len(X_reduced_synthetic)]
+        if use_cluster_centers:
+            if len(X_reduced_synthetic) > len(selected_resampled):
+                X_reduced_synthetic = X_reduced_synthetic[0:len(selected_resampled)]
+                y_reduced_synthetic = y_reduced_synthetic[0:len(selected_resampled)]
+            elif len(X_reduced_synthetic) < len(selected_resampled):
+                selected_resampled = selected_resampled[:len(X_reduced_synthetic)]
+            X_reduced_synthetic = X_reduced_synthetic[selected_resampled == True]
+            y_reduced_synthetic = y_reduced_synthetic[selected_resampled == True]
+        else:
+            labels = np.unique(clustering_algorithm.labels_)
+            if len(labels)> len(selected_resampled):
+                labels = labels[0:len(selected_resampled)]
+            selected_labels = labels[selected_resampled.astype(bool)]
+            selected_samples = np.isin(clustering_algorithm.labels_, list(selected_labels))
+            X_reduced_synthetic = X_synthetic[(np.isin(clustering_algorithm.labels_, list(selected_samples)))]
+            y_reduced_synthetic = np.full(shape=X_reduced_synthetic.shape[0], fill_value=1)
 
-        X_reduced_synthetic = X_reduced_synthetic[selected_resampled == True]
-        y_reduced_synthetic = y_reduced_synthetic[selected_resampled == True]
 
         X_final = np.vstack((X_train, X_reduced_synthetic))
         y_final = np.hstack((y_train, y_reduced_synthetic))
@@ -622,7 +631,7 @@ def get_meanshift_cluster_counts(X, y, numerical_cols, categorical_cols, smote=N
         synthetic_labels = y_resampled[-n_generated_samples:]  # Corresponding labels for synthetic samples
 
         # Step 8: Cluster only the synthetic samples
-        bandwidth = estimate_bandwidth(synthetic_samples, quantile=0.05) # 0.05
+        bandwidth = estimate_bandwidth(synthetic_samples, quantile=0.05, random_state=42) # 0.05
         bandwidths.append(bandwidth)
         clustering_pipeline = create_meanshift_pipeline(bandwidth)
         clustering_pipeline.fit(synthetic_samples)
