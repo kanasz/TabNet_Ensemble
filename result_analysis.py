@@ -4,6 +4,7 @@ from imbalanced_ensemble.metrics import geometric_mean_score
 from sklearn.metrics import roc_auc_score
 import os
 
+
 def process_results(path):
     # Open the file in read mode
     with open(path, 'r') as file:
