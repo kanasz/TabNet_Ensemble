@@ -65,6 +65,12 @@ class GaOCBaggingTabnetEnsembleTunerParallel:
                 selected = solution[start_indices[index]:end_indices[index]]
                 #print(len(selected))
                 #print(self.clustering_params['clusters'])
+            if type=="GMM":
+                clustering_algorithm =self.clustering_params["algs"][index]
+                start_indices = np.cumsum([0] + self.clustering_params['clusters'][:-1]) + len(self.config_files)
+                end_indices = np.cumsum(self.clustering_params['clusters']) + + len(self.config_files)
+                selected = solution[start_indices[index]:end_indices[index]]
+
 
         cls_sum = np.sum(y_train)
         cls_num_list = [len(y_train) - cls_sum, cls_sum]
@@ -156,6 +162,12 @@ class GaOCBaggingTabnetEnsembleTunerParallel:
             with open(f + '.txt', 'w') as data:
                 data.write(str(result))
 
+        arr = self.filename.split("/")
+        arr[-1] = "LOG_{}_{}_{}".format(ga_instance.generations_completed, gm_mean, arr[-1])
+        f = "/".join(arr)
+        with open(f + '.log', 'w') as data:
+            data.write(str(result))
+
         t = time.time() - start_time
         print("gmean: {}, n_estimators: {}, {} seconds".format(gm_mean, np.sum(solution[0:len(self.config_files)]), t))
         #except Exception as e:
@@ -165,6 +177,7 @@ class GaOCBaggingTabnetEnsembleTunerParallel:
     def run_experiment(self, data, fname, max_classifier_count = None):
         kf = StratifiedKFold(n_splits=5, random_state=42, shuffle=True)
         self.filename = fname
+
         sol_per_pop = self.population
         num_parents_mating = self.num_parents
 

@@ -9,6 +9,7 @@ from pytorch_tabnet.tab_model import TabNetClassifier
 from sklearn.cluster import KMeans, MeanShift, estimate_bandwidth
 from sklearn.metrics import make_scorer, accuracy_score, f1_score, roc_auc_score
 from imblearn.over_sampling import SMOTE
+from sklearn.mixture import GaussianMixture
 from sklearn.model_selection import StratifiedKFold
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
@@ -601,14 +602,19 @@ def get_preprocessor(numerical_cols, categorical_cols):
                                           categorical_cols))
     return preprocessor
 
-def get_meanshift_cluster_counts(X, y, numerical_cols, categorical_cols, smote=None):
+def get_meanshift_cluster_counts(X, y, numerical_cols, categorical_cols, smote=None, quantile=0.05, use_bandwidth=True):
     skf = StratifiedKFold(n_splits=5, random_state=42, shuffle=True)
     preprocessor = get_preprocessor(numerical_cols, categorical_cols)
 
     def create_meanshift_pipeline(bandwidth=None):
-        return Pipeline(steps=[
-            ('meanshift', MeanShift(bandwidth=bandwidth, n_jobs=5))  # Apply MeanShift clustering
-        ])
+        if use_bandwidth:
+            return Pipeline(steps=[
+                ('meanshift', MeanShift(bandwidth=bandwidth, n_jobs=5))  # Apply MeanShift clustering
+            ])
+        else:
+            return Pipeline(steps=[
+                ('meanshift', MeanShift(n_jobs=5))  # Apply MeanShift clustering
+            ])
     clusters = []
     bandwidths = []
     algs = []
@@ -631,7 +637,7 @@ def get_meanshift_cluster_counts(X, y, numerical_cols, categorical_cols, smote=N
         synthetic_labels = y_resampled[-n_generated_samples:]  # Corresponding labels for synthetic samples
 
         # Step 8: Cluster only the synthetic samples
-        bandwidth = estimate_bandwidth(synthetic_samples, quantile=0.05, random_state=42) # 0.05
+        bandwidth = estimate_bandwidth(synthetic_samples, quantile=quantile, random_state=42) # 0.05
         bandwidths.append(bandwidth)
         clustering_pipeline = create_meanshift_pipeline(bandwidth)
         clustering_pipeline.fit(synthetic_samples)
@@ -645,3 +651,61 @@ def get_meanshift_cluster_counts(X, y, numerical_cols, categorical_cols, smote=N
         algs.append(clustering_pipeline['meanshift'])
 
     return clusters, bandwidths, algs
+
+def get_gmm_cluster_counts(X, y, numerical_cols, categorical_cols, smote=None):
+    skf = StratifiedKFold(n_splits=5, random_state=42, shuffle=True)
+    preprocessor = get_preprocessor(numerical_cols, categorical_cols)
+    def create_meanshift_pipeline(n_components):
+
+
+        return Pipeline(steps=[
+            ('meanshift', GaussianMixture(n_components=n_components, covariance_type="full", random_state=42))  # Apply MeanShift clustering
+        ])
+    clusters = []
+    n_components_arr = []
+    algs = []
+    for train_index, test_index in skf.split(X, y):
+        X_train, X_test = X.iloc[train_index], X.iloc[test_index]
+        y_train, y_test = y.iloc[train_index], y.iloc[test_index]
+
+        # Step 5: Preprocess training data (imputation, scaling, one-hot encoding)
+        X_train_preprocessed = preprocessor.fit_transform(X_train)
+        X_test_preprocessed = preprocessor.transform(X_test)
+
+        if smote == None:
+            smote = SMOTE(random_state=42)
+        X_resampled, y_resampled = smote.fit_resample(X_train_preprocessed, y_train)
+
+        bic_scores = []
+        aic_scores = []
+
+        n_components_range = range(2, 11)
+        for n_components in n_components_range:
+            gmm = GaussianMixture(n_components=n_components, random_state=42)  # Set random_state for reproducibility
+            gmm.fit(X_resampled)
+            bic_scores.append(gmm.bic(X_resampled))
+            aic_scores.append(gmm.aic(X_resampled))
+
+        best_bic_index = np.argmin(bic_scores)
+        best_n_components_bic = n_components_range[best_bic_index]
+        print(best_n_components_bic)
+        n_generated_samples = len(X_resampled) - len(X_train_preprocessed)  # Number of synthetic samples
+        synthetic_samples = X_resampled[-n_generated_samples:]  # Synthetic samples are at the end
+        synthetic_labels = y_resampled[-n_generated_samples:]  # Corresponding labels for synthetic samples
+
+        clustering_pipeline = create_meanshift_pipeline(best_n_components_bic)
+        clustering_pipeline.fit(synthetic_samples)
+
+
+
+
+        cluster_centers = clustering_pipeline.named_steps['meanshift'].means_
+        y_reduced_synthetic = np.full(shape=cluster_centers.shape[0], fill_value=1)
+        final = np.vstack((X_train_preprocessed, cluster_centers))
+        y_final = np.hstack((y_train, y_reduced_synthetic))
+        #print(len(cluster_centers))
+        clusters.append(np.unique(clustering_pipeline.predict(synthetic_samples)))
+        algs.append(clustering_pipeline['meanshift'])
+        n_components_arr.append(best_n_components_bic)
+
+    return clusters,n_components_arr, algs

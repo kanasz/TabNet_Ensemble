@@ -36,12 +36,12 @@ if __name__ == '__main__':
     start_time = time.time()
     actual_loss_function = LossFunction.CROSSENTROPYLOSS
 
-    contamination = '0.05'
-    features = 100
-    samples = 300
-    id = '07'
+    contamination = '0.02'
+    features = 200
+    samples = 200
+    id = '03'
 
-    data = get_sensitivity_synthetic_data(id, contamination, features, samples)
+    data = get_synthetic_data(id, contamination, features, samples)
     numerical_cols = numerical_cols = list(data[0].columns.values)
     categorical_cols = None
     sampling_strategy = {1: sum(data[1] == 1) + SYNTHETIC_MINORITY_COUNT}
@@ -50,7 +50,7 @@ if __name__ == '__main__':
                                 random_state=42, n_neighbors=n_neighbors)
 
     clusters, bandwidths, algs = get_meanshift_cluster_counts(data[0], data[1], numerical_cols, categorical_cols,
-                                                              smote=sampling_algorithm)
+                                                              smote=sampling_algorithm, use_bandwidth=False)
 
     clustering_params = {
         "bandwidths": bandwidths,

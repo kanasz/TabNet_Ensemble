@@ -38,17 +38,18 @@ if __name__ == '__main__':
     numerical_cols = ['Length', 'Diameter', 'Height', 'Whole_weight', 'Shucked_weight', 'Viscera_weight',
                       'Shell_weight']
     categorical_cols = ['Sex']
-    clusters, bandwidths = get_meanshift_cluster_counts(data[0], data[1], numerical_cols, categorical_cols)
+    clusters, bandwidths, algs = get_meanshift_cluster_counts(data[0], data[1], numerical_cols, categorical_cols)
     sampling_algorithm = SMOTE(random_state=42)
     clustering_params = {
         "bandwidths":bandwidths,
         "clusters":clusters,
-        "type":"MS"
+        "type":"MS",
+        "algs":algs
     }
     config_files = get_config_files("../../models/configurations")
     tuner = GaOCBaggingTabnetEnsembleTunerParallel(tabnet_max_epochs, num_generations, num_parents, population,
                                                     config_files=config_files, device='cuda', sampling_algorithm=sampling_algorithm,
                                                     numerical_cols=numerical_cols, categorical_cols=categorical_cols,
-                                                    save_partial_output=True,clustering_params = clustering_params)
-    tuner.run_experiment(data, 'results/smote_meanshift/OC_TABNET_ENSEMBLE_SMOTE_MEANSHIFT_abalone_9_vs_18')
+                                                    save_partial_output=True,clustering_params = clustering_params, use_cluster_centers=False)
+    tuner.run_experiment(data, 'results/unclustered_smote_meanshift_abalone_9_vs_18/UNCLUSTERED_OC_TABNET_ENSEMBLE_SMOTE_MEANSHIFT_abalone_9_vs_18')
     print("--- total: %s seconds ---" % (time.time() - start_time))

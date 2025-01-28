@@ -6,7 +6,7 @@ import torch
 from sklearn.cluster import KMeans
 
 from base_functions import get_abalone_9_vs_18_data, \
-    get_config_files
+    get_config_files, get_gmm_cluster_counts
 from constants import LossFunction, SMOTE_K_NEIGHBORS
 from models.oc_bagging_tabnet_ensemble_parallel import GaOCBaggingTabnetEnsembleTunerParallel
 from sklearn import cluster, datasets, mixture
@@ -45,11 +45,22 @@ if __name__ == '__main__':
     n_neighbors = SMOTE_K_NEIGHBORS
 
     sampling_algorithm = None # SMOTE will be used
-    clustering_algorithm = mixture.GaussianMixture(n_components=cluster_count, covariance_type="full", random_state=42)
+    clusters,n_components, algs = get_gmm_cluster_counts(data[0], data[1], numerical_cols, categorical_cols,
+                                                              smote=sampling_algorithm)
+
+    clustering_params = {
+        "n_components":n_components,
+        "clusters": n_components,
+        "type": "GMM",
+        "algs": algs
+    }
 
     config_files = get_config_files("../../models/configurations")
     tuner = GaOCBaggingTabnetEnsembleTunerParallel(tabnet_max_epochs, num_generations, num_parents, population,
-                                           config_files=config_files, device='cuda', clustering_algorithm=clustering_algorithm,
-                                           sampling_algorithm=sampling_algorithm, numerical_cols=numerical_cols, categorical_cols=categorical_cols,save_partial_output=True, cluster_count=cluster_count)
-    tuner.run_experiment(data, 'results/smote_gmm/OC_TABNET_ENSEMBLE_SMOTE_GMM_abalone_9_vs_18')
+                                                   config_files=config_files, device='cuda',
+                                                   sampling_algorithm=sampling_algorithm,
+                                                   numerical_cols=numerical_cols, categorical_cols=categorical_cols,
+                                                   save_partial_output=True, clustering_params=clustering_params,
+                                                   use_cluster_centers=False)
+    tuner.run_experiment(data, 'results/smote_gmm/OC_TABNET_ENSEMBLE_SMOTE_GMM_abalone_9_vs_18_TEST')
     print("--- total: %s seconds ---" % (time.time() - start_time))

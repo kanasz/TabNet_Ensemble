@@ -58,7 +58,7 @@ if __name__ == '__main__':
     tuner = GaOCBaggingTabnetEnsembleTunerParallel(tabnet_max_epochs, num_generations, num_parents, population,
                                                     config_files=config_files, device='cuda', sampling_algorithm=sampling_algorithm,
                                                     numerical_cols=numerical_cols, categorical_cols=categorical_cols,
-                                                    save_partial_output=True,clustering_params = clustering_params)
+                                                    save_partial_output=True,clustering_params = clustering_params,use_cluster_centers=False)
     tuner.run_experiment(data, 'results/smote_meanshift_ss_07_0.5/OC_TABNET_ENSEMBLE_SMOTE_MEANSHIFT_ss_{}_imb_{}_feat_{}_samples_{}'
                          .format(id, contamination, features, samples))
     print("--- total: %s seconds ---" % (time.time() - start_time))

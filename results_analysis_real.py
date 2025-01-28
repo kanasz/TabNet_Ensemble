@@ -16,7 +16,7 @@ def split_array(selected_samples, samples_counts):
     return subarrays
 
 base_folder = 'predictions/{}/results'
-model_name = 'OC_TABNET_ENSEMBLE_SMOTE_MEANSHIFT_{}'
+model_name = 'UNCLUSTERED_OC_TABNET_ENSEMBLE_SMOTE_MEANSHIFT_{}'
 datasets = [
             ('abalone','abalone_9_vs_18'),
             ('abalone','abalone_19_vs_10_11_12_13'),

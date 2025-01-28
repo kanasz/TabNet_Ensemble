@@ -7,7 +7,8 @@ import os
 #OC_TABNET_ENSEMBLE_SMOTE_MEANSHIFT_ss_06_imb_0.2_feat_100_samples_300
 
 imb_ratios = ['0.5', '0.2', '0.1', '0.05', '0.02']
-datasets = [('01','20','250'), ('02','200','250'), ('03','20','500'), ('04','200','500'), ('05','100','300'), ('06','100','300')]
+datasets = [('01','20','250'), ('02','200','250'), ('03','20','500'), ('04','200','500'), ('05','100','300'), ('06','100','300')
+            , ('07','100','300'), ('08','50','300')]
 
 
 def process_results(path):
@@ -53,7 +54,7 @@ for ds in datasets:
     for imb in imb_ratios:
 
 
-        file_path = "predictions/synthetic_sensitivity/results/OC_TABNET_ENSEMBLE_SMOTE_MEANSHIFT_ss_{}_imb_{}_feat_{}_samples_{}.txt".format(id,imb,features,samples)
+        file_path = "predictions/synthetic_sensitivity/results/UNCLUSTERED_OC_TABNET_ENSEMBLE_SMOTE_MEANSHIFT_ss_{}_imb_{}_feat_{}_samples_{}.txt".format(id,imb,features,samples)
         if os.path.exists(file_path):
             row[imb] = [process_results(file_path)]
             print(file_path)

@@ -39,17 +39,18 @@ if __name__ == '__main__':
     numerical_cols = numerical_cols = list(data[0].columns.values)
     categorical_cols = None
     sampling_algorithm = SMOTE(random_state=42, k_neighbors=3)
-    clusters, bandwidths = get_meanshift_cluster_counts(data[0], data[1], numerical_cols, categorical_cols,sampling_algorithm)
+    clusters, bandwidths, algs = get_meanshift_cluster_counts(data[0], data[1], numerical_cols, categorical_cols,sampling_algorithm)
 
     clustering_params = {
         "bandwidths":bandwidths,
         "clusters":clusters,
-        "type":"MS"
+        "type":"MS",
+        "algs":algs
     }
     config_files = get_config_files("../../models/configurations")
     tuner = GaOCBaggingTabnetEnsembleTunerParallel(tabnet_max_epochs, num_generations, num_parents, population,
                                                     config_files=config_files, device='cuda', sampling_algorithm=sampling_algorithm,
                                                     numerical_cols=numerical_cols, categorical_cols=categorical_cols,
-                                                    save_partial_output=True,clustering_params = clustering_params)
-    tuner.run_experiment(data, 'results/smote_meanshift_ecoli_0_4_6_vs_5/OC_TABNET_ENSEMBLE_SMOTE_MEANSHIFT_ecoli_0_4_6_vs_5')
+                                                    save_partial_output=True,clustering_params = clustering_params, use_cluster_centers=False)
+    tuner.run_experiment(data, 'results/unclustered_smote_meanshift_ecoli_0_4_6_vs_5/2UNCLUSTERED_OC_TABNET_ENSEMBLE_SMOTE_MEANSHIFT_ecoli_0_4_6_vs_5')
     print("--- total: %s seconds ---" % (time.time() - start_time))
