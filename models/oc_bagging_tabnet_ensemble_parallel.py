@@ -61,12 +61,14 @@ class GaOCBaggingTabnetEnsembleTunerParallel:
                 clustering_algorithm =self.clustering_params["algs"][index] #MeanShift(bandwidth=self.clustering_params["bandwidths"][index])
                 start_indices = np.cumsum([0] + self.clustering_params['clusters'][:-1]) + len(self.config_files)
                 end_indices = np.cumsum(self.clustering_params['clusters']) + + len(self.config_files)
-                #print("{}:{}:{}".format(len(solution),start_indices[index],end_indices[index]))
                 selected = solution[start_indices[index]:end_indices[index]]
-                #print(len(selected))
-                #print(self.clustering_params['clusters'])
             if type=="GMM":
                 clustering_algorithm =self.clustering_params["algs"][index]
+                start_indices = np.cumsum([0] + self.clustering_params['clusters'][:-1]) + len(self.config_files)
+                end_indices = np.cumsum(self.clustering_params['clusters']) + + len(self.config_files)
+                selected = solution[start_indices[index]:end_indices[index]]
+            if type == "DBSCAN":
+                clustering_algorithm = self.clustering_params["algs"][index]
                 start_indices = np.cumsum([0] + self.clustering_params['clusters'][:-1]) + len(self.config_files)
                 end_indices = np.cumsum(self.clustering_params['clusters']) + + len(self.config_files)
                 selected = solution[start_indices[index]:end_indices[index]]
@@ -294,6 +296,11 @@ class GaOCBaggingTabnetEnsembleTunerParallel:
                 gene_type = [int] * np.sum(self.clustering_params["clusters"]) + [int] * len(self.config_files)
                 num_genes = int(np.sum(self.clustering_params["clusters"]) + len(self.config_files))
                 params = [{'low': 0, 'high': 2}] * (np.sum(self.clustering_params["clusters"]) + len(self.config_files))
+            if self.clustering_params["type"] == "DBSCAN":
+                gene_type = [int] * np.sum(self.clustering_params["clusters"]) + [int] * len(self.config_files)
+                num_genes = int(np.sum(self.clustering_params["clusters"]) + len(self.config_files))
+                params = [{'low': 0, 'high': 2}] * (np.sum(self.clustering_params["clusters"]) + len(self.config_files))
+
         if exists:
             ga_instance = pygad.load(self.filename)
         else:

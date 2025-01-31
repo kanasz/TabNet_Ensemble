@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from imblearn.metrics import geometric_mean_score
 from pytorch_tabnet.tab_model import TabNetClassifier
-from sklearn.cluster import KMeans, MeanShift, estimate_bandwidth
+from sklearn.cluster import KMeans, MeanShift, estimate_bandwidth, DBSCAN
 from sklearn.metrics import make_scorer, accuracy_score, f1_score, roc_auc_score
 from imblearn.over_sampling import SMOTE
 from sklearn.mixture import GaussianMixture
@@ -410,15 +410,17 @@ def custom_resample_minority_clusters(X_train, y_train, selected_resampled=None,
             X_reduced_synthetic = clustering_algorithm.means_
 
         #y_reduced_synthetic = np.full(shape=cluster_count, fill_value=1)  # Assuming the minority class is labeled as 1
-        y_reduced_synthetic = np.full(shape=X_reduced_synthetic.shape[0], fill_value=1)
+        #y_reduced_synthetic = np.full(shape=X_reduced_synthetic.shape[0], fill_value=1)
         if use_cluster_centers:
             if len(X_reduced_synthetic) > len(selected_resampled):
                 X_reduced_synthetic = X_reduced_synthetic[0:len(selected_resampled)]
-                y_reduced_synthetic = y_reduced_synthetic[0:len(selected_resampled)]
+                #y_reduced_synthetic = y_reduced_synthetic[0:len(selected_resampled)]
+                y_reduced_synthetic = np.full(shape=X_reduced_synthetic.shape[0], fill_value=1)
             elif len(X_reduced_synthetic) < len(selected_resampled):
                 selected_resampled = selected_resampled[:len(X_reduced_synthetic)]
             X_reduced_synthetic = X_reduced_synthetic[selected_resampled == True]
-            y_reduced_synthetic = y_reduced_synthetic[selected_resampled == True]
+            y_reduced_synthetic = np.full(shape=X_reduced_synthetic.shape[0], fill_value=1)
+            #y_reduced_synthetic = y_reduced_synthetic[selected_resampled == True]
         else:
             labels = np.unique(clustering_algorithm.labels_)
             if len(labels)> len(selected_resampled):
@@ -601,6 +603,53 @@ def get_preprocessor(numerical_cols, categorical_cols):
         ]),
                                           categorical_cols))
     return preprocessor
+
+def get_dbscan_cluster_counts(X, y, numerical_cols, categorical_cols, smote=None):
+    skf = StratifiedKFold(n_splits=5, random_state=42, shuffle=True)
+    preprocessor = get_preprocessor(numerical_cols, categorical_cols)
+
+    def create_dbscan_pipeline():
+
+        return Pipeline(steps=[
+                ('dbscan', DBSCAN(n_jobs=5))  # Apply MeanShift clustering
+        ])
+
+    clusters = []
+    bandwidths = []
+    algs = []
+    for train_index, test_index in skf.split(X, y):
+        X_train, X_test = X.iloc[train_index], X.iloc[test_index]
+        y_train, y_test = y.iloc[train_index], y.iloc[test_index]
+
+        # Step 5: Preprocess training data (imputation, scaling, one-hot encoding)
+        X_train_preprocessed = preprocessor.fit_transform(X_train)
+        X_test_preprocessed = preprocessor.transform(X_test)
+
+        # Step 6: Apply SMOTE to oversample the minority class in the training set
+        if smote == None:
+            smote = SMOTE(random_state=42)
+        X_resampled, y_resampled = smote.fit_resample(X_train_preprocessed, y_train)
+
+        # Step 7: Separate the synthetic samples for the minority class
+        n_generated_samples = len(X_resampled) - len(X_train_preprocessed)  # Number of synthetic samples
+        synthetic_samples = X_resampled[-n_generated_samples:]  # Synthetic samples are at the end
+        synthetic_labels = y_resampled[-n_generated_samples:]  # Corresponding labels for synthetic samples
+
+        # Step 8: Cluster only the synthetic samples
+        clustering_pipeline = create_dbscan_pipeline()
+        clustering_pipeline.fit(synthetic_samples)
+
+        cluster_centers = clustering_pipeline.named_steps['dbscan'].labels_
+        y_reduced_synthetic = np.full(shape=cluster_centers.shape[0], fill_value=1)
+        #final = np.vstack((X_train_preprocessed, cluster_centers))
+        #y_final = np.hstack((y_train, y_reduced_synthetic))
+        # print(len(cluster_centers))
+
+
+        clusters.append(len(np.unique(cluster_centers)))
+        algs.append(clustering_pipeline['dbscan'])
+
+    return clusters, algs
 
 def get_meanshift_cluster_counts(X, y, numerical_cols, categorical_cols, smote=None, quantile=0.05, use_bandwidth=True):
     skf = StratifiedKFold(n_splits=5, random_state=42, shuffle=True)
