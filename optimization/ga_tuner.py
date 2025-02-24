@@ -88,11 +88,14 @@ class GaTuner:
                     ('preprocessor', preprocessor),
                     #('scaler', StandardScaler()),
                     ('clf', clf)])
-            X_train, X_valid = (X.iloc[train_index]), (X.iloc[test_index])
-            y_train, y_valid = np.array(y)[train_index], np.array(y)[test_index]
+            # Split data
+            X_train, X_valid = X.iloc[train_index], X.iloc[test_index]
+            y_train, y_valid = y[train_index], y[test_index]
             try:
+                X_preprocessed = preprocessor.fit_transform(X_train)
                 pipeline.fit(X_train, y_train)
-            except:
+            except Exception as e:
+                print(e)
                 return 0, None, None
             y_pred = pipeline.predict(X_valid)
             true_values.append(y_valid)
@@ -110,8 +113,8 @@ class GaTuner:
 
         result = {
             'fitness': gm_mean,
-            'true_values': true_values,
-            'predicted_values': predicted_values,
+            'true_values': np.array(true_values),
+            'predicted_values': np.array(predicted_values),
             'solution': np.array(solution)
         }
 
@@ -175,8 +178,8 @@ class GaTuner:
                                                                                 ga_instance.best_solutions[-1], None)
             result = {
                 'fitness': new_fitness,
-                'true_values': true_values,
-                'predicted_values': predicted_values
+                'true_values': np.array(true_values),
+                'predicted_values': np.array(predicted_values)
             }
             with open(filename + '.txt', 'w') as data:
                 data.write(str(result))

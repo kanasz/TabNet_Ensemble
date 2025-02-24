@@ -36,14 +36,24 @@ if __name__ == '__main__':
     start_time = time.time()
     actual_loss_function = LossFunction.CROSSENTROPYLOSS
 
+    '''
     contamination = '0.02'
     features = 200
     samples = 200
     id = '03'
+    '''
+    contamination = '0.05'
+    features = 20
+    samples = 250
+    id = '01'
 
-    data = get_synthetic_data(id, contamination, features, samples)
-    numerical_cols = numerical_cols = list(data[0].columns.values)
+    data = get_sensitivity_synthetic_data(id, contamination, features, samples)
+    numerical_cols = list(data[0].columns.values)
     categorical_cols = None
+
+    #data = get_synthetic_data(id, contamination, features, samples)
+    #numerical_cols = numerical_cols = list(data[0].columns.values)
+    #categorical_cols = None
     sampling_strategy = {1: sum(data[1] == 1) + SYNTHETIC_MINORITY_COUNT}
     n_neighbors = SMOTE_K_NEIGHBORS
     sampling_algorithm = ADASYN(sampling_strategy=sampling_strategy,
@@ -63,5 +73,5 @@ if __name__ == '__main__':
                                                     config_files=config_files, device='cuda', sampling_algorithm=sampling_algorithm,
                                                     numerical_cols=numerical_cols, categorical_cols=categorical_cols,
                                                     save_partial_output=True,clustering_params = clustering_params)
-    tuner.run_experiment(data, 'results/mean_shift/TEST_OC_TABNET_ENSEMBLE_ADASYN_MEANSHIFT_synthetic_{}'.format(contamination))
+    tuner.run_experiment(data, 'results/mean_shift/OC_TABNET_ENSEMBLE_ADASYN_MEANSHIFT_synthetic_04')
     print("--- total: %s seconds ---" % (time.time() - start_time))
