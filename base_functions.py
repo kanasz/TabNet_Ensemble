@@ -701,6 +701,66 @@ def get_meanshift_cluster_counts(X, y, numerical_cols, categorical_cols, smote=N
 
     return clusters, bandwidths, algs
 
+def get_meanshift_cluster_counts_reporting(X, y, numerical_cols, categorical_cols, smote=None, quantile=0.05, use_bandwidth=True):
+    skf = StratifiedKFold(n_splits=5, random_state=42, shuffle=True)
+    preprocessor = get_preprocessor(numerical_cols, categorical_cols)
+
+    def create_meanshift_pipeline(bandwidth=None):
+        if use_bandwidth:
+            return Pipeline(steps=[
+                ('meanshift', MeanShift(bandwidth=bandwidth, n_jobs=5))  # Apply MeanShift clustering
+            ])
+        else:
+            return Pipeline(steps=[
+                ('meanshift', MeanShift(n_jobs=5))  # Apply MeanShift clustering
+            ])
+    clusters = []
+    bandwidths = []
+    X_train_fold = []
+    y_train_fold = []
+    clusters_labels = []
+    synthetic = []
+    algs = []
+    for train_index, test_index in skf.split(X, y):
+        X_train, X_test = X.iloc[train_index], X.iloc[test_index]
+        y_train, y_test = y.iloc[train_index], y.iloc[test_index]
+
+        # Step 5: Preprocess training data (imputation, scaling, one-hot encoding)
+        X_train_preprocessed = preprocessor.fit_transform(X_train)
+        X_test_preprocessed = preprocessor.transform(X_test)
+
+        # Step 6: Apply SMOTE to oversample the minority class in the training set
+        if smote == None:
+            smote = SMOTE(random_state=42)
+        X_train_fold.append(X_train_preprocessed)
+        y_train_fold.append(y_train)
+
+        X_resampled, y_resampled = smote.fit_resample(X_train_preprocessed, y_train)
+
+
+        # Step 7: Separate the synthetic samples for the minority class
+        n_generated_samples = len(X_resampled) - len(X_train_preprocessed)  # Number of synthetic samples
+        synthetic_samples = X_resampled[-n_generated_samples:]  # Synthetic samples are at the end
+        synthetic_labels = y_resampled[-n_generated_samples:]  # Corresponding labels for synthetic samples
+        synthetic.append(synthetic_samples)
+
+        # Step 8: Cluster only the synthetic samples
+        bandwidth = estimate_bandwidth(synthetic_samples, quantile=quantile, random_state=42) # 0.05
+        bandwidths.append(bandwidth)
+        clustering_pipeline = create_meanshift_pipeline(bandwidth)
+        clustering_pipeline.fit(synthetic_samples)
+
+        cluster_centers = clustering_pipeline.named_steps['meanshift'].cluster_centers_
+        clusters_labels.append(clustering_pipeline.named_steps['meanshift'].labels_)
+        y_reduced_synthetic = np.full(shape=cluster_centers.shape[0], fill_value=1)
+        final = np.vstack((X_train_preprocessed, cluster_centers))
+        y_final = np.hstack((y_train, y_reduced_synthetic))
+        #print(len(cluster_centers))
+        clusters.append(len(cluster_centers))
+        algs.append(clustering_pipeline['meanshift'])
+
+    return clusters, bandwidths, algs, X_train_fold, y_train_fold, synthetic, clusters_labels
+
 def get_gmm_cluster_counts(X, y, numerical_cols, categorical_cols, smote=None):
     skf = StratifiedKFold(n_splits=5, random_state=42, shuffle=True)
     preprocessor = get_preprocessor(numerical_cols, categorical_cols)
