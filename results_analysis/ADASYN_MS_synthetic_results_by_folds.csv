@@ -1,0 +1,16 @@
+fold,name,majority,minority,selected_oversampled,not_selected_oversampled,clusters_count,selected_clusters
+0,synthetic_01,560,240,1604,0,1,1.0
+1,synthetic_01,560,240,1593,10,3,1.0
+2,synthetic_01,560,240,0,1582,3,0.0
+3,synthetic_01,560,240,0,1602,2,0.0
+4,synthetic_01,560,240,0,1567,2,0.0
+0,synthetic_02,146,14,1005,500,32,22.0
+1,synthetic_02,146,14,972,535,26,13.0
+2,synthetic_02,146,14,432,1072,25,8.0
+3,synthetic_02,147,13,993,515,31,22.0
+4,synthetic_02,147,13,546,959,30,4.0
+0,synthetic_04,191,9,840,660,28,15.0
+1,synthetic_04,191,9,697,806,28,9.0
+2,synthetic_04,191,9,801,702,38,23.0
+3,synthetic_04,191,9,416,1087,26,4.0
+4,synthetic_04,192,8,0,1500,29,0.0

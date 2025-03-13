@@ -1,0 +1,4 @@
+name,fold,majority,minority,selected_oversampled,not_selected_oversampled,clusters_count,selected_clusters
+synthetic_01,2.0,560.0,240.0,65.0,255.0,10.0,3.6
+synthetic_02,2.0,146.4,13.6,68.8,64.0,29.0,13.8
+synthetic_04,2.0,191.2,8.8,82.0,100.4,27.0,10.2
