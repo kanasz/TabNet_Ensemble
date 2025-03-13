@@ -3,7 +3,6 @@ import os
 from pathlib import Path
 from imblearn.pipeline import Pipeline
 import numpy as np
-import pandas as pd
 from imblearn.metrics import geometric_mean_score
 from pytorch_tabnet.tab_model import TabNetClassifier
 from sklearn.cluster import KMeans, MeanShift, estimate_bandwidth, DBSCAN
@@ -150,6 +149,7 @@ def get_sensitivity_synthetic_data(id, contamination, features, samples):
     features = data.drop(["target"], axis=1)
     labels = data['target']
     return features, labels
+
 
 def get_yeast_3_data():
     path = Path(__file__).parent / "data/yeast/yeast3.dat"
@@ -873,4 +873,4 @@ def get_gmm_cluster_counts(X, y, numerical_cols, categorical_cols, smote=None):
         algs.append(clustering_pipeline['meanshift'])
         n_components_arr.append(best_n_components_bic)
 
-    return clusters,n_components_arr, algs
+    return clusters, n_components_arr, algs
