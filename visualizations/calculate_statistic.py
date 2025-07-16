@@ -2,63 +2,64 @@ import math
 import pandas as pd
 
 
+# calculate necessary statistic for selected .csv file, produced by "analyze_output.py" script
+def __calculate_average_results(path_to_csv_file, metric, path_to_save):
+    _results_data = pd.read_csv(path_to_csv_file)
+    # if needed
+    _results_data.fillna(0, inplace=True)
+
+    _columns = _results_data.columns
+    _mean_values = _results_data.mean(numeric_only=True)
+    _std_values = _results_data.std(numeric_only=True)
+
+    _output = pd.DataFrame({
+        'clf': _columns[2:],
+        f'average {metric}': [math.ceil(value * 10) / 10 for value in _mean_values[1:]],
+        f'std {metric}': [math.ceil(value) for value in _std_values[1:]]
+    })
+
+    _output.to_csv(f'./analyze_output/{path_to_save}')
+
+    _dataset_names = _results_data.iloc[:, [1]]
+    # print(_dataset_names)
+    _df_with_only_results = _results_data.iloc[:, 2:]
+    _win_rank_df = _df_with_only_results.apply(lambda row: row.rank(method='min', ascending=False), axis=1).astype(int)
+    _output_of_win_statistic = pd.concat([_dataset_names, _win_rank_df], axis=1, ignore_index=False)
+
+    # calculate average of winning ranking
+    print("################")
+    print("Averaged winning ranking:\n")
+    print(_output_of_win_statistic.iloc[:, 1:].mean())
+    print("################")
+
+    # calculate median of winning ranking
+    print("Median for winning ranking:\n")
+    print(_output_of_win_statistic.iloc[:, 1:].median())
+    print("################")
+
+    # sum number of wins per method
+    print("Number of wins per method:\n")
+    print((_output_of_win_statistic.iloc[:, 1:] == 1).sum())
+    print("################")
+
+
 if __name__ == "__main__":
 
-    df_auc = pd.read_csv("./aggregated_real_data_auc_scores.csv")
-    df_gmean = pd.read_csv("./aggregated_real_data_gmean_scores.csv")
+    """
+    __calculate_average_results(path_to_csv_file="analyze_output/aggregated_real_data_auc_scores.csv",
+                                metric='auc',
+                                path_to_save="averaged_real_data_auc.csv")
 
-    columns_auc = df_auc.columns
-    columns_gmean = df_gmean.columns
+    __calculate_average_results(path_to_csv_file="aggregated_real_data_gmean_scores.csv",
+                                metric='gmean',
+                                path_to_save="averaged_real_data_gmean.csv")
+    """
+    __calculate_average_results(path_to_csv_file="aggregated_ablation_real_data_auc_scores.csv",
+                                metric='auc',
+                                path_to_save="averaged_ablation_real_data_auc.csv")
 
-    if len(columns_auc[2:]) == len(columns_gmean[2:]) and list(columns_auc[2:]) == list(columns_gmean[2:]):
-        average_auc = df_auc.mean(numeric_only=True)
-        std_auc = df_auc.std(numeric_only=True)
-        average_gmean = df_gmean.mean(numeric_only=True)
-        std_gmean = df_gmean.std(numeric_only=True)
-
-        statistic_df = pd.DataFrame({
-            'clf': columns_auc[2:],
-            'average AUC': [math.ceil(value * 10) / 10 for value in average_auc[1:]],
-            'std AUC': [math.ceil(value) for value in std_auc[1:]],
-            'average GMEAN': [math.ceil(value * 10) / 10 for value in average_gmean[1:]],
-            'std GMEAN': [math.ceil(value) for value in std_gmean[1:]]
-        })
-
-        statistic_df.to_csv("./averaged_auc_and_gmean_results.csv")
-    else:
-        raise Exception("Mismatch of extracted columns!")
-
-    # extract datasets names
-    dataset_names = df_auc.iloc[:, [1]]
-    print(dataset_names)
-
-    # perform ranking according to performance
-    cleaned_auc_df = df_auc.iloc[:, 2:]
-    cleaned_gmean_df = df_gmean.iloc[:, 2:]
-
-    ranked_auc_df = cleaned_auc_df.apply(lambda row: row.rank(method='min', ascending=False), axis=1)
-    ranked_gmean_df = cleaned_gmean_df.apply(lambda row: row.rank(method='min', ascending=False), axis=1)
-    # convert ranking to integer format
-    ranked_auc_df = pd.DataFrame(ranked_auc_df.astype(int))
-    ranked_gmean_df = ranked_gmean_df.astype(int)
-
-    concatenated_auc_df = pd.concat([dataset_names, ranked_auc_df], axis=1, ignore_index=False)
-    concatenated_gmean_df = pd.concat([dataset_names, ranked_gmean_df], axis=1, ignore_index=False)
-
-    average_ranking_auc = concatenated_auc_df.iloc[:, 1:].mean()
-    average_ranking_gmean = concatenated_gmean_df.iloc[:, 1:].mean()
-    print(f"Averages: {average_ranking_auc}")
-    print(f"Averages rank GM: {average_ranking_gmean}")
-
-    auc_median = concatenated_auc_df.iloc[:, 1:].median()
-    gmean_median = concatenated_gmean_df.iloc[:, 1:].median()
-    print(f"Median AUC score: {auc_median}")
-    print(f"Median GMEAN score: {gmean_median}")
-
-    winning_times_auc = (concatenated_auc_df.iloc[:, 1:] == 1).sum()
-    winning_times_gmean = (concatenated_gmean_df.iloc[:, 1:] == 1).sum()
-
-    print(f"Winning times for AUC score:\n {winning_times_auc}")
-    print(f"Winning times for AUC score:\n {winning_times_gmean}")
-
-    concatenated_auc_df.to_csv("./ranked_auc_results.csv")
+    """
+    __calculate_average_results(path_to_csv_file="aggregated_ablation_real_data_gmean_scores.csv",
+                                metric='gmean',
+                                path_to_save="averaged_ablation_real_data_gmean.csv")
+    """

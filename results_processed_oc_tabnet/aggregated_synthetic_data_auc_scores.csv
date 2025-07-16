@@ -1,4 +1,4 @@
 ,dataset,SVC_WEIGHTED,SVC_SMOTE,AdasynSVC,XGBOOST_SMOTE,Adacost,SelfPaced,TabNetSmote,UNCLUSTERED_OC_TABNET_ENSEMBLE_SMOTE_MEANSHIFT
 0,synthetic_01,70.7_{4},70.1_{2},50.0_{0},,60.8_{3},50.0_{0},63.1_{4},71.9_{4}
 1,synthetic_02,52.9_{13},49.6_{7},50.0_{0},,60.3_{7},49.9_{10},71.9_{13},65.2_{10}
-2,synthetic_03,50.0_{0},50.0_{0},50.0_{0},,47.8_{15},62.6_{21},73.9_{10},50.0_{0}
+2,synthetic_04,61.9_{13},50.0_{0},50.0_{0},70.0_{4},75.9_{14},70.6_{4},72.1_{15},72.8_{4}
