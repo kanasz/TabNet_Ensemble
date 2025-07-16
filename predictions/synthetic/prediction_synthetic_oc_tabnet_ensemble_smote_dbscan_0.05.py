@@ -41,12 +41,13 @@ if __name__ == '__main__':
     start_time = time.time()
     actual_loss_function = LossFunction.CROSSENTROPYLOSS
 
-    contamination = '0.05'
+    contamination = '0.3'
     features = 50
-    samples = 300
-    id = '08'
+    samples = 200
+    id = '01'
 
-    data = get_sensitivity_synthetic_data(id, contamination, features, samples)
+    #data = get_sensitivity_synthetic_data(id, contamination, features, samples)
+    data = get_synthetic_data(id, contamination, features)
     numerical_cols = list(data[0].columns.values)
     categorical_cols = None
     sampling_algorithm = SMOTE(random_state=42, k_neighbors=3)
@@ -63,5 +64,5 @@ if __name__ == '__main__':
                                                     config_files=config_files, device='cuda', sampling_algorithm=sampling_algorithm,
                                                     numerical_cols=numerical_cols, categorical_cols=categorical_cols,
                                                     save_partial_output=True,clustering_params = clustering_params, use_cluster_centers=False)
-    tuner.run_experiment(data, 'results/unclustered_smote_dbscan_synthetic_0.05/UNCLUSTERED_OC_TABNET_ENSEMBLE_SMOTE_DBSCAN_synthetic_{}'.format(contamination))
+    tuner.run_experiment(data, 'results/unclustered_smote_dbscan_synthetic_0.05/TEST_UNCLUSTERED_OC_TABNET_ENSEMBLE_SMOTE_DBSCAN_synthetic_{}'.format(contamination))
     print("--- total: %s seconds ---" % (time.time() - start_time))
