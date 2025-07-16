@@ -377,10 +377,11 @@ genes_fttransformer = {
 }
 
 genes_easy_ensemble = {
-    "types": [int, float],
+    "types": [int, int, float],
     "spaces": [
-        {'low': 10, 'high': 500},  # n_estimators
-        {'low': 0.5, 'high': 1.0}  # sampling_strategy
+        {'low': 10, 'high': 500},     # n_estimators
+        {'low': 10, 'high': 500},     # base classifier (AdaBoost): n_estimators
+        {'low': 0.01, 'high': 2.0}    # base classifier (AdaBoost): learning_rate
     ]
 }
 

@@ -12,6 +12,8 @@ from sklearn.mixture import GaussianMixture
 from sklearn.model_selection import StratifiedKFold
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import AdaBoostClassifier
+from imbalanced_ensemble.ensemble import EasyEnsembleClassifier
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from constants import LossFunction, WEAK_CLASSIFIERS_COUNT, SMOTE_K_NEIGHBORS, Classifier, RANDOM_STATE, genes_svc, \
@@ -28,7 +30,6 @@ from loss_functions.vs_loss import VSLoss
 from loss_functions.vs_loss_mdr import VSLossMDR
 import imbalanced_ensemble.ensemble as imb
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
-
 from models.ft_transformer import FTTransformer, FTTransformerWrapper
 
 
@@ -526,22 +527,29 @@ def get_classifier(clf_type, solution, input_dim = 0):
     if clf_type == Classifier.WeightedSVC:
         clf = SVC(random_state=RANDOM_STATE, gamma=solution[0], C=solution[1],
                   class_weight={0: solution[2], 1: solution[3]})
-    if clf_type ==Classifier.BalancedCascade:
+    if clf_type == Classifier.BalancedCascade:
         criterion = 'gini'
-        if solution[1]!=0:
+        if solution[1] != 0:
             criterion='entropy'
 
         splitter = 'best'
-        if solution[2]!=0:
+        if solution[2] != 0:
             splitter='random'
         estimator = DecisionTreeClassifier(splitter=splitter, criterion=criterion, ccp_alpha=solution[3])
         clf = imb.BalanceCascadeClassifier(random_state=RANDOM_STATE, n_estimators=solution[0], estimator=estimator)
-    if clf_type==Classifier.AdaCost:
+    if clf_type == Classifier.EasyEnsemble:
+        clf = EasyEnsembleClassifier(random_state=RANDOM_STATE,
+                                     n_estimators=solution[0],
+                                     estimator=AdaBoostClassifier(n_estimators=solution[1],
+                                                                  learning_rate=solution[2],
+                                                                  random_state=RANDOM_STATE)
+                                     )
+    if clf_type == Classifier.AdaCost:
         algorithm = 'SAMME'
         if solution[2] != 0:
             algorithm = 'SAMME.R'
         clf = imb.AdaCostClassifier(n_estimators=solution[0], learning_rate=solution[1],algorithm=algorithm)
-    if clf_type==Classifier.SelfPaced:
+    if clf_type == Classifier.SelfPaced:
         criterion = 'gini'
         if solution[1] != 0:
             criterion = 'entropy'

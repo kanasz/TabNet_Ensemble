@@ -106,8 +106,10 @@ class GaTuner:
 
         result = {
             'fitness': gm_mean,
-            'true_values': np.array(true_values),
-            'predicted_values': np.array(predicted_values),
+            # 'true_values': np.array(true_values),
+            'true_values': true_values,
+            # 'predicted_values': np.array(predicted_values),
+            'predicted_values': predicted_values,
             'solution': np.array(solution)
         }
 
