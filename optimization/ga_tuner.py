@@ -2,7 +2,6 @@ import os
 import time
 import numpy as np
 from imbalanced_ensemble.metrics import geometric_mean_score
-#from imbalanced_ensemble.sampler.over_sampling import ADASYN
 from imblearn.over_sampling import  ADASYN
 from imblearn.over_sampling import SMOTE
 from imblearn.pipeline import Pipeline
@@ -14,7 +13,7 @@ from sklearn.preprocessing import StandardScaler, OneHotEncoder
 
 from base_functions import get_classifier
 from constants import Classifier, genes_weighted_svc, genes_balanced_cascade, genes_svc, genes_adacost, \
-    genes_self_paced, tabnet_gene_types, tabnet_gene_space
+    genes_self_paced, tabnet_gene_types, tabnet_gene_space, genes_easy_ensemble
 
 seed = 42
 pygad.random.seed(42)
@@ -58,19 +57,15 @@ class GaTuner:
                  self.categorical_cols))
 
         gmeans = []
-
         true_values = []
         predicted_values = []
 
         for index, train_index in enumerate(self.train_indices):
-
             clf = get_classifier(self.clf_type, solution)
-
             test_index = self.test_indices[index]
             if self.use_smote:
                 pipeline = Pipeline([
                     ('preprocessor', preprocessor),
-                    #('scaler', StandardScaler()),
                     ('smote', SMOTE(random_state=42, k_neighbors=self.k_neighbors)),
                     ('clf', clf)
                 ])
@@ -78,7 +73,6 @@ class GaTuner:
             elif self.use_adasyn:
                 pipeline = Pipeline([
                     ('preprocessor', preprocessor),
-                    # ('scaler', StandardScaler()),
                     ('adasyn', ADASYN(random_state=42, n_neighbors=self.k_neighbors, sampling_strategy='all')),
                     ('clf', clf)
                 ])
@@ -86,7 +80,6 @@ class GaTuner:
             else:
                 pipeline = Pipeline([
                     ('preprocessor', preprocessor),
-                    #('scaler', StandardScaler()),
                     ('clf', clf)])
             # Split data
             X_train, X_valid = X.iloc[train_index], X.iloc[test_index]
@@ -130,34 +123,33 @@ class GaTuner:
         self.filename = fname
         kf = StratifiedKFold(n_splits=5, random_state=42, shuffle=True)
 
-
-        if self.clf_type==Classifier.BalancedCascade:
+        if self.clf_type == Classifier.BalancedCascade:
             gene_types = genes_balanced_cascade['types']
             spaces = genes_balanced_cascade['spaces']
-        if self.clf_type==Classifier.SVC:
+        if self.clf_type == Classifier.SVC:
             gene_types = genes_svc['types']
             spaces = genes_svc['spaces']
-        if self.clf_type==Classifier.WeightedSVC:
+        if self.clf_type == Classifier.WeightedSVC:
             gene_types = genes_weighted_svc['types']
             spaces = genes_weighted_svc['spaces']
-        if self.clf_type ==Classifier.AdaCost:
+        if self.clf_type == Classifier.AdaCost:
             gene_types = genes_adacost['types']
             spaces = genes_adacost['spaces']
-        if self.clf_type ==Classifier.SelfPaced:
+        if self.clf_type == Classifier.SelfPaced:
             gene_types = genes_self_paced['types']
             spaces = genes_self_paced['spaces']
-        if self.clf_type ==Classifier.TabNet:
+        if self.clf_type == Classifier.TabNet:
             gene_types = tabnet_gene_types
             spaces = tabnet_gene_space
-
+        if self.clf_type == Classifier.EasyEnsemble:
+            gene_types = genes_easy_ensemble['types']
+            spaces = genes_easy_ensemble['types']
 
         filename = fname
         sol_per_pop = self.population
         num_parents_mating = self.num_parents
 
         self.X_orig, self.y_orig = data
-
-        #params = get_gene_type_and_space(loss_function)
         self.train_indices = []
         self.test_indices = []
         for train_index, test_index in kf.split(self.X_orig, self.y_orig):
@@ -175,7 +167,8 @@ class GaTuner:
             print('------------------------------------------------')
             print('last population fitness: {}'.format(last_population_fitness[0]))
             new_fitness, true_values, predicted_values = self.eval_func(ga_instance,
-                                                                                ga_instance.best_solutions[-1], None)
+                                                                        ga_instance.best_solutions[-1],
+                                                                        None)
             result = {
                 'fitness': new_fitness,
                 'true_values': np.array(true_values),
@@ -198,12 +191,10 @@ class GaTuner:
             ga_instance = pygad.load(filename)
         else:
             ga_instance = pygad.GA(num_generations=self.num_generations,
-
                                    random_seed=42,
                                    mutation_type="random",
                                    parallel_processing=['thread', 1],
                                    num_parents_mating=num_parents_mating,
-
                                    crossover_type="single_point",
                                    parent_selection_type="sss",
                                    fitness_func=self.fitness_func,
