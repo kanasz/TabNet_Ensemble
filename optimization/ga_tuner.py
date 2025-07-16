@@ -143,7 +143,7 @@ class GaTuner:
             spaces = tabnet_gene_space
         if self.clf_type == Classifier.EasyEnsemble:
             gene_types = genes_easy_ensemble['types']
-            spaces = genes_easy_ensemble['types']
+            spaces = genes_easy_ensemble['spaces']
 
         filename = fname
         sol_per_pop = self.population
