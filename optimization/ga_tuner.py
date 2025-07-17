@@ -2,8 +2,9 @@ import os
 import time
 import numpy as np
 from imbalanced_ensemble.metrics import geometric_mean_score
-from imblearn.over_sampling import  ADASYN
+from imblearn.over_sampling import ADASYN
 from imblearn.over_sampling import SMOTE
+from imblearn.combine import SMOTEENN
 from imblearn.pipeline import Pipeline
 from pygad import pygad
 from sklearn.compose import ColumnTransformer
@@ -21,8 +22,13 @@ pygad.random.seed(42)
 
 class GaTuner:
 
-    def __init__(self, num_generations, num_parents=10, population=20, use_smote=True,  clf_type = None,
-                 numerical_cols = None, categorical_cols = None, k_neighbors = 2, use_adasyn=False, save_partial_output=False):
+    use_smote_enn: bool
+    use_adasyn: bool
+    use_smote: bool
+
+    def __init__(self, num_generations, num_parents=10, population=20, use_smote=True, clf_type=None,
+                 numerical_cols=None, categorical_cols=None, k_neighbors=2, use_adasyn=False, use_smote_enn=False,
+                 save_partial_output=False):
         self.num_generations = num_generations
         self.num_parents = num_parents
         self.population = population
@@ -36,7 +42,8 @@ class GaTuner:
         self.categorical_cols = categorical_cols
         self.clf_type = clf_type
         self.k_neighbors = k_neighbors
-        self.use_adasyn = use_adasyn,
+        self.use_adasyn = use_adasyn
+        self.use_smote_enn = use_smote_enn
         self.save_partial_output = save_partial_output
 
     def eval_func(self, ga_instance, solution, solution_idx):
@@ -74,6 +81,13 @@ class GaTuner:
                 pipeline = Pipeline([
                     ('preprocessor', preprocessor),
                     ('adasyn', ADASYN(random_state=42, n_neighbors=self.k_neighbors, sampling_strategy='all')),
+                    ('clf', clf)
+                ])
+
+            elif self.use_smote_enn:
+                pipeline = Pipeline([
+                    ('preprocessor', preprocessor),
+                    ('smoteenn', SMOTEENN(random_state=42, sampling_strategy='auto')),
                     ('clf', clf)
                 ])
 
@@ -173,9 +187,22 @@ class GaTuner:
                                                                         None)
             result = {
                 'fitness': new_fitness,
-                'true_values': np.array(true_values),
-                'predicted_values': np.array(predicted_values)
+                # 'true_values': np.array(true_values),
+                # 'true_values': true_values,
+                'true_values': [s.to_numpy() for s in true_values],
+                # 'predicted_values': np.array(predicted_values)
+                'predicted_values': predicted_values
+                # 'predicted_values': [p.to_numpy() for p in predicted_values]
             }
+
+            """
+            result = {
+    'fitness': new_fitness,
+    'true_values': [s.to_numpy() for s in true_values],
+    'predicted_values': [p.to_numpy() for p in predicted_values]
+}
+            """
+
             with open(filename + '.txt', 'w') as data:
                 data.write(str(result))
             print('evaluated fitness: {}'.format(new_fitness))
