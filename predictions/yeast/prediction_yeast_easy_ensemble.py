@@ -24,11 +24,13 @@ np.set_printoptions(threshold=np.inf)
 
 def run_experiment(yeast_data, file_name):
     num_generations = 50
-    num_parents = 20,
+    num_parents = 20
     population = 50
     start_time = time.time()
     data = yeast_data
     numerical_cols = list(data[0].columns.values)
+
+    print(f"Starting simulation run...")
     tuner = GaTuner(num_generations=num_generations,
                     num_parents=num_parents,
                     population=population,
@@ -42,7 +44,7 @@ def run_experiment(yeast_data, file_name):
 if __name__ == '__main__':
     # yeast 3
     run_experiment(yeast_data=get_yeast_3_data(), file_name="results/easy_ensemble_yeast_3")
-
+    
     # yeast 4
     run_experiment(yeast_data=get_yeast_4_data(), file_name="results/easy_ensemble_yeast_4")
 

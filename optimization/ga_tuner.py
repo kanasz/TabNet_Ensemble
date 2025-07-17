@@ -120,9 +120,7 @@ class GaTuner:
 
         result = {
             'fitness': gm_mean,
-            # 'true_values': np.array(true_values),
             'true_values': true_values,
-            # 'predicted_values': np.array(predicted_values),
             'predicted_values': predicted_values,
             'solution': np.array(solution)
         }
@@ -187,24 +185,12 @@ class GaTuner:
                                                                         None)
             result = {
                 'fitness': new_fitness,
-                # 'true_values': np.array(true_values),
-                # 'true_values': true_values,
                 'true_values': [s.to_numpy() for s in true_values],
-                # 'predicted_values': np.array(predicted_values)
                 'predicted_values': predicted_values
-                # 'predicted_values': [p.to_numpy() for p in predicted_values]
             }
 
-            """
-            result = {
-    'fitness': new_fitness,
-    'true_values': [s.to_numpy() for s in true_values],
-    'predicted_values': [p.to_numpy() for p in predicted_values]
-}
-            """
-
-            with open(filename + '.txt', 'w') as data:
-                data.write(str(result))
+            with open(filename + '.txt', 'w') as _data_file:
+                _data_file.write(str(result))
             print('evaluated fitness: {}'.format(new_fitness))
             gm = []
             gm.append(geometric_mean_score(true_values[0], predicted_values[0]))
