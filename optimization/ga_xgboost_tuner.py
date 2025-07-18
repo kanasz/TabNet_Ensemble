@@ -3,6 +3,7 @@ import time
 import numpy as np
 from imbalanced_ensemble.metrics import geometric_mean_score
 from imblearn.over_sampling import SMOTE
+from imblearn.combine import SMOTEENN
 from imblearn.pipeline import Pipeline
 from pygad import pygad
 from sklearn.compose import ColumnTransformer
@@ -17,8 +18,12 @@ pygad.random.seed(42)
 
 class GaXGBoostTuner:
 
-    def __init__(self, num_generations, num_parents=10, population=20, use_smote=True, use_weighting = False,
-                 numerical_cols = None, categorical_cols = None):
+    use_smote: bool
+    use_adasyn: bool # add later
+    use_smoteenn: bool
+
+    def __init__(self, num_generations, num_parents=10, population=20, use_smote=True, use_adasyn=False,
+                 use_smoteenn=False, use_weighting=False, numerical_cols=None, categorical_cols=None):
         self.num_generations = num_generations
         self.num_parents = num_parents
         self.population = population
@@ -28,12 +33,13 @@ class GaXGBoostTuner:
         self.train_indices = []
         self.test_indices = []
         self.use_smote = use_smote
+        self.use_adasyn = use_adasyn
+        self.use_smoteenn = use_smoteenn
         self.use_weighting = use_weighting
         self.numerical_cols = numerical_cols
         self.categorical_cols = categorical_cols
 
     def eval_func(self, ga_instance, solution, solution_idx):
-
         start_time = time.time()
         learning_rate = float(solution[0])
         n_estimators = int(solution[1])
@@ -47,21 +53,7 @@ class GaXGBoostTuner:
 
         X, y = self.X_orig.copy(), self.y_orig.copy()
         preprocessor = ColumnTransformer(transformers=[])
-        '''
-        preprocessor = ColumnTransformer(
-            transformers=[
-                ('num', Pipeline(steps=[
-                    ('imputer', SimpleImputer(strategy='median')),
-                    ('scaler', StandardScaler())]),
-                 self.numerical_cols),
-                ('cat', Pipeline(steps=[
-                    ('imputer', SimpleImputer(strategy='most_frequent')),
-                    ('encoder', OneHotEncoder(handle_unknown='ignore'))
-                ]),
-                 self.categorical_cols)
-            ]
-        )
-        '''
+
         if self.numerical_cols is not None:
             preprocessor.transformers.append(('num', Pipeline(steps=[
                     ('imputer', SimpleImputer(strategy='median')),
@@ -76,12 +68,10 @@ class GaXGBoostTuner:
                  self.categorical_cols))
 
         gmeans = []
-
         true_values = []
         predicted_values = []
 
         for index, train_index in enumerate(self.train_indices):
-
             xgb = XGBClassifier(random_state=42,
                                 learning_rate=learning_rate,
                                 n_estimators=n_estimators,
@@ -95,17 +85,20 @@ class GaXGBoostTuner:
 
             test_index = self.test_indices[index]
             if self.use_smote:
-
                 pipeline = Pipeline([
                     ('preprocessor', preprocessor),
-                    #('scaler', StandardScaler()),
                     ('smote', SMOTE(random_state=42, k_neighbors=2)),
+                    ('xgb', xgb)
+                ])
+            elif self.use_smoteenn:
+                pipeline = Pipeline([
+                    ('preprocessor', preprocessor),
+                    ('smote', SMOTEENN(random_state=42, sampling_strategy='auto')),
                     ('xgb', xgb)
                 ])
             else:
                 pipeline = Pipeline([
                     ('preprocessor', preprocessor),
-                    #('scaler', StandardScaler()),
                     ('xgb', xgb)])
             X_train, X_valid = (X.iloc[train_index]), (X.iloc[test_index])
             y_train, y_valid = np.array(y)[train_index], np.array(y)[test_index]
@@ -128,8 +121,7 @@ class GaXGBoostTuner:
     def run_experiment(self, data, fname):
         kf = StratifiedKFold(n_splits=5, random_state=42, shuffle=True)
 
-        gene_types = [float, int, int, int, float,float,float]
-
+        gene_types = [float, int, int, int, float, float, float]
         spaces = [
             {'low': 0.001, 'high': 0.1},  # learning_rate
             {'low': 100, 'high': 300},  # n_neighbors
@@ -149,8 +141,6 @@ class GaXGBoostTuner:
         num_parents_mating = self.num_parents
 
         self.X_orig, self.y_orig = data
-
-        #params = get_gene_type_and_space(loss_function)
         self.train_indices = []
         self.test_indices = []
         for train_index, test_index in kf.split(self.X_orig, self.y_orig):
@@ -168,7 +158,8 @@ class GaXGBoostTuner:
             print('------------------------------------------------')
             print('last population fitness: {}'.format(last_population_fitness[0]))
             new_fitness, true_values, predicted_values = self.eval_func(ga_instance,
-                                                                                ga_instance.best_solutions[-1], None)
+                                                                        ga_instance.best_solutions[-1],
+                                                                        None)
             result = {
                 'fitness': new_fitness,
                 'true_values': true_values,
@@ -191,12 +182,10 @@ class GaXGBoostTuner:
             ga_instance = pygad.load(filename)
         else:
             ga_instance = pygad.GA(num_generations=self.num_generations,
-
                                    random_seed=42,
                                    mutation_type="random",
                                    parallel_processing=['thread', 1],
                                    num_parents_mating=num_parents_mating,
-
                                    crossover_type="single_point",
                                    parent_selection_type="sss",
                                    fitness_func=self.fitness_func,
@@ -211,6 +200,5 @@ class GaXGBoostTuner:
                                    on_stop=on_stop,
                                    # on_fitness=callback_fitness,
                                    on_generation=callback_generation)
-
         ga_instance.run()
         return
