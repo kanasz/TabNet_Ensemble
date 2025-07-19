@@ -2,7 +2,7 @@ import os
 import time
 import numpy as np
 from imbalanced_ensemble.metrics import geometric_mean_score
-from imblearn.over_sampling import SMOTE
+from imblearn.over_sampling import SMOTE, ADASYN
 from imblearn.combine import SMOTEENN
 from imblearn.pipeline import Pipeline
 from pygad import pygad
@@ -19,7 +19,7 @@ pygad.random.seed(42)
 class GaXGBoostTuner:
 
     use_smote: bool
-    use_adasyn: bool # add later
+    use_adasyn: bool
     use_smoteenn: bool
 
     def __init__(self, num_generations, num_parents=10, population=20, use_smote=True, use_adasyn=False,
@@ -88,6 +88,12 @@ class GaXGBoostTuner:
                 pipeline = Pipeline([
                     ('preprocessor', preprocessor),
                     ('smote', SMOTE(random_state=42, k_neighbors=2)),
+                    ('xgb', xgb)
+                ])
+            elif self.use_adasyn:
+                pipeline = Pipeline([
+                    ('preprocessor', preprocessor),
+                    ('adasyn', ADASYN(random_state=42, n_neighbors=2, sampling_strategy='all')),
                     ('xgb', xgb)
                 ])
             elif self.use_smoteenn:

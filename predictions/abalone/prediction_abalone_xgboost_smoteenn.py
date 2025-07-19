@@ -45,7 +45,6 @@ def run_experiment(abalone_data, file_name):
 
 
 if __name__ == '__main__':
-    """
     # abalone_9_vs_18
     run_experiment(abalone_data=get_abalone_9_vs_18_data(),
                    file_name="results/xgboost_smoteenn_abalone_9_vs_18")
@@ -57,7 +56,7 @@ if __name__ == '__main__':
     # abalone_20_vs_8_9_10
     run_experiment(abalone_data=get_abalone_20_vs_8_9_10_data(),
                    file_name="results/xgboost_smoteenn_abalone_20_vs_8_9_10")
-    """
+
     # abalone_3_vs_11
     run_experiment(abalone_data=get_abalone_3_vs_11_data(),
                    file_name="results/xgboost_smoteenn_abalone_3_vs_11")
