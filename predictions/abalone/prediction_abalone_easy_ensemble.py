@@ -5,6 +5,7 @@ import torch
 
 from base_functions import get_abalone_9_vs_18_data, get_abalone_19_vs_10_11_12_13_data
 from base_functions import get_abalone_20_vs_8_9_10_data, get_abalone_3_vs_11_data
+from base_functions import get_abalone19_data
 from constants import Classifier
 from optimization.ga_tuner import GaTuner
 
@@ -45,7 +46,6 @@ def run_experiment(abalone_data, file_name):
 
 
 if __name__ == '__main__':
-    """
     # abalone_9_vs_18
     run_experiment(abalone_data=get_abalone_9_vs_18_data(),
                    file_name="results/easy_ensemble_abalone_9_vs_18")
@@ -57,7 +57,11 @@ if __name__ == '__main__':
     # abalone_20_vs_8_9_10
     run_experiment(abalone_data=get_abalone_20_vs_8_9_10_data(),
                    file_name="results/easy_ensemble_abalone_20_vs_8_9_10")
-    """
+    
     # abalone_3_vs_11
     run_experiment(abalone_data=get_abalone_3_vs_11_data(),
                    file_name="results/easy_ensemble_abalone_3_vs_11")
+
+    # abalone19
+    run_experiment(abalone_data=get_abalone19_data(),
+                   file_name="results/easy_ensemble_abalone19")
