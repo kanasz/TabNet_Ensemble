@@ -6,8 +6,7 @@ import torch
 from base_functions import get_abalone_9_vs_18_data, get_abalone_19_vs_10_11_12_13_data
 from base_functions import get_abalone_20_vs_8_9_10_data, get_abalone_3_vs_11_data
 from base_functions import get_abalone19_data
-from constants import Classifier
-from optimization.ga_tuner import GaTuner
+from optimization.ga_xgboost_tuner import GaXGBoostTuner
 
 seed = 42
 torch.manual_seed(seed)
@@ -34,13 +33,14 @@ def run_experiment(abalone_data, file_name):
     categorical_cols = ['Sex']
 
     print(f"Starting simulation run...")
-    tuner = GaTuner(num_generations=num_generations,
-                    num_parents=num_parents,
-                    population=population,
-                    use_smote=False, use_adasyn=False, use_smote_enn=False,
-                    numerical_cols=numerical_cols,
-                    categorical_cols=categorical_cols,
-                    clf_type=Classifier.BalancedCascade)
+    tuner = GaXGBoostTuner(num_generations=num_generations,
+                           num_parents=num_parents,
+                           population=population,
+                           use_smote=False,
+                           use_adasyn=False,
+                           use_smoteenn=True,
+                           numerical_cols=numerical_cols,
+                           categorical_cols=categorical_cols)
     tuner.run_experiment(data, file_name)
     print("--- total: %s seconds ---" % (time.time() - start_time))
 
@@ -48,20 +48,20 @@ def run_experiment(abalone_data, file_name):
 if __name__ == '__main__':
     # abalone_9_vs_18
     run_experiment(abalone_data=get_abalone_9_vs_18_data(),
-                   file_name="results/BCascade_abalone_9_vs_18")
-
+                   file_name="results/xgboost_smoteenn_abalone_9_vs_18")
+    
     # abalone_19_vs_10_11_12_13
     run_experiment(abalone_data=get_abalone_19_vs_10_11_12_13_data(),
-                   file_name="results/BCascade_abalone_19_vs_10_11_12_13")
+                   file_name="results/xgboost_smoteenn_abalone_19_vs_10_11_12_13")
 
     # abalone_20_vs_8_9_10
     run_experiment(abalone_data=get_abalone_20_vs_8_9_10_data(),
-                   file_name="results/BCascade_abalone_20_vs_8_9_10")
+                   file_name="results/xgboost_smoteenn_abalone_20_vs_8_9_10")
 
     # abalone_3_vs_11
     run_experiment(abalone_data=get_abalone_3_vs_11_data(),
-                   file_name="results/BCascade_abalone_3_vs_11")
+                   file_name="results/xgboost_smoteenn_abalone_3_vs_11")
 
     # abalone19
     run_experiment(abalone_data=get_abalone19_data(),
-                   file_name="results/BCascade_abalone19")
+                   file_name="results/xgboost_smoteenn_abalone19")

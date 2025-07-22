@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 from imblearn.pipeline import Pipeline
 import numpy as np
+import pandas as pd
 from imblearn.metrics import geometric_mean_score
 from pytorch_tabnet.tab_model import TabNetClassifier
 from sklearn.cluster import KMeans, MeanShift, estimate_bandwidth, DBSCAN
@@ -32,8 +33,6 @@ import imbalanced_ensemble.ensemble as imb
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from models.ft_transformer import FTTransformer, FTTransformerWrapper
 
-
-# from imblearn.metrics import geometric_mean_score, sensitivity_score, specificity_score
 
 def get_slovak_data(business_area, year, postfix):
     # print("Loading Slovak data...")
@@ -109,6 +108,7 @@ def get_fraudulent_claim_on_cars_physical_damage_data():
     labels = data['fraud']
     return features, labels
 
+
 def get_glass_0_1_6_vs_5_data():
     path = Path(__file__).parent / "data/glass/glass-0-1-6_vs_5.dat"
     df = load_keel_dat_file(path)
@@ -116,6 +116,8 @@ def get_glass_0_1_6_vs_5_data():
     df['Class'] = df['Class'].str.strip().str.lower()
     df['Class'] = df['Class'].replace({'positive': 1, 'negative': 0})
     return features, df['Class']
+
+
 def get_glass_2_data():
     path = Path(__file__).parent / "data/glass/glass2.dat"
     df = load_keel_dat_file(path)
@@ -123,6 +125,7 @@ def get_glass_2_data():
     df['Class'] = df['Class'].str.strip().str.lower()
     df['Class'] = df['Class'].replace({'positive': 1, 'negative': 0})
     return features, df['Class']
+
 
 def get_glass_4_data():
     path = Path(__file__).parent / "data/glass/glass4.dat"
@@ -142,7 +145,6 @@ def get_glass_5_data():
 
 
 def get_sensitivity_synthetic_data(id, contamination, features, samples):
-
     path = Path(__file__).parent / "data/sensitivity_synthetic/{}_sensitivity_synthetic_imb_{}_features_{}_samples_{}.csv" \
             .format(id, contamination, features, samples)
 
@@ -160,6 +162,7 @@ def get_yeast_3_data():
     df['Class'] = df['Class'].replace({'positive': 1, 'negative': 0})
     return features, df['Class']
 
+
 def get_yeast_4_data():
     path = Path(__file__).parent / "data/yeast/yeast4.dat"
     df = load_keel_dat_file(path)
@@ -167,6 +170,7 @@ def get_yeast_4_data():
     df['Class'] = df['Class'].str.strip().str.lower()
     df['Class'] = df['Class'].replace({'positive': 1, 'negative': 0})
     return features, df['Class']
+
 
 def get_yeast_5_data():
     path = Path(__file__).parent / "data/yeast/yeast5.dat"
@@ -176,6 +180,7 @@ def get_yeast_5_data():
     df['Class'] = df['Class'].replace({'positive': 1, 'negative': 0})
     return features, df['Class']
 
+
 def get_yeast_6_data():
     path = Path(__file__).parent / "data/yeast/yeast6.dat"
     df = load_keel_dat_file(path)
@@ -183,6 +188,7 @@ def get_yeast_6_data():
     df['Class'] = df['Class'].str.strip().str.lower()
     df['Class'] = df['Class'].replace({'positive': 1, 'negative': 0})
     return features, df['Class']
+
 
 def get_ecoli_0_vs_1_data():
     path = Path(__file__).parent / "data/ecoli/ecoli-0_vs_1.dat"
@@ -192,6 +198,7 @@ def get_ecoli_0_vs_1_data():
     df['Class'] = df['Class'].replace({'positive': 1, 'negative': 0})
     return features, df['Class']
 
+
 def get_ecoli_0_2_3_4_vs_5_data():
     path = Path(__file__).parent / "data/ecoli/ecoli-0-2-3-4_vs_5.dat"
     df = load_keel_dat_file(path)
@@ -199,6 +206,7 @@ def get_ecoli_0_2_3_4_vs_5_data():
     df['Class'] = df['Class'].str.strip().str.lower()
     df['Class'] = df['Class'].replace({'positive': 1, 'negative': 0})
     return features, df['Class']
+
 
 def get_ecoli_0_3_4_vs_5_data():
     path = Path(__file__).parent / "data/ecoli/ecoli-0-3-4_vs_5.dat"
@@ -208,6 +216,7 @@ def get_ecoli_0_3_4_vs_5_data():
     df['Class'] = df['Class'].replace({'positive': 1, 'negative': 0})
     return features, df['Class']
 
+
 def get_ecoli_0_4_6_vs_5_data():
     path = Path(__file__).parent / "data/ecoli/ecoli-0-4-6_vs_5.dat"
     df = load_keel_dat_file(path)
@@ -215,6 +224,7 @@ def get_ecoli_0_4_6_vs_5_data():
     df['Class'] = df['Class'].str.strip().str.lower()
     df['Class'] = df['Class'].replace({'positive': 1, 'negative': 0})
     return features, df['Class']
+
 
 def get_wine_quality_red_3_vs_5_data():
     path = Path(__file__).parent / "data/wine/winequality-red-3_vs_5.dat"
@@ -282,6 +292,15 @@ def get_abalone_19_vs_10_11_12_13_data():
 def get_abalone_20_vs_8_9_10_data():
     path = Path(__file__).parent / "data/abalone/abalone-20_vs_8-9-10.dat"
     df = load_keel_dat_file(path)
+    features = df.drop(["Class"], axis=1)
+    df['Class'] = df['Class'].str.strip().str.lower()
+    df['Class'] = df['Class'].replace({'positive': 1, 'negative': 0})
+    return features, df['Class']
+
+
+def get_abalone19_data():
+    path = Path(__file__).parent / "data/abalone/abalone19.dat"
+    df = load_keel_dat_file(file_path=path)
     features = df.drop(["Class"], axis=1)
     df['Class'] = df['Class'].str.strip().str.lower()
     df['Class'] = df['Class'].replace({'positive': 1, 'negative': 0})
@@ -491,9 +510,6 @@ def get_config_files(path):
     for file in dir_list:
         files.append(os.path.join(path, file))
     return files[0:WEAK_CLASSIFIERS_COUNT]
-
-
-import pandas as pd
 
 
 def load_keel_dat_file(file_path):
