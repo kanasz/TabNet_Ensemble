@@ -81,7 +81,7 @@ class GaOCBaggingTabnetEnsembleTunerParallel:
                                                                     cluster_count=self.cluster_count,
                                                                     syntetic_minority_count=self.synthetic_minority_count,
                                                                     resampling_algorithm=self.resampling_algorithm,
-                                                                    clustering_algorithm=clustering_algorithm,
+                                                                    clustering_algorithm=self.clustering_params["algs"][index],
                                                                     use_cluster_centers=self.use_cluster_centers)
         '''
         X_train_std, y_train = custom_resample_minority_samples(X_train_std, y_train, selected,
@@ -102,6 +102,7 @@ class GaOCBaggingTabnetEnsembleTunerParallel:
 
         y_pred = np.array(tb_cls.predict(X_valid_std))
         gmean = geometric_mean_score(y_valid, y_pred)
+
 
         # Return values for aggregation
         return np.array(y_valid), y_pred, gmean
@@ -140,6 +141,7 @@ class GaOCBaggingTabnetEnsembleTunerParallel:
         gm_mean = np.mean(gmeans)
         #return true_values, predicted_values, gmeans, gm_mean
         t = time.time() - start_time
+        #print("gmean: {0:.10f}, {1:.2f} seconds".format(gm_mean, t))
 
         return gm_mean, true_values, predicted_values
 

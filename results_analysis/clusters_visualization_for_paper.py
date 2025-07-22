@@ -53,15 +53,7 @@ classifiers = [
     # 'UNCLUSTERED_OC_TABNET_ENSEMBLE_SMOTE_DBSCAN'
 ]
 
-
-def process_results(path, name, clusters, synthetic, X, y, fold=0, experiment_name="SMOTE_MS"):
-    ga_instance = pygad.load(path)
-    solution = ga_instance.best_solutions[-1]
-
-
-    start_indices = np.cumsum([0] + clusters[:-1]) + 35
-    end_indices = np.cumsum(clusters) + + 35
-    selected = np.array(solution[start_indices[fold]:end_indices[fold]])
+def get_data(selected, fold, synthetic, X, y):
     if len(selected) < np.max(clusters_labels[fold]) + 1:
         to_add = np.max(clusters_labels[fold]) - len(selected) + 1
         selected = np.hstack([selected, np.zeros(to_add + 1)])
@@ -73,10 +65,8 @@ def process_results(path, name, clusters, synthetic, X, y, fold=0, experiment_na
     data_X = np.vstack([synthetic[fold], X[fold]])
     data_y = np.hstack([np.ones(synthetic[fold].shape[0]) * 2, np.array(y[fold])])
 
-    # Apply t-SNE
     tsne = TSNE(n_components=2, perplexity=30, random_state=42)
     tsne_results = tsne.fit_transform(data_X)
-    # Prepare the filtered data mask
     filtered_data = np.concatenate((selected_mask, np.array([True] * len(X[0]))))
     if len(data_y) > len(filtered_data):
         data_y = data_y[:len(filtered_data) - 1]
@@ -89,6 +79,45 @@ def process_results(path, name, clusters, synthetic, X, y, fold=0, experiment_na
 
     data_y[~filtered_data] = 3
 
+    return tsne_results, data_y
+
+def process_results(path, name, clusters, synthetic, X, y, fold=0, experiment_name="SMOTE_MS"):
+    ga_instance = pygad.load(path)
+    solution = ga_instance.best_solutions[-1]
+
+
+    start_indices = np.cumsum([0] + clusters[:-1]) + 35
+    end_indices = np.cumsum(clusters) + + 35
+    selected = np.array(solution[start_indices[fold]:end_indices[fold]])
+
+    tsne_results, data_y = get_data(selected, fold, synthetic, X, y)
+    tsne_results2, data_y2 = get_data(selected, 4, synthetic, X, y)
+    '''
+    if len(selected) < np.max(clusters_labels[fold]) + 1:
+        to_add = np.max(clusters_labels[fold]) - len(selected) + 1
+        selected = np.hstack([selected, np.zeros(to_add + 1)])
+    try:
+        selected_mask = selected[np.array(clusters_labels[fold])] == 1
+    except:
+        print("error")
+
+    data_X = np.vstack([synthetic[fold], X[fold]])
+    data_y = np.hstack([np.ones(synthetic[fold].shape[0]) * 2, np.array(y[fold])])
+
+    tsne = TSNE(n_components=2, perplexity=30, random_state=42)
+    tsne_results = tsne.fit_transform(data_X)
+    filtered_data = np.concatenate((selected_mask, np.array([True] * len(X[0]))))
+    if len(data_y) > len(filtered_data):
+        data_y = data_y[:len(filtered_data) - 1]
+        tsne_results = tsne_results[:len(filtered_data) - 1]
+
+    if len(data_y) < len(filtered_data):
+        filtered_data = filtered_data[:len(filtered_data) - 1]
+        # data_y = data_y[:len(filtered_data)-1]
+        filtered_data = filtered_data[:len(data_y)]
+
+    data_y[~filtered_data] = 3
+    '''
     legend_elements2 = [
         Line2D([0], [0], marker='o', color='w', label='Majority', markerfacecolor='red', markersize=10),
         Line2D([0], [0], marker='o', color='w', label='Minority', markerfacecolor='blue', markersize=10),
@@ -106,9 +135,11 @@ def process_results(path, name, clusters, synthetic, X, y, fold=0, experiment_na
 
     fig, ax = plt.subplots()
     scatter = ax.scatter(tsne_results[:, 0], tsne_results[:, 1], c=data_y, cmap=cmap2, alpha=0.5)
+    scatter = ax.scatter(tsne_results2[:, 0], tsne_results2[:, 1], c=data_y2, cmap=cmap2, alpha=0.5)
+
     ax.set_title(f'{name}', fontsize=20)
-    ax.set_xlabel('t-SNE Component 1', fontsize=18)
-    ax.set_ylabel('t-SNE Component 2', fontsize=18)
+    ax.set_xlabel('t-SNE Component 1', fontsize=20)
+    ax.set_ylabel('t-SNE Component 2', fontsize=20)
     #ax.legend(handles=legend_elements2, title='Classes', loc='best')
     plt.tight_layout()
 
@@ -280,7 +311,7 @@ results_folders = {
     'yeast':['yeast_3']
 }
 
-names = ["synthetic4",'abalone-19_vs_10-11-12-13','winequality-white-9_vs_4',
+names = ["synthetic3",'abalone-19_vs_10-11-12-13','winequality-white-9_vs_4',
          'ecoli-0_vs_1','glass2','yeast3']
 
 figs = []
@@ -341,7 +372,7 @@ for folder in results_folders.keys():
 
                         print("------------------------------------")
 
-fig, axes = plt.subplots(3, 2, figsize=(14, 14))
+fig, axes = plt.subplots(2, 3, figsize=(14, 10))
 axes = axes.flatten()
 
 for i, single_fig in enumerate(figs):  # Iterate over individual figures
@@ -362,7 +393,7 @@ for i, single_fig in enumerate(figs):  # Iterate over individual figures
 
     # Close the buffer
     buf.close()
-fig.suptitle("t-SNE Visualization (GA Optimized) Selected Samples", fontsize=16, fontweight='bold')
+#fig.suptitle("t-SNE Visualization (GA Optimized) Selected Samples", fontsize=16, fontweight='bold')
 # Define legend elements
 legend_elements2 = [
     Line2D([0], [0], marker='o', color='w', label='Majority', markerfacecolor='red', markersize=10),
