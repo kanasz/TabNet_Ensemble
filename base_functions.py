@@ -445,6 +445,9 @@ def custom_resample_minority_clusters(X_train, y_train, selected_resampled=None,
             labels = np.unique(clustering_algorithm.labels_)
             if len(labels)> len(selected_resampled):
                 labels = labels[0:len(selected_resampled)]
+            if len(labels)<len(selected_resampled):
+                selected_resampled = selected_resampled[-len(labels):]
+                #selected_resampled = selected_resampled[0:len(labels):]
             selected_labels = labels[selected_resampled.astype(bool)]
             selected_samples = np.isin(clustering_algorithm.labels_, list(selected_labels))
             X_reduced_synthetic = X_synthetic[(np.isin(clustering_algorithm.labels_, list(selected_samples)))]
