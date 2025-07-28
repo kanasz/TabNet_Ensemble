@@ -1,14 +1,10 @@
 import random
 import time
-
 import numpy as np
 import torch
 
-from base_functions import get_synthetic_data, get_slovak_data, get_abalone_9_vs_18_data, \
-    get_abalone_19_vs_10_11_12_13_data, get_abalone_20_vs_8_9_10_data, get_abalone_3_vs_11_data, \
-    get_sensitivity_synthetic_data
-from constants import LossFunction, Classifier
-from optimization.ga_boosting_tabnet_tuner import GaBoostingTabnetTuner
+from base_functions import get_synthetic_data
+from constants import Classifier
 from optimization.ga_tuner import GaTuner
 
 seed = 42
@@ -24,32 +20,37 @@ torch.cuda.manual_seed_all(seed)  # for multiGPUs.
 torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.deterministic = True
 
-# os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
-# warnings.filterwarnings("ignore")
 
-if __name__ == '__main__':
-    tabnet_max_epochs = 50
+def run_experiment(data_prefix, data_contamination, data_features, file_name, data_samples=None):
     num_generations = 50
-    num_parents = 20  # 10
-    population = 50  # 20
-
+    num_parents = 20
+    population = 50
     start_time = time.time()
-
-    numerical_cols = []
-
-    contamination = '0.05'
-    features = 20
-    samples = 250
-    id = '01'
-
-    data = get_sensitivity_synthetic_data(id, contamination, features, samples)
+    data = get_synthetic_data(prefix=data_prefix, contamination=data_contamination, features=data_features,
+                              samples=data_samples)
     numerical_cols = list(data[0].columns.values)
 
-    tuner = GaTuner(num_generations, num_parents, population,
-                    use_smote=False,
-                    use_adasyn=False,
-                    clf_type=Classifier.AdaCost, numerical_cols=numerical_cols,
-                    categorical_cols=None)
-    tuner.run_experiment(data, 'results/AdaCost_synthetic_04')
+    print(f"Starting simulation run...")
+    tuner = GaTuner(num_generations=num_generations,
+                    num_parents=num_parents,
+                    population=population,
+                    use_smote=False, use_adasyn=False, use_smote_enn=False,
+                    clf_type=Classifier.AdaCost,
+                    numerical_cols=numerical_cols)
+    tuner.run_experiment(data, file_name)
     print("--- total: %s seconds ---" % (time.time() - start_time))
 
+
+if __name__ == '__main__':
+    # Dataset synthetic1: data/synthetic_data/01_synthetic_0.3_contamination_50_features.csv
+    run_experiment(data_prefix='01', data_contamination='0.3', data_features=50,
+                   file_name="results/adacost_01_synthetic_0.3_contamination_50_features")
+    
+    # Dataset synthetic2: data/synthetic_data/02_synthetic_0.1_contamination_100_features_200_samples.csv
+    run_experiment(data_prefix='02', data_contamination='0.1', data_features=100,
+                   file_name="results/adacost_02_synthetic_0.1_contamination_100_features_200_samples",
+                   data_samples=200)
+
+    # Dataset synthetic3: data/synthetic_data/03_synthetic_0.02_contamination_200_features_200_samples.csv
+    run_experiment(data_prefix='03', data_contamination='0.02', data_features=200,
+                   file_name="results/adacost_03_synthetic_0.02_contamination_200_features_200_samples")
