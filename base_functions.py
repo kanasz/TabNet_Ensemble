@@ -135,10 +135,83 @@ def get_glass_4_data():
     df['Class'] = df['Class'].replace({'positive': 1, 'negative': 0})
     return features, df['Class']
 
+
 def get_glass_5_data():
     path = Path(__file__).parent / "data/glass/glass5.dat"
     df = load_keel_dat_file(path)
     features = df.drop(["Class"], axis=1)
+    df['Class'] = df['Class'].str.strip().str.lower()
+    df['Class'] = df['Class'].replace({'positive': 1, 'negative': 0})
+    return features, df['Class']
+
+
+def get_poker_8_9_vs_5():
+    path = Path(__file__).parent / "data/poker/poker-8-9_vs_5.dat"
+    df = load_keel_dat_file(path)
+    features = df.drop(['Class'], axis=1)
+    df['Class'] = df['Class'].str.strip().str.lower()
+    df['Class'] = df['Class'].replace({'positive': 1, 'negative': 0})
+    return features, df['Class']
+
+
+def get_poker_8_9_vs_6():
+    path = Path(__file__).parent / "data/poker/poker-8-9_vs_6.dat"
+    df = load_keel_dat_file(path)
+    features = df.drop(['Class'], axis=1)
+    df['Class'] = df['Class'].str.strip().str.lower()
+    df['Class'] = df['Class'].replace({'positive': 1, 'negative': 0})
+    return features, df['Class']
+
+
+def get_poker_8_vs_6():
+    path = Path(__file__).parent / "data/poker/poker-8_vs_6.dat"
+    df = load_keel_dat_file(path)
+    features = df.drop(['Class'], axis=1)
+    df['Class'] = df['Class'].str.strip().str.lower()
+    df['Class'] = df['Class'].replace({'positive': 1, 'negative': 0})
+    return features, df['Class']
+
+
+def get_poker_9_vs_7():
+    path = Path(__file__).parent / "data/poker/poker-9_vs_7.dat"
+    df = load_keel_dat_file(path)
+    features = df.drop(['Class'], axis=1)
+    df['Class'] = df['Class'].str.strip().str.lower()
+    df['Class'] = df['Class'].replace({'positive': 1, 'negative': 0})
+    return features, df['Class']
+
+
+def get_kddcup_buffer_overflow_vs_back():
+    path = Path(__file__).parent / "data/kddcup/kddcup-buffer_overflow_vs_back.dat"
+    df = load_keel_dat_file(path)
+    features = df.drop(['Class'], axis=1)
+    df['Class'] = df['Class'].str.strip().str.lower()
+    df['Class'] = df['Class'].replace({'positive': 1, 'negative': 0})
+    return features, df['Class']
+
+
+def get_kddcup_land_vs_portsweep():
+    path = Path(__file__).parent / "data/kddcup/kddcup-land_vs_portsweep.dat"
+    df = load_keel_dat_file(path)
+    features = df.drop(['Class'], axis=1)
+    df['Class'] = df['Class'].str.strip().str.lower()
+    df['Class'] = df['Class'].replace({'positive': 1, 'negative': 0})
+    return features, df['Class']
+
+
+def get_kddcup_land_vs_satan():
+    path = Path(__file__).parent / "data/kddcup/kddcup-land_vs_satan.dat"
+    df = load_keel_dat_file(path)
+    features = df.drop(['Class'], axis=1)
+    df['Class'] = df['Class'].str.strip().str.lower()
+    df['Class'] = df['Class'].replace({'positive': 1, 'negative': 0})
+    return features, df['Class']
+
+
+def get_kddcup_rootkit_imap_vs_back():
+    path = Path(__file__).parent / "data/kddcup/kddcup-rootkit-imap_vs_back.dat"
+    df = load_keel_dat_file(path)
+    features = df.drop(['Class'], axis=1)
     df['Class'] = df['Class'].str.strip().str.lower()
     df['Class'] = df['Class'].replace({'positive': 1, 'negative': 0})
     return features, df['Class']
