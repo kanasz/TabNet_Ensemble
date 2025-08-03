@@ -52,6 +52,7 @@ if __name__ == '__main__':
     
     # poker_8_9_vs_5
     run_experiment(poker_data=get_poker_8_9_vs_5(),
+                   file_name="results/weighted_poker_8_9_vs_5")
 
     # poker_8_9_vs_6
     run_experiment(poker_data=get_poker_8_9_vs_6(),
