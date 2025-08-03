@@ -30,12 +30,12 @@ def run_experiment(poker_data, file_name):
     data = poker_data
     numerical_cols = list(data[0].columns.values)
 
-    print(f"Starting simulation run: Weighted SVC with poker data...")
+    print(f"Starting simulation run: SVC + SMOTE with poker data...")
     tuner = GaTuner(num_generations=num_generations,
                     num_parents=num_parents,
                     population=population,
-                    use_smote=False, use_adasyn=False, use_smote_enn=False,
-                    clf_type=Classifier.WeightedSVC,
+                    use_smote=True, use_adasyn=False, use_smote_enn=False,
+                    clf_type=Classifier.SVC,
                     numerical_cols=numerical_cols)
     tuner.run_experiment(data, file_name)
     print("--- total: %s seconds ---" % (time.time() - start_time))
@@ -44,16 +44,16 @@ def run_experiment(poker_data, file_name):
 if __name__ == '__main__':
     # poker_8_vs_6
     run_experiment(poker_data=get_poker_8_vs_6(),
-                   file_name="results/svc_weighted_poker_8_vs_6")
+                   file_name="results/svc_smote_poker_8_vs_6")
     
     # poker_9_vs_7
     run_experiment(poker_data=get_poker_9_vs_7(),
-                   file_name="results/svc_weighted_poker_9_vs_7")
+                   file_name="results/svc_smote_poker_9_vs_7")
     
     # poker_8_9_vs_5
     run_experiment(poker_data=get_poker_8_9_vs_5(),
-                   file_name="results/svc_weighted_poker_8_9_vs_5")
+                   file_name="results/svc_smote_poker_8_9_vs_5")
 
     # poker_8_9_vs_6
     run_experiment(poker_data=get_poker_8_9_vs_6(),
-                   file_name="results/svc_weighted_poker_8_9_vs_6")
+                   file_name="results/svc_smote_poker_8_9_vs_6")
