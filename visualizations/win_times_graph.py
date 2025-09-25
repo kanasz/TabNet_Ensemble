@@ -7,8 +7,10 @@ if __name__ == "__main__":
     data = {
         'Method': ['W-SVM', 'SMOTE+SVM', 'ADASYN+SVM', 'SMOTE+XGBoost', 'AdaCost', 'SelfPE', 'SMOTE+TabNet',
                    "GA-HESO"],
-        'AUC': [3, 2, 0, 2, 5, 4, 2, 14],
-        'GM': [3, 2, 0, 2, 5, 4, 2, 14]
+        # 'AUC': [3, 2, 0, 2, 5, 4, 2, 14],
+        'AUC': [3, 2, 0, 2, 4, 3, 2, 15],
+        # 'GM': [3, 2, 0, 2, 5, 4, 2, 14]
+        'GM': [3, 2, 0, 2, 4, 3, 2, 15]
     }
 
     df = pd.DataFrame(data)
@@ -25,5 +27,5 @@ if __name__ == "__main__":
     plt.legend(fontsize=20)
     plt.xticks(rotation=40)
 
-    plt.savefig("./win_rate_both_data_graph.png", dpi=300, bbox_inches='tight')
+    plt.savefig("./win_rate_both_data_graph_v02.png", dpi=300, bbox_inches='tight')
     plt.show()

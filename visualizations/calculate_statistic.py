@@ -44,22 +44,31 @@ def __calculate_average_results(path_to_csv_file, metric, path_to_save):
 
 
 if __name__ == "__main__":
-
     """
-    __calculate_average_results(path_to_csv_file="analyze_output/aggregated_real_data_auc_scores.csv",
+    __calculate_average_results(path_to_csv_file="aggregated_real_data_auc_scores.csv",
                                 metric='auc',
-                                path_to_save="averaged_real_data_auc.csv")
-
+                                path_to_save="averaged_real_data_auc_verifications.csv")
+    
     __calculate_average_results(path_to_csv_file="aggregated_real_data_gmean_scores.csv",
                                 metric='gmean',
                                 path_to_save="averaged_real_data_gmean.csv")
-    """
+    
     __calculate_average_results(path_to_csv_file="aggregated_ablation_real_data_auc_scores.csv",
                                 metric='auc',
                                 path_to_save="averaged_ablation_real_data_auc.csv")
 
-    """
     __calculate_average_results(path_to_csv_file="aggregated_ablation_real_data_gmean_scores.csv",
                                 metric='gmean',
                                 path_to_save="averaged_ablation_real_data_gmean.csv")
+    """
+
+    # updated statistic abalone-3_vs_11 replaced with abalone19 (much more imbalanced dataset)
+    __calculate_average_results(path_to_csv_file="aggregated_real_data_auc_scores_v02.csv",
+                                metric='auc',
+                                path_to_save="averaged_real_data_auc_v02.csv")
+
+    """
+    __calculate_average_results(path_to_csv_file="aggregated_real_data_gmean_scores_v02.csv",
+                                metric='gmean',
+                                path_to_save="averaged_real_data_gmean_v02.csv")
     """

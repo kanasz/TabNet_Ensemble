@@ -39,6 +39,7 @@ def process_results(path):
     _final_auc_score = math.ceil((np.average(_auc_scores) * 100) * 10) / 10
     _final_auc_std = math.ceil((np.std(_auc_scores) * 100))
 
+    print(f"File name: {path}")
     print(f"GM score from .txt file: {_final_g_mean_score}±{_final_g_mean_std}")
     print(f"AUC score from .txt file: {_final_auc_score}±{_final_auc_std}\n")
 
@@ -48,8 +49,8 @@ def process_results(path):
     #                                                np.average(roc_aucs)*100,int(round(np.std(roc_aucs)*100))))
     # return f"{_final_g_mean_score}_{{{_final_g_mean_std}}}"
     # return f"{_final_auc_score}_{{{_final_auc_std}}}"
-    return float(_final_auc_score)
-    # return float(_final_g_mean_score)
+    # return float(_final_auc_score)
+    return float(_final_g_mean_score)
 
 #######################
 # new paper from here #
@@ -72,19 +73,22 @@ def process_results(path):
 # classifiers = ['SVC_WEIGHTED', 'SVC_SMOTE', 'AdasynSVC', 'XGBOOST_SMOTE', 'Adacost', 'SelfPaced', 'TabNetSmote',
 #                'OC_TABNET_ENSEMBLE_SMOTE_MEANSHIFT']
 
-"""
+
+# this was used in Transaction paper
 classifiers = ['SVC_WEIGHTED', 'SVC_SMOTE', 'AdasynSVC', 'XGBOOST_SMOTE', 'Adacost', 'SelfPaced', 'TabNetSmote',
                'UNCLUSTERED_OC_TABNET_ENSEMBLE_SMOTE_MEANSHIFT']
-"""
 
+"""
 classifiers = ['UNCLUSTERED_OC_TABNET_ENSEMBLE_SMOTE_MEANSHIFT',
                'UNCLUSTERED_OC_TABNET_ENSEMBLE_ADASYN_MEANSHIFT',
                'UNCLUSTERED_OC_TABNET_ENSEMBLE_SMOTE_DBSCAN']
+"""
 
 folder_path = "predictions/{}/results"
 results_folders = {
     # "synthetic": ['synthetic_01', 'synthetic_02', 'synthetic_04'],
-    "abalone": ['abalone_3_vs_11', 'abalone_9_vs_18', 'abalone_19_vs_10_11_12_13', 'abalone_20_vs_8_9_10'],
+    # "abalone": ['abalone_3_vs_11', 'abalone_9_vs_18', 'abalone_19_vs_10_11_12_13', 'abalone_20_vs_8_9_10', 'abalone19'],
+    "abalone": ['abalone_9_vs_18', 'abalone_19_vs_10_11_12_13', 'abalone_20_vs_8_9_10', 'abalone19'],
     "wine": ['white_9_vs_4', 'white_3_vs_7', 'red_8_vs_6', 'red_3_vs_5'],
     "ecoli": ['ecoli_0_vs_1', 'ecoli_0_4_6_vs_5', 'ecoli_0_3_4_vs_5', 'ecoli_0_2_3_4_vs_5'],
     "glass": ['glass_2', 'glass_4', 'glass_5', 'glass_0_1_6_vs_5'],
@@ -113,4 +117,4 @@ if __name__ == "__main__":
             df = pd.concat([df, new_row], ignore_index=True)
 
     print(df)
-    df.to_csv("./visualizations/aggregated_ablation_real_data_auc_scores.csv")
+    df.to_csv("./visualizations/aggregated_real_data_gmean_scores_v02.csv")
