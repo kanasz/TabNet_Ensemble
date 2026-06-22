@@ -7,8 +7,7 @@ DGOT expects (per fold expK):
     datasets/{name}/TEST/expK/xtest.npy    shape (n_test,  n_features)     normalised [-1,1]
     datasets/{name}/TEST/expK/ytest.npy    shape (n_test,)
 
-Normalisation is global (fit on full dataset before splitting), matching the
-original DGOT dataprocessing.py behaviour — kept unchanged intentionally.
+Normalisation is fitted on the train fold only (no data leakage).
 
 Usage (API)
 -----------
@@ -37,11 +36,6 @@ def prepare_dgot_data(data, dataset_name, base_dir=None, n_splits=5, random_stat
     X = X_df.values.astype(float)
     y = y_series.values.astype(float)
 
-    # global normalisation to [-1, 1] — matches original DGOT dataprocessing.py
-    dmax = np.max(X, axis=0)
-    dmin = np.min(X, axis=0)
-    X_norm = ((X - dmin) / (dmax - dmin + 1e-8)) * 2 - 1
-
     skf = StratifiedKFold(n_splits=n_splits, random_state=random_state, shuffle=True)
 
     for k, (train_idx, test_idx) in enumerate(skf.split(X, y)):
@@ -50,8 +44,15 @@ def prepare_dgot_data(data, dataset_name, base_dir=None, n_splits=5, random_stat
         os.makedirs(dgot_dir, exist_ok=True)
         os.makedirs(test_dir,  exist_ok=True)
 
-        X_train_norm = X_norm[train_idx]
-        X_test_norm  = X_norm[test_idx]
+        X_train_raw = X[train_idx]
+        X_test_raw  = X[test_idx]
+
+        # normalisation fitted on train fold only — no test statistics leak in
+        dmin = np.min(X_train_raw, axis=0)
+        dmax = np.max(X_train_raw, axis=0)
+        X_train_norm = ((X_train_raw - dmin) / (dmax - dmin + 1e-8)) * 2 - 1
+        X_test_norm  = ((X_test_raw  - dmin) / (dmax - dmin + 1e-8)) * 2 - 1
+
         y_train = y[train_idx]
         y_test  = y[test_idx]
 

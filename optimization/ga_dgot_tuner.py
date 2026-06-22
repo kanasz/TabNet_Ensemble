@@ -153,6 +153,7 @@ class GaDGOTTuner:
     def run_experiment(self, data, fname):
         filename  = fname
         self.data = data
+        os.makedirs(os.path.dirname(os.path.abspath(filename)), exist_ok=True)
 
         # prepare dataset folder structure once before GA starts
         prepare_dgot_data(data, self.dataset_name, base_dir=_DGOT_PATH)

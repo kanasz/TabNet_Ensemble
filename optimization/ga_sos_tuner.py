@@ -17,7 +17,7 @@ _SOS_PATH     = os.path.join(_PROJECT_ROOT, 'ga_heso_sota_methods', 'SOS')
 sys.path.insert(0, _SOS_PATH)
 
 from run_lib       import train as sos_train, make_noise  # noqa: E402
-from datasets      import get_dataset, get_data_inverse_scaler  # noqa: E402
+from datasets      import get_data_inverse_scaler              # noqa: E402
 from models        import utils as mutils                  # noqa: E402
 from models.ema    import ExponentialMovingAverage          # noqa: E402
 from models        import ncsnpp_tabular                   # noqa: E402  registers the model
@@ -25,10 +25,17 @@ import losses                                              # noqa: E402
 import sampling    as sos_sampling                         # noqa: E402
 import sde_lib                                             # noqa: E402
 from utils         import restore_checkpoint               # noqa: E402
-from prepare_data  import prepare_sos_data                 # noqa: E402
+from prepare_data  import prepare_sos_data, get_dataset_noleak  # noqa: E402
 
 sys.path.insert(0, _PROJECT_ROOT)
 from constants import genes_sos                            # noqa: E402
+
+# run_lib.py calls datasets.get_dataset(...) via the module object.
+# Patching it here propagates into sos_train() so the score model trains with
+# the same leak-free transformer used in _post_evaluate — no test statistics
+# influence the normalisation of training data.
+import datasets as _sos_datasets                          # noqa: E402
+_sos_datasets.get_dataset = get_dataset_noleak
 
 seed = 42
 pygad.random.seed(42)
@@ -129,7 +136,7 @@ def _post_evaluate(cfg, workdir, dataset_name, exp_k):
     # Rebuild the dataset for this fold (needed to get transformer, class splits)
     try:
         train_data_total, eval_ds, (transformer, meta), major_label, minor_label, num_classes = \
-            get_dataset(cfg, uniform_dequantization=False)
+            get_dataset_noleak(cfg, uniform_dequantization=False)
     except Exception as e:
         print(f"SOS post-evaluate: dataset rebuild failed: {e}")
         return 0.0, 0.0
@@ -254,6 +261,7 @@ class GaSOSTuner:
 
     def run_experiment(self, data, fname):
         filename = fname
+        os.makedirs(os.path.dirname(os.path.abspath(filename)), exist_ok=True)
 
         prepare_sos_data(data, self.dataset_name)
 

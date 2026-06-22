@@ -24,7 +24,10 @@ import json
 import os
 
 import numpy as np
+import torch
 from sklearn.model_selection import StratifiedKFold
+from models.tabular_utils import GeneralTransformer
+from datasets_tabular import load_data
 
 _SOS_PATH = os.path.dirname(os.path.abspath(__file__))
 _TABULAR_DIR = os.path.join(_SOS_PATH, 'tabular_datasets')
@@ -96,3 +99,57 @@ def prepare_sos_data(data, dataset_name, n_splits=5, random_state=42):
     print(f"\nData saved to: {_TABULAR_DIR}")
     print(f"Features: {n_features}  |  image_size={image_size}")
     return image_size
+
+
+def get_dataset_noleak(config, uniform_dequantization=False, evaluation=False):
+    """
+    Drop-in replacement for datasets.get_dataset() without data leakage.
+
+    The original fits GeneralTransformer on concat([train, test]), leaking test
+    statistics into the normalisation used during score-model training.
+    This version fits the transformer on the training split only.
+
+    Wired into ga_sos_tuner.py via monkeypatching datasets.get_dataset so that
+    run_lib.train() (which calls datasets.get_dataset internally) also uses the
+    leak-free transformer.
+    """
+    batch_size  = config.training.batch_size if not evaluation else config.eval.batch_size
+    num_devices = max(torch.cuda.device_count(), 1)
+    if batch_size % num_devices != 0:
+        raise ValueError(
+            f'Batch size ({batch_size}) must be divisible by '
+            f'the number of devices ({num_devices})'
+        )
+
+    train, test, cols = load_data(config.data.dataset)
+    labels = train.groupby(train.iloc[:, -1]).size()
+
+    major       = []
+    minor       = []
+    train_major = []
+    train_minor = []
+
+    for i, val in enumerate(list(labels >= labels.max())):
+        if val:
+            train_major.append(np.array(train[train.iloc[:, -1] == i]))
+            major.append(i)
+        else:
+            train_minor.append(np.array(train[train.iloc[:, -1] == i]))
+            minor.append(i)
+
+    transformer = GeneralTransformer()
+    # fit on train only — no test statistics leak in
+    transformer.fit(np.array(train), cols[0], cols[1])
+
+    train_major_lst  = [transformer.transform(d) for d in train_major]
+    train_minor_lst  = [transformer.transform(d) for d in train_minor]
+    test_transformed = transformer.transform(np.array(test))
+
+    return (
+        np.array(train_major_lst + train_minor_lst),
+        test_transformed,
+        (transformer, cols[2]),
+        major,
+        minor,
+        labels,
+    )

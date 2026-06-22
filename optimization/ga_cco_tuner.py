@@ -155,6 +155,7 @@ class GaCCOTuner:
     def run_experiment(self, data, fname):
         kf = StratifiedKFold(n_splits=5, random_state=42, shuffle=True)
         filename = fname
+        os.makedirs(os.path.dirname(os.path.abspath(filename)), exist_ok=True)
 
         self.X_orig, self.y_orig = data
         self.train_indices = []
