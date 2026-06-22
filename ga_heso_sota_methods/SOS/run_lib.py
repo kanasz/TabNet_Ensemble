@@ -181,7 +181,6 @@ def train(config, workdir):
     minority = "minor" if is_minor else "major"
     logging.info(f"Starting training loop of {label}({minority}) samples at step {initial_step}.")
 
-    max_f1 = 0
     for step in range(initial_step, num_train_steps + 1):
       try :
         batch = next(train_iter).to(config.device).float()
@@ -214,29 +213,8 @@ def train(config, workdir):
           logging.info("step: %d, eval_loss: %.5e" % (step, eval_loss.item()))
           writer.add_scalar(f"{minority}/{label}/eval_loss", eval_loss.item(), step)
 
-          others = [i != label for i in labels]
-          train_exclude = np.concatenate(train_data_total[others])
-          class_num = len(train_data_total[label])
-
-          eps=1e-05
-          shape = (class_num, config.data.image_size)
-
-          perturbed_data = make_noise(config, sde, train_exclude, shape, eps=eps,test=True)
-          sample, n = sampling_fn(score_model, z=perturbed_data)
-
-          sample = transformer.inverse_transform(sample.cpu().detach().numpy())
-          train_ds_ = transformer.inverse_transform(train_exclude)
-          eval_ds_ = transformer.inverse_transform(eval_ds)
-
-          scores = evaluation.compute_scores(eval_ds_, np.concatenate([train_ds_, sample]), meta, test_iter)
-          logging.info(f"step: {step}, macro_f1: {scores['macro_f1'].mean()}")
-          writer.add_scalar(f"{minority}/{label}/macro_f1", torch.tensor(scores["macro_f1"].mean()), step) 
-          
-          if max_f1 < scores["macro_f1"].mean():
-            max_f1 = scores["macro_f1"].mean()
-            save_step = step // config.training.snapshot_freq
-            save_checkpoint(os.path.join(checkpoint_dir, f'checkpoint_{label}.pth'), state)
-            logging.info(f"HIGHEST macro_f1 in step {step}, save checkpoint as checkpoint_{label}.pth")
+    # save final checkpoint after all training steps — no test-set leakage from checkpoint selection
+    save_checkpoint(os.path.join(checkpoint_dir, f'checkpoint_{label}.pth'), state)
     del state
 
   for label in major_label:

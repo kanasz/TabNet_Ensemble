@@ -132,6 +132,7 @@ class GaDGOTTuner:
                 fold_gmean = 0.0
                 fold_auc   = 0.0
 
+            print(f"  fold {k + 1}/5  gmean={fold_gmean:.4f}  auc={fold_auc:.4f}")
             gmeans.append(fold_gmean)
             aucs.append(fold_auc)
 

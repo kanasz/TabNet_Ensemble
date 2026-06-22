@@ -149,7 +149,6 @@ def train(args):
     # DataSet
     datapath = f'./datasets/{args.dataset}/DGOT/{args.exp}'
     ds = datasets(datapath)
-    val_dict = val_data_process(args)
     data_loader = DataLoader(ds,
                              batch_size=batch_size,
                              shuffle=True,
@@ -315,7 +314,6 @@ def train(args):
                         epoch, args.num_epoch, iteration, len(data_loader), errG.item(), errD.item(),errD_real.item(),errD_fake.item()))
             pbar.update(1)
 
-
             if args.save_content:
                 if epoch % args.save_content_every == 0:
                     content = {'epoch': epoch + 1, 'global_step': global_step, 'args': args,
@@ -325,31 +323,8 @@ def train(args):
                                'best_f1':best_f1}
                     torch.save(content, os.path.join(exp_path, 'content.pth'))
 
-            if epoch % args.save_ckpt_every == 0 and epoch>100:
-                with torch.no_grad():
-                    classifiers = _MODELS['binary_classification']
-                    performance = []
-                    for i, cf in enumerate(classifiers):
-                        model_param = cf['kwargs']
-                        model = cf['class'](**model_param)
-                        for k in range(3):
-                            results = sample_evaluate(val_dict['init_num'],
-                                                      val_dict['final_num'],
-                                                      val_dict['xtrain'],
-                                                      val_dict['ytrain'],
-                                                      val_dict['xtest'],
-                                                      val_dict['ytest'],
-                                                      model,
-                                                      args, netG, pos_coeff,device)
-                            performance.append(results)
-                    temp = pd.DataFrame(performance)
-                    means = temp.mean(axis=0)
-
-                if best_f1 < means['macro_f1']:
-                    best_f1 = means['macro_f1']
-                    # print('\n',epoch, best_f1)
-                    torch.save(netG.state_dict(), os.path.join(exp_path, 'netG.pth'.format(epoch)))
-
+    # save final model after all epochs — no test-set leakage from mid-training evaluation
+    torch.save(netG.state_dict(), os.path.join(exp_path, 'netG.pth'))
 
 
 if __name__ == '__main__':

@@ -241,6 +241,7 @@ class GaSOSTuner:
                 continue
 
             gm, auc = _post_evaluate(cfg, workdir, self.dataset_name, k)
+            print(f"  fold {k + 1}/5  gmean={gm:.4f}  auc={auc:.4f}")
             gmeans.append(gm)
             aucs.append(auc)
 

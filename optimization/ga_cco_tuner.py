@@ -1,34 +1,18 @@
+import contextlib
+import io
 import os
-import sys
 import time
-from collections import Counter
-
 import numpy as np
 import torch
 import torch.optim as optim
+
+from collections import Counter
 from imbalanced_ensemble.metrics import geometric_mean_score
 from pygad import pygad
-from sklearn.metrics import balanced_accuracy_score
 from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import MinMaxScaler
-
 from constants import genes_cco
-
-# Import CCO components directly from the repository so the method is used
-# exactly as published — no modifications.
-_CCO_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    'ga_heso_sota_methods', 'CCO',
-)
-sys.path.insert(0, _CCO_PATH)
-from utils import (        # noqa: E402
-    Cluster,
-    synthetic_generation,
-    Net,
-    FocalLoss,
-    CustomDataset,
-)
-sys.path.pop(0)
+from ga_heso_sota_methods.CCO.utils import Cluster, synthetic_generation, Net, FocalLoss, CustomDataset
 
 seed = 42
 pygad.random.seed(42)
@@ -41,7 +25,7 @@ class GaCCOTuner:
         self.num_generations = num_generations
         self.num_parents = num_parents
         self.population = population
-        self.input_dim = input_dim  # D: number of the features, fixed per dataset
+        self.input_dim = input_dim  # D: number of features, fixed per dataset
         self.X_orig = None
         self.y_orig = None
         self.train_indices = []
@@ -81,8 +65,10 @@ class GaCCOTuner:
             y_test_t  = torch.tensor(y_test).to(device)
 
             try:
-                CC = Cluster(X_train_t, k, D, t, beta)
-                X_syn, Y_syn = synthetic_generation(CC, X_train_t, y_train_t, t)
+                # Suppress CCO's internal debug prints (RADIUS, Counter, etc.)
+                with contextlib.redirect_stdout(io.StringIO()):
+                    CC = Cluster(X_train_t, k, D, t, beta)
+                    X_syn, Y_syn = synthetic_generation(CC, X_train_t, y_train_t, t)
             except Exception as e:
                 print("CCO failed for this solution:", e)
                 gmeans.append(0.0)
@@ -105,13 +91,6 @@ class GaCCOTuner:
             train_loader = torch.utils.data.DataLoader(
                 CustomDataset(X_syn, Y_syn), batch_size=batch_size, shuffle=True
             )
-            test_loader = torch.utils.data.DataLoader(
-                CustomDataset(X_test_t, y_test_t), batch_size=batch_size, shuffle=False
-            )
-
-            best_bacc  = 0.0
-            best_preds = np.zeros(len(y_test), dtype=int)
-
             for _ in range(epochs):
                 net.train()
                 for inputs, labels in train_loader:
@@ -122,20 +101,20 @@ class GaCCOTuner:
                     loss.backward(retain_graph=True)
                     optimizer.step()
 
-                net.eval()
-                preds = []
-                with torch.no_grad():
-                    for inputs, _ in test_loader:
-                        preds.extend(net(inputs.to(device)).argmax(dim=1).cpu().numpy())
-                preds = np.array(preds)
-                bacc = balanced_accuracy_score(y_test.astype(int), preds)
-                if bacc > best_bacc:
-                    best_bacc  = bacc
-                    best_preds = preds.copy()
-
+            # evaluate once on the test fold after all epochs — no test-set leakage
+            net.eval()
+            preds = []
+            with torch.no_grad():
+                for inputs, _ in torch.utils.data.DataLoader(
+                    CustomDataset(X_test_t, y_test_t), batch_size=batch_size, shuffle=False
+                ):
+                    preds.extend(net(inputs.to(device)).argmax(dim=1).cpu().numpy())
+            preds = np.array(preds)
+            fold_gmean = geometric_mean_score(y_test.astype(int), preds)
+            print(f"  fold {index + 1}/5  ep={epochs}  gmean={fold_gmean:.4f}")
             true_values.append(y_test.astype(int))
-            predicted_values.append(best_preds)
-            gmeans.append(geometric_mean_score(y_test.astype(int), best_preds))
+            predicted_values.append(preds)
+            gmeans.append(fold_gmean)
 
         return np.mean(gmeans), true_values, predicted_values
 
