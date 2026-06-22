@@ -90,9 +90,8 @@ class GaDGOTTuner:
         )
 
     def eval_func(self, ga_instance, solution, solution_idx):
-        gmeans       = []
-        true_values  = []
-        pred_values  = []
+        gmeans = []
+        aucs   = []
 
         for k in range(5):
             exp  = f'exp{k}'
@@ -103,6 +102,7 @@ class GaDGOTTuner:
             except Exception as e:
                 print(f"DGOT train failed on {exp}: {e}")
                 gmeans.append(0.0)
+                aucs.append(0.0)
                 continue
 
             model_dir = f'./saved_log/DGOT/{self.dataset_name}/{exp}'
@@ -111,27 +111,31 @@ class GaDGOTTuner:
             if not os.path.exists(os.path.join(model_dir, 'netG.pth')):
                 print(f"No checkpoint saved for {exp} — skipping evaluation")
                 gmeans.append(0.0)
+                aucs.append(0.0)
                 continue
 
             try:
-                clf     = RandomForestClassifier(n_estimators=100, random_state=seed)
+                clf        = RandomForestClassifier(n_estimators=100, random_state=seed)
                 device_str = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-                results = dgot_evaluate(
+                results    = dgot_evaluate(
                     filepath=model_dir,
                     testpath=test_dir,
                     classifiers=clf,
                     oversample_rate=1.2,
-                    repetitions=5,  # fewer repetitions for GA speed
+                    repetitions=5,
                     devices=device_str,
                 )
                 fold_gmean = results['gmean'].iloc[:-2].mean()
+                fold_auc   = results['auc'].iloc[:-2].mean()
             except Exception as e:
                 print(f"DGOT evaluate failed on {exp}: {e}")
                 fold_gmean = 0.0
+                fold_auc   = 0.0
 
             gmeans.append(fold_gmean)
+            aucs.append(fold_auc)
 
-        return np.mean(gmeans), true_values, pred_values
+        return np.mean(gmeans), gmeans, aucs
 
     def fitness_func(self, ga_instance, solution, solution_idx):
         start_time = time.time()
@@ -163,13 +167,20 @@ class GaDGOTTuner:
 
         def on_stop(ga_instance, last_population_fitness):
             print('------------------------------------------------')
-            new_fitness, _, _ = self.eval_func(
+            new_fitness, gmeans, aucs = self.eval_func(
                 ga_instance, ga_instance.best_solutions[-1], None
             )
-            result = {'fitness': new_fitness, 'solution': ga_instance.best_solutions[-1].tolist()}
+            result = {
+                'fitness':        new_fitness,
+                'solution':       ga_instance.best_solutions[-1].tolist(),
+                'gmean_per_fold': gmeans,
+                'auc_per_fold':   aucs,
+            }
             with open(filename + '.txt', 'w') as f:
                 f.write(str(result))
-            print('evaluated fitness: {}'.format(new_fitness))
+            print('evaluated fitness: {:.6f}  std: {:.6f}'.format(
+                new_fitness, float(np.std(gmeans))
+            ))
             print('------------------------------------------------')
 
         if os.path.exists(filename + '.pkl'):

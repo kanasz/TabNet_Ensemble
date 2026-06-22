@@ -411,6 +411,21 @@ genes_dgot = {
     ]
 }
 
+# Genes: [lr, beta1_opt, beta_min, beta_max, num_scales, ema_rate]
+# n_iters is fixed in the tuner (_GA_NUM_ITERS) to keep GA feasible.
+# VP-SDE is fixed; architecture (hidden_dims, nf, etc.) is kept at defaults.
+genes_sos = {
+    "types": [float, float, float, float, int, float],
+    "spaces": [
+        {'low': 1e-4, 'high': 1e-3},    # lr            - Adam learning rate
+        {'low': 0.5,  'high': 0.99},    # beta1_opt     - Adam beta1
+        {'low': 0.01, 'high': 1.0},     # beta_min      - VP-SDE beta_min
+        {'low': 5.0,  'high': 30.0},    # beta_max      - VP-SDE beta_max
+        {'low': 10,   'high': 100},     # num_scales    - N diffusion steps
+        {'low': 0.99, 'high': 0.9999},  # ema_rate      - EMA decay
+    ]
+}
+
 '''
 
 params_imbalanced_ensemble_self_paced = {
