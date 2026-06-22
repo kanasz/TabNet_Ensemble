@@ -550,9 +550,6 @@ def get_loss(loss_function, params, cls_num_list, device):
         if loss_function == LossFunction.LDAMLOSS:
             return LDAMLoss(cls_num_list=cls_num_list, weight=[params[1], params[2]], max_m=params[0], s=params[3],
                             device=device)
-        if loss_function == LossFunction.LDAMLOSS:
-            return LDAMLoss(cls_num_list=cls_num_list, weight=[params[1], params[2]], max_m=params[0], s=params[3],
-                            device=device)
         if loss_function == LossFunction.VSLOSSMDR:
             return VSLossMDR(cls_num_list, gamma=params[0], tau=params[1], weight=[params[2], params[3]], l=params[4],
                              device=device)

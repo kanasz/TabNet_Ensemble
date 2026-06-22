@@ -383,6 +383,18 @@ genes_easy_ensemble = {
     ]
 }
 
+genes_cco = {
+    "types": [float, float, float, float, int, int],
+    "spaces": [
+        {'low': 0.05, 'high': 1.5},   # k          - cluster radius threshold
+        {'low': 0.1,  'high': 0.9},   # beta        - density threshold multiplier
+        {'low': 0.01, 'high': 2.0},   # t           - softmax temperature
+        {'low': 0.5,  'high': 5.0},   # gamma       - focal loss gamma
+        {'low': 50,   'high': 200},   # epochs
+        {'low': 16,   'high': 128},   # batch_size
+    ]
+}
+
 '''
 
 params_imbalanced_ensemble_self_paced = {
