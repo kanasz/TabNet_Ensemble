@@ -395,6 +395,22 @@ genes_cco = {
     ]
 }
 
+# Genes: [lr_d, lr_g, beta1, beta2, r1_gamma, pw1, num_timesteps, nz]
+# num_epoch is fixed in the tuner (400) to keep GA feasible; use 800 for final runs.
+genes_dgot = {
+    "types": [float, float, float, float, float, float, int, int],
+    "spaces": [
+        {'low': 1e-4, 'high': 1e-2},   # lr_d          - discriminator learning rate
+        {'low': 1e-4, 'high': 1e-2},   # lr_g          - generator learning rate
+        {'low': 0.5,  'high': 0.99},   # beta1         - RMSProp alpha for D
+        {'low': 0.5,  'high': 0.99},   # beta2         - RMSProp alpha for G
+        {'low': 0.01, 'high': 0.5},    # r1_gamma      - R1 gradient penalty coefficient
+        {'low': 0.5,  'high': 2.0},    # pw1           - p2 loss weight gamma
+        {'low': 2,    'high': 8},      # num_timesteps - diffusion steps
+        {'low': 20,   'high': 100},    # nz            - latent dimension
+    ]
+}
+
 '''
 
 params_imbalanced_ensemble_self_paced = {
