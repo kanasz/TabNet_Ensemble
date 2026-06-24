@@ -1,4 +1,4 @@
-import os
+﻿import os
 import random
 import time
 
@@ -6,6 +6,7 @@ import numpy as np
 import torch
 
 from base_functions import get_yeast_3_data
+from constants import GARunConfig
 from optimization.ga_cco_tuner import GaCCOTuner
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -21,16 +22,16 @@ torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.deterministic = True
 
 if __name__ == '__main__':
-    # num_generations = 50
-    num_generations = 51
-    num_parents = 20
-    population = 50
-
     start_time = time.time()
     data = get_yeast_3_data()
     input_dim = data[0].shape[1]  # D = number of features (8 for yeast3)
 
-    tuner = GaCCOTuner(num_generations, num_parents, population, input_dim=input_dim)
+    tuner = GaCCOTuner(
+        GARunConfig.NUM_GENERATIONS.value,
+        GARunConfig.NUM_PARENTS.value,
+        GARunConfig.POPULATION.value,
+        input_dim=input_dim,
+    )
     tuner.run_experiment(data, _RESULTS_FILE)
 
     print("--- total: %s seconds ---" % (time.time() - start_time))

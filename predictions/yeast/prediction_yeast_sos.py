@@ -1,4 +1,4 @@
-import os
+﻿import os
 import random
 import time
 
@@ -6,6 +6,7 @@ import numpy as np
 import torch
 
 from base_functions import get_yeast_3_data
+from constants import GARunConfig
 from optimization.ga_sos_tuner import GaSOSTuner
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -21,23 +22,19 @@ torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.deterministic = True
 
 if __name__ == '__main__':
-    num_generations = 50
-    num_parents = 20
-    population = 50
-
     start_time = time.time()
     data = get_yeast_3_data()
     X_df, y_series = data
 
     # image_size = n_features (continuous, 1 col each in transformed space)
-    #            + n_label_classes (categorical label → one-hot)
+    #            + n_label_classes (categorical label -> one-hot)
     n_classes = len(y_series.unique())
     image_size = X_df.shape[1] + n_classes   # 8 + 2 = 10 for yeast3
 
     tuner = GaSOSTuner(
-        num_generations=num_generations,
-        num_parents=num_parents,
-        population=population,
+        num_generations=GARunConfig.NUM_GENERATIONS.value,
+        num_parents=GARunConfig.NUM_PARENTS.value,
+        population=GARunConfig.POPULATION.value,
         dataset_name='yeast3',
         image_size=image_size,
     )
