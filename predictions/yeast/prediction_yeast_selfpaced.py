@@ -41,7 +41,7 @@ if __name__ == '__main__':
                     use_smote=False,
                     use_adasyn=False,
                     clf_type=Classifier.SelfPaced, numerical_cols=numerical_cols)
-    tuner.run_experiment(data,'results/SelfPaced_yeast_3')
+    tuner.run_experiment(data, 'results/SelfPaced_yeast_3')
     print("--- total: %s seconds ---" % (time.time() - start_time))
 
 

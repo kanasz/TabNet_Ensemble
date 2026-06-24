@@ -22,8 +22,8 @@ torch.backends.cudnn.deterministic = True
 
 if __name__ == '__main__':
     num_generations = 50
-    num_parents     = 20
-    population      = 50
+    num_parents = 20
+    population = 50
 
     start_time = time.time()
     data = get_yeast_3_data()
@@ -31,7 +31,7 @@ if __name__ == '__main__':
 
     # image_size = n_features (continuous, 1 col each in transformed space)
     #            + n_label_classes (categorical label → one-hot)
-    n_classes  = len(y_series.unique())
+    n_classes = len(y_series.unique())
     image_size = X_df.shape[1] + n_classes   # 8 + 2 = 10 for yeast3
 
     tuner = GaSOSTuner(

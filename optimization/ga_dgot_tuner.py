@@ -2,25 +2,22 @@ import argparse
 import os
 import sys
 import time
-
 import numpy as np
 import torch
+
 from pygad import pygad
 from sklearn.ensemble import RandomForestClassifier
+from constants import genes_dgot
+from ga_heso_sota_methods.DGOT.train import train
+from ga_heso_sota_methods.DGOT.scripts.evaluate_binary import DGOT as dgot_evaluate
+from ga_heso_sota_methods.DGOT.prepare_data import prepare_dgot_data
 
 # Import DGOT components directly from the repository so the method is used
 # exactly as published — no modifications.
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-_DGOT_PATH    = os.path.join(_PROJECT_ROOT, 'ga_heso_sota_methods', 'DGOT')
+_DGOT_PATH = os.path.join(_PROJECT_ROOT, 'ga_heso_sota_methods', 'DGOT')
 os.chdir(_DGOT_PATH)
-sys.path.insert(0, _DGOT_PATH)
-
-from train import train                                    # noqa: E402
-from scripts.evaluate_binary import DGOT as dgot_evaluate # noqa: E402
-from prepare_data import prepare_dgot_data                 # noqa: E402
-
-sys.path.insert(0, _PROJECT_ROOT)
-from constants import genes_dgot                           # noqa: E402
+sys.path.insert(0, _DGOT_PATH)                       # noqa: E402
 
 seed = 42
 pygad.random.seed(42)
@@ -32,14 +29,13 @@ _GA_NUM_EPOCH = 400
 
 class GaDGOTTuner:
 
-    def __init__(self, num_generations, num_parents=10, population=20,
-                 dataset_name='yeast3', feature_len=8):
+    def __init__(self, num_generations, num_parents=10, population=20, dataset_name='yeast3', feature_len=8):
         self.num_generations = num_generations
-        self.num_parents     = num_parents
-        self.population      = population
-        self.dataset_name    = dataset_name
-        self.feature_len     = feature_len
-        self.data            = None   # set in run_experiment
+        self.num_parents = num_parents
+        self.population = population
+        self.dataset_name = dataset_name
+        self.feature_len = feature_len
+        self.data = None
 
     def _build_args(self, solution, exp):
         lr_d, lr_g, beta1, beta2, r1_gamma, pw1, num_timesteps, nz = solution
@@ -90,53 +86,47 @@ class GaDGOTTuner:
         )
 
     def eval_func(self, ga_instance, solution, solution_idx):
-        gmeans = []
-        aucs   = []
+        geometric_mean_scores = []
+        auc_scores = []
 
         for k in range(5):
-            exp  = f'exp{k}'
+            exp = f'exp{k}'
             args = self._build_args(solution, exp)
 
             try:
                 train(args)
             except Exception as e:
                 print(f"DGOT train failed on {exp}: {e}")
-                gmeans.append(0.0)
-                aucs.append(0.0)
+                geometric_mean_scores.append(0.0)
+                auc_scores.append(0.0)
                 continue
 
             model_dir = f'./saved_log/DGOT/{self.dataset_name}/{exp}'
-            test_dir  = f'./datasets/{self.dataset_name}/TEST/{exp}'
+            test_dir = f'./datasets/{self.dataset_name}/TEST/{exp}'
 
             if not os.path.exists(os.path.join(model_dir, 'netG.pth')):
                 print(f"No checkpoint saved for {exp} — skipping evaluation")
-                gmeans.append(0.0)
-                aucs.append(0.0)
+                geometric_mean_scores.append(0.0)
+                auc_scores.append(0.0)
                 continue
 
             try:
-                clf        = RandomForestClassifier(n_estimators=100, random_state=seed)
+                clf = RandomForestClassifier(n_estimators=100, random_state=seed)
                 device_str = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-                results    = dgot_evaluate(
-                    filepath=model_dir,
-                    testpath=test_dir,
-                    classifiers=clf,
-                    oversample_rate=1.2,
-                    repetitions=5,
-                    devices=device_str,
-                )
+                results = dgot_evaluate(filepath=model_dir, testpath=test_dir, classifiers=clf, oversample_rate=1.2,
+                                        repetitions=5, devices=device_str)
                 fold_gmean = results['gmean'].iloc[:-2].mean()
-                fold_auc   = results['auc'].iloc[:-2].mean()
+                fold_auc = results['auc'].iloc[:-2].mean()
             except Exception as e:
                 print(f"DGOT evaluate failed on {exp}: {e}")
                 fold_gmean = 0.0
-                fold_auc   = 0.0
+                fold_auc = 0.0
 
             print(f"  fold {k + 1}/5  gmean={fold_gmean:.4f}  auc={fold_auc:.4f}")
-            gmeans.append(fold_gmean)
-            aucs.append(fold_auc)
+            geometric_mean_scores.append(fold_gmean)
+            auc_scores.append(fold_auc)
 
-        return np.mean(gmeans), gmeans, aucs
+        return np.mean(geometric_mean_scores), geometric_mean_scores, auc_scores
 
     def fitness_func(self, ga_instance, solution, solution_idx):
         start_time = time.time()
@@ -151,8 +141,8 @@ class GaDGOTTuner:
         )
         return gm_mean
 
-    def run_experiment(self, data, fname):
-        filename  = fname
+    def run_experiment(self, data, file_name):
+        filename = file_name
         self.data = data
         os.makedirs(os.path.dirname(os.path.abspath(filename)), exist_ok=True)
 
@@ -160,18 +150,14 @@ class GaDGOTTuner:
         prepare_dgot_data(data, self.dataset_name, base_dir=_DGOT_PATH)
 
         def callback_generation(ga_instance):
-            print("Generation : {}".format(ga_instance.generations_completed))
-            print("Fitness    : {}".format(
-                ga_instance.best_solution(pop_fitness=ga_instance.last_generation_fitness)[1]
-            ))
-            print("Solution   : {}".format(ga_instance.best_solutions[-1]))
+            print("Generation: {}".format(ga_instance.generations_completed))
+            print("Fitness: {}".format(ga_instance.best_solution(pop_fitness=ga_instance.last_generation_fitness)[1]))
+            print("Solution: {}".format(ga_instance.best_solutions[-1]))
             ga_instance.save(filename=filename)
 
         def on_stop(ga_instance, last_population_fitness):
             print('------------------------------------------------')
-            new_fitness, gmeans, aucs = self.eval_func(
-                ga_instance, ga_instance.best_solutions[-1], None
-            )
+            new_fitness, gmeans, aucs = self.eval_func(ga_instance, ga_instance.best_solutions[-1], None)
             result = {
                 'fitness':        new_fitness,
                 'solution':       ga_instance.best_solutions[-1].tolist(),
@@ -180,9 +166,7 @@ class GaDGOTTuner:
             }
             with open(filename + '.txt', 'w') as f:
                 f.write(str(result))
-            print('evaluated fitness: {:.6f}  std: {:.6f}'.format(
-                new_fitness, float(np.std(gmeans))
-            ))
+            print('evaluated fitness: {:.6f}  std: {:.6f}'.format(new_fitness, float(np.std(gmeans))))
             print('------------------------------------------------')
 
         if os.path.exists(filename + '.pkl'):

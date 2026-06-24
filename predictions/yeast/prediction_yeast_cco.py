@@ -21,7 +21,8 @@ torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.deterministic = True
 
 if __name__ == '__main__':
-    num_generations = 50
+    # num_generations = 50
+    num_generations = 51
     num_parents = 20
     population = 50
 
