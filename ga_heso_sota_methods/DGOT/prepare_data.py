@@ -50,7 +50,9 @@ def prepare_dgot_data(data, dataset_name, base_dir=None, n_splits=5, random_stat
     if numerical_cols is None:
         numerical_cols = list(X_df.select_dtypes(include='number').columns)
     if categorical_cols is None:
-        categorical_cols = list(X_df.select_dtypes(exclude='number').columns)
+        # derive from columns not listed as numerical — avoids dtype misdetection
+        # on KEEL files where float columns may load as object dtype
+        categorical_cols = [c for c in X_df.columns if c not in numerical_cols]
 
     X_num = X_df[numerical_cols].values.astype(float) if numerical_cols else np.empty((len(X_df), 0))
     X_cat = X_df[categorical_cols].values              if categorical_cols else np.empty((len(X_df), 0))
