@@ -29,13 +29,16 @@ _GA_NUM_EPOCH = 400
 
 class GaDGOTTuner:
 
-    def __init__(self, num_generations, num_parents=10, population=20, dataset_name='yeast3', feature_len=8):
-        self.num_generations = num_generations
-        self.num_parents = num_parents
-        self.population = population
-        self.dataset_name = dataset_name
-        self.feature_len = feature_len
-        self.data = None
+    def __init__(self, num_generations, num_parents=10, population=20, dataset_name='yeast3', feature_len=8,
+                 numerical_cols=None, categorical_cols=None):
+        self.num_generations  = num_generations
+        self.num_parents      = num_parents
+        self.population       = population
+        self.dataset_name     = dataset_name
+        self.feature_len      = feature_len
+        self.numerical_cols   = numerical_cols
+        self.categorical_cols = categorical_cols
+        self.data             = None
 
     def _build_args(self, solution, exp):
         lr_d, lr_g, beta1, beta2, r1_gamma, pw1, num_timesteps, nz = solution
@@ -141,13 +144,19 @@ class GaDGOTTuner:
         )
         return gm_mean
 
-    def run_experiment(self, data, file_name):
-        filename = file_name
+    def run_experiment(self, data, fname):
+        filename = fname
         self.data = data
         os.makedirs(os.path.dirname(os.path.abspath(filename)), exist_ok=True)
 
-        # prepare dataset folder structure once before GA starts
-        prepare_dgot_data(data, self.dataset_name, base_dir=_DGOT_PATH)
+        # prepare dataset folder structure; encoded_len reflects OHE expansion
+        encoded_len = prepare_dgot_data(
+            data, self.dataset_name, base_dir=_DGOT_PATH,
+            numerical_cols=self.numerical_cols,
+            categorical_cols=self.categorical_cols,
+        )
+        if encoded_len is not None:
+            self.feature_len = encoded_len
 
         def callback_generation(ga_instance):
             print("Generation: {}".format(ga_instance.generations_completed))
