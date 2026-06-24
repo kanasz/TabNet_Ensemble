@@ -1,4 +1,4 @@
-import os
+﻿import os
 import random
 import time
 
@@ -12,7 +12,7 @@ from base_functions import (get_wine_quality_red_3_vs_5_data,
 from constants import GARunConfig
 from optimization.ga_cco_tuner import GaCCOTuner
 
-_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 _RESULTS_DIR  = os.path.join(_PROJECT_ROOT, 'results')
 
 seed = 42
@@ -54,3 +54,5 @@ if __name__ == '__main__':
 
     __run_experiment(get_wine_quality_white_9_vs_4_data(),
                      os.path.join(_CCO_RESULTS_DIR, 'cco_wine_white_9_vs_4'))
+
+

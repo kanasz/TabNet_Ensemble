@@ -1,4 +1,4 @@
-import os
+﻿import os
 import random
 import time
 import numpy as np
@@ -10,7 +10,7 @@ from constants import GARunConfig
 from optimization.ga_dgot_tuner import GaDGOTTuner
 
 
-_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 _RESULTS_DIR  = os.path.join(_PROJECT_ROOT, 'results')
 
 seed = 42
@@ -58,3 +58,6 @@ if __name__ == '__main__':
 
     __run_experiment(get_wine_quality_white_9_vs_4_data(), dataset_name='wine_white_9_vs_4',
                      results_file=os.path.join(_DGOT_RESULTS_DIR, 'dgot_wine_white_9_vs_4'))
+
+
+

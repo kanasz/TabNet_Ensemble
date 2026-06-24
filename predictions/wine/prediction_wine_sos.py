@@ -1,4 +1,4 @@
-import os
+﻿import os
 import random
 import time
 
@@ -12,7 +12,7 @@ from base_functions import (get_wine_quality_red_3_vs_5_data,
 from constants import GARunConfig
 from optimization.ga_sos_tuner import GaSOSTuner
 
-_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 _RESULTS_DIR  = os.path.join(_PROJECT_ROOT, 'results')
 
 seed = 42
@@ -64,3 +64,5 @@ if __name__ == '__main__':
     __run_experiment(get_wine_quality_white_9_vs_4_data(),
                      dataset_name='wine_white_9_vs_4',
                      results_file=os.path.join(_SOS_RESULTS_DIR, 'sos_wine_white_9_vs_4'))
+
+

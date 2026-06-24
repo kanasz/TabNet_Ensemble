@@ -36,8 +36,8 @@ class GaCCOTuner:
         beta       = float(solution[1])
         t          = float(solution[2])
         gamma      = float(solution[3])
-        epochs     = int(solution[4])
-        batch_size = int(solution[5])
+        epochs     = 50
+        batch_size = int(solution[4])
         D          = self.input_dim
 
         X = self.X_orig.values.astype(np.float32)
@@ -124,9 +124,9 @@ class GaCCOTuner:
         elapsed = time.time() - start_time
         print(
             "gmean: {:.6f}  k={:.3f} beta={:.3f} t={:.3f} gamma={:.3f} "
-            "epochs={} batch={}  ({:.1f}s)".format(
+            "batch={}  ({:.1f}s)".format(
                 gm_mean, solution[0], solution[1], solution[2],
-                solution[3], solution[4], solution[5], elapsed,
+                solution[3], solution[4], elapsed,
             )
         )
         return gm_mean
@@ -156,18 +156,14 @@ class GaCCOTuner:
             new_fitness, true_values, predicted_values = self.eval_func(
                 ga_instance, ga_instance.best_solutions[-1], None
             )
-            gm = [geometric_mean_score(true_values[i], predicted_values[i]) for i in range(5)]
             result = {
-                'fitness':         new_fitness,
-                'true_values':     true_values,
+                'fitness':          new_fitness,
+                'true_values':      true_values,
                 'predicted_values': predicted_values,
-                'gmean_per_fold':  gm,
             }
             with open(filename + '.txt', 'w') as f:
                 f.write(str(result))
-            print('evaluated fitness: {:.6f}  std: {:.6f}'.format(
-                float(np.mean(gm)), float(np.std(gm))
-            ))
+            print('evaluated fitness: {:.6f}'.format(new_fitness))
             print('------------------------------------------------')
 
         if os.path.exists(filename + '.pkl'):

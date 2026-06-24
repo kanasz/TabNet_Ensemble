@@ -6,10 +6,14 @@ import torch
 
 from base_functions import get_yeast_3_data, get_yeast_4_data, get_yeast_5_data, get_yeast_6_data
 from constants import GARunConfig
-from optimization.ga_dgot_tuner import GaDGOTTuner
 
-_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Compute absolute paths BEFORE importing ga_dgot_tuner — that module calls
+# os.chdir(_DGOT_PATH) at import time, so any abspath() call after it would
+# resolve relative __file__ against the DGOT directory instead of project root.
+_PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 _RESULTS_DIR  = os.path.join(_PROJECT_ROOT, 'results')
+
+from optimization.ga_dgot_tuner import GaDGOTTuner  # noqa: E402
 
 seed = 42
 torch.manual_seed(seed)
@@ -61,3 +65,6 @@ if __name__ == '__main__':
     # yeast 6
     __run_experiment(yeast_data=get_yeast_6_data(), dataset_name='yeast6',
                      results_file=os.path.join(_DGOT_RESULTS_DIR, 'dgot_yeast_6'))
+
+
+

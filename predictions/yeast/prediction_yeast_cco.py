@@ -9,7 +9,7 @@ from base_functions import get_yeast_3_data
 from constants import GARunConfig
 from optimization.ga_cco_tuner import GaCCOTuner
 
-_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 _RESULTS_FILE = os.path.join(_PROJECT_ROOT, 'results', 'CCO_yeast_3')
 
 seed = 42
@@ -35,3 +35,6 @@ if __name__ == '__main__':
     tuner.run_experiment(data, _RESULTS_FILE)
 
     print("--- total: %s seconds ---" % (time.time() - start_time))
+
+
+

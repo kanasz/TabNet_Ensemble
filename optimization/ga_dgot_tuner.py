@@ -90,7 +90,8 @@ class GaDGOTTuner:
 
     def eval_func(self, ga_instance, solution, solution_idx):
         geometric_mean_scores = []
-        auc_scores = []
+        true_values_all       = []
+        pred_values_all       = []
 
         for k in range(5):
             exp = f'exp{k}'
@@ -101,16 +102,19 @@ class GaDGOTTuner:
             except Exception as e:
                 print(f"DGOT train failed on {exp}: {e}")
                 geometric_mean_scores.append(0.0)
-                auc_scores.append(0.0)
+                true_values_all.append([])
+                pred_values_all.append([])
                 continue
 
             model_dir = f'./saved_log/DGOT/{self.dataset_name}/{exp}'
-            test_dir = f'./datasets/{self.dataset_name}/TEST/{exp}'
+            test_dir  = f'./datasets/{self.dataset_name}/TEST/{exp}'
+            train_dir = f'./datasets/{self.dataset_name}/DGOT/{exp}'
 
             if not os.path.exists(os.path.join(model_dir, 'netG.pth')):
                 print(f"No checkpoint saved for {exp} — skipping evaluation")
                 geometric_mean_scores.append(0.0)
-                auc_scores.append(0.0)
+                true_values_all.append([])
+                pred_values_all.append([])
                 continue
 
             try:
@@ -119,17 +123,32 @@ class GaDGOTTuner:
                 results = dgot_evaluate(filepath=model_dir, testpath=test_dir, classifiers=clf, oversample_rate=1.2,
                                         repetitions=5, devices=device_str)
                 fold_gmean = results['gmean'].iloc[:-2].mean()
-                fold_auc = results['auc'].iloc[:-2].mean()
             except Exception as e:
                 print(f"DGOT evaluate failed on {exp}: {e}")
                 fold_gmean = 0.0
-                fold_auc = 0.0
 
-            print(f"  fold {k + 1}/5  gmean={fold_gmean:.4f}  auc={fold_auc:.4f}")
+            # Load fold data and run a supplementary RF to get per-sample predictions.
+            # dgot_evaluate is a black-box so we re-run inference here on original
+            # (non-augmented) training data — G-mean from preds may differ from fitness.
+            try:
+                X_tr = np.load(os.path.join(train_dir, 'xtrain.npy'))[:, 0, :]
+                y_tr = np.load(os.path.join(train_dir, 'ytrain.npy'))
+                X_te = np.load(os.path.join(test_dir,  'xtest.npy'))
+                y_te = np.load(os.path.join(test_dir,  'ytest.npy'))
+                rf_pred = RandomForestClassifier(n_estimators=100, random_state=seed)
+                rf_pred.fit(X_tr, y_tr)
+                fold_preds = rf_pred.predict(X_te)
+                true_values_all.append(y_te.astype(int))
+                pred_values_all.append(fold_preds.astype(int))
+            except Exception as e:
+                print(f"DGOT per-sample pred failed on {exp}: {e}")
+                true_values_all.append([])
+                pred_values_all.append([])
+
+            print(f"  fold {k + 1}/5  gmean={fold_gmean:.4f}")
             geometric_mean_scores.append(fold_gmean)
-            auc_scores.append(fold_auc)
 
-        return np.mean(geometric_mean_scores), geometric_mean_scores, auc_scores
+        return np.mean(geometric_mean_scores), true_values_all, pred_values_all
 
     def fitness_func(self, ga_instance, solution, solution_idx):
         start_time = time.time()
@@ -166,16 +185,17 @@ class GaDGOTTuner:
 
         def on_stop(ga_instance, last_population_fitness):
             print('------------------------------------------------')
-            new_fitness, gmeans, aucs = self.eval_func(ga_instance, ga_instance.best_solutions[-1], None)
+            new_fitness, true_values, predicted_values = self.eval_func(
+                ga_instance, ga_instance.best_solutions[-1], None
+            )
             result = {
-                'fitness':        new_fitness,
-                'solution':       ga_instance.best_solutions[-1].tolist(),
-                'gmean_per_fold': gmeans,
-                'auc_per_fold':   aucs,
+                'fitness':          new_fitness,
+                'true_values':      true_values,
+                'predicted_values': predicted_values,
             }
             with open(filename + '.txt', 'w') as f:
                 f.write(str(result))
-            print('evaluated fitness: {:.6f}  std: {:.6f}'.format(new_fitness, float(np.std(gmeans))))
+            print('evaluated fitness: {:.6f}'.format(new_fitness))
             print('------------------------------------------------')
 
         if os.path.exists(filename + '.pkl'):

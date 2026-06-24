@@ -6,7 +6,6 @@ import ml_collections
 import numpy as np
 import torch
 from imblearn.metrics import geometric_mean_score
-from sklearn.metrics import roc_auc_score
 from pygad import pygad
 from sklearn.ensemble import RandomForestClassifier
 
@@ -139,7 +138,7 @@ def _post_evaluate(cfg, workdir, dataset_name, exp_k):
             get_dataset_noleak(cfg, uniform_dequantization=False)
     except Exception as e:
         print(f"SOS post-evaluate: dataset rebuild failed: {e}")
-        return 0.0, 0.0
+        return 0.0, [], []
 
     inverse_scaler = get_data_inverse_scaler(cfg)
     num_sampling = [int(np.max(list(num_classes))) - list(num_classes)[i] for i in minor_label]
@@ -156,7 +155,7 @@ def _post_evaluate(cfg, workdir, dataset_name, exp_k):
         ckpt_path = os.path.join(checkpoint_dir, f'checkpoint_{label}.pth')
         if not os.path.exists(ckpt_path):
             print(f"SOS: no checkpoint for label {label} in {exp_k} — skipping")
-            return 0.0, 0.0
+            return 0.0, [], []
 
         score_model = mutils.create_model(cfg)
         ema = ExponentialMovingAverage(score_model.parameters(), decay=cfg.model.ema_rate)
@@ -202,12 +201,10 @@ def _post_evaluate(cfg, workdir, dataset_name, exp_k):
 
     clf = RandomForestClassifier(n_estimators=100, random_state=seed)
     clf.fit(X_train, y_train)
-    preds      = clf.predict(X_test)
-    preds_prob = clf.predict_proba(X_test)[:, 1]
+    preds = clf.predict(X_test)
 
     gmean = geometric_mean_score(y_test, preds)
-    auc   = roc_auc_score(y_test, preds_prob)
-    return float(gmean), float(auc)
+    return float(gmean), y_test, preds
 
 
 class GaSOSTuner:
@@ -221,8 +218,9 @@ class GaSOSTuner:
         self.image_size      = image_size
 
     def eval_func(self, ga_instance, solution, solution_idx):
-        gmeans = []
-        aucs   = []
+        gmeans          = []
+        true_values_all = []
+        pred_values_all = []
 
         for k in range(5):
             workdir = os.path.join(
@@ -237,15 +235,17 @@ class GaSOSTuner:
             except Exception as e:
                 print(f"SOS train failed on exp{k}: {e}")
                 gmeans.append(0.0)
-                aucs.append(0.0)
+                true_values_all.append([])
+                pred_values_all.append([])
                 continue
 
-            gm, auc = _post_evaluate(cfg, workdir, self.dataset_name, k)
-            print(f"  fold {k + 1}/5  gmean={gm:.4f}  auc={auc:.4f}")
+            gm, y_true, y_pred = _post_evaluate(cfg, workdir, self.dataset_name, k)
+            print(f"  fold {k + 1}/5  gmean={gm:.4f}")
             gmeans.append(gm)
-            aucs.append(auc)
+            true_values_all.append(y_true)
+            pred_values_all.append(y_pred)
 
-        return float(np.mean(gmeans)), gmeans, aucs
+        return float(np.mean(gmeans)), true_values_all, pred_values_all
 
     def fitness_func(self, ga_instance, solution, solution_idx):
         start_time = time.time()
@@ -276,20 +276,17 @@ class GaSOSTuner:
 
         def on_stop(ga_instance, last_population_fitness):
             print('------------------------------------------------')
-            new_fitness, gmeans, aucs = self.eval_func(
+            new_fitness, true_values, predicted_values = self.eval_func(
                 ga_instance, ga_instance.best_solutions[-1], None
             )
             result = {
-                'fitness':        new_fitness,
-                'solution':       ga_instance.best_solutions[-1].tolist(),
-                'gmean_per_fold': gmeans,
-                'auc_per_fold':   aucs,
+                'fitness':          new_fitness,
+                'true_values':      true_values,
+                'predicted_values': predicted_values,
             }
             with open(filename + '.txt', 'w') as f:
                 f.write(str(result))
-            print('evaluated fitness: {:.6f}  std: {:.6f}'.format(
-                new_fitness, float(np.std(gmeans))
-            ))
+            print('evaluated fitness: {:.6f}'.format(new_fitness))
             print('------------------------------------------------')
 
         if os.path.exists(filename + '.pkl'):
