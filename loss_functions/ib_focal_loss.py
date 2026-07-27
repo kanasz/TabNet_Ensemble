@@ -4,8 +4,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
-from loss_functions.ib_loss import ib_loss
-
 num_classes = 2
 
 
@@ -21,10 +19,6 @@ class IBFocalLoss(nn.Module):
         super(IBFocalLoss, self).__init__()
         assert alpha > 0
 
-        #self.alpha = alpha
-        #self.epsilon = epsilon
-        #self.weight = weight
-        #self.gamma = gamma
         self.device = device
         if self.device == 'cpu':
             self.weight = torch.FloatTensor(weight)
@@ -38,12 +32,6 @@ class IBFocalLoss(nn.Module):
             self.gamma = torch.cuda.FloatTensor([gamma]).to(torch.device(self.device))
 
     def forward(self, input, target, features):
-
-        #grads = torch.sum(torch.abs(F.softmax(input, dim=1) - F.one_hot(target, num_classes)), 1)  # N * 1
-        #features = torch.sum(features, dim=1) / features.shape[1]
-        #ib = grads * (features.reshape(-1))
-        #ib = self.alpha / (ib + self.epsilon)
-        #return ib_focal_loss(F.cross_entropy(input, target, reduction='none', weight=self.weight), ib, self.gamma)
         grads = torch.sum(torch.abs(F.softmax(input, dim=1) - F.one_hot(target, num_classes)), 1)  # N * 1
         features = torch.sum(features, dim=1) / features.shape[1]
         ib = grads * features.reshape(-1)

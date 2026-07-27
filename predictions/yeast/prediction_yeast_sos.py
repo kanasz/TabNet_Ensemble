@@ -6,7 +6,7 @@ import numpy as np
 import torch
 
 from base_functions import get_yeast_3_data
-from constants import GARunConfig
+from constants import GASotaRunConfig
 from optimization.ga_sos_tuner import GaSOSTuner
 
 _PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -32,9 +32,9 @@ if __name__ == '__main__':
     image_size = X_df.shape[1] + n_classes   # 8 + 2 = 10 for yeast3
 
     tuner = GaSOSTuner(
-        num_generations=GARunConfig.NUM_GENERATIONS.value,
-        num_parents=GARunConfig.NUM_PARENTS.value,
-        population=GARunConfig.POPULATION.value,
+        num_generations=GASotaRunConfig.NUM_GENERATIONS.value,
+        num_parents=GASotaRunConfig.NUM_PARENTS.value,
+        population=GASotaRunConfig.POPULATION.value,
         dataset_name='yeast3',
         image_size=image_size,
     )

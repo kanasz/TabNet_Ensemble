@@ -109,8 +109,8 @@ def get_oc_bagging_gene_type_and_space(loss_function):
 
 def get_loss(loss_function, params, cls_num_list, device):
     if loss_function == LossFunction.BINARYVSLOSS:
-        return BinaryVSLoss(iota_pos=params[0], iota_neg=params[1], Delta_pos=params[2], Delta_neg=params[3],
-                            weight=[params[4], params[5]],device=device)
+        return BinaryVSLoss(iota_pos=params[0], iota_neg=params[1], delta_pos=params[2], delta_neg=params[3],
+                            weight=[params[4], params[5]], device=device)
     if loss_function == LossFunction.VSLOSS:
         return VSLoss(cls_num_list, gamma=params[0],tau=params[1], weight=[params[2], params[3]],device=device)
     if loss_function == LossFunction.IBLOSS:
@@ -129,8 +129,8 @@ def get_loss(loss_function, params, cls_num_list, device):
     if loss_function == LossFunction.IBLOSSMDR:
         return IBLossMDR(weight=[params[0], params[1]], alpha=params[2], epsilon=params[3], l=params[4], device=device)
     if loss_function == LossFunction.BINARYVSLOSSMDR:
-        return BinaryVSLossMDR(iota_pos=params[0], iota_neg=params[1], Delta_pos=params[2], Delta_neg=params[3],
-                            weight=[params[4], params[5]], l=params[6], device=device)
+        return BinaryVSLossMDR(iota_pos=params[0], iota_neg=params[1], delta_pos=params[2], delta_neg=params[3],
+                               weight=[params[4], params[5]], l=params[6], device=device)
     if loss_function == LossFunction.CROSSENTROPYLOSS:
         return CrossEntropyLoss(weight=[params[0], params[1]])
     return

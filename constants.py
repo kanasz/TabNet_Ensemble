@@ -388,6 +388,14 @@ class GARunConfig(Enum):
     NUM_PARENTS     = 20
     POPULATION      = 50
 
+# Reduced GA search budget for the CCO/DGOT/SOS reference-method comparisons.
+# These are SOTA baselines, not the paper's contribution, so a smaller search
+# budget than GA-HESO's own GARunConfig is an acceptable time/quality tradeoff.
+class GASotaRunConfig(Enum):
+    NUM_GENERATIONS = 30
+    NUM_PARENTS     = 15
+    POPULATION      = 30
+
 genes_cco = {
     "types": [float, float, float, float, int],
     "spaces": [
@@ -399,58 +407,28 @@ genes_cco = {
     ]
 }
 
-# Genes: [lr_d, lr_g, beta1, beta2, r1_gamma, pw1, num_timesteps, nz]
-# num_epoch is fixed in the tuner (400) to keep GA feasible; use 800 for final runs.
 genes_dgot = {
     "types": [float, float, float, float, float, float, int, int],
     "spaces": [
-        {'low': 1e-4, 'high': 1e-2},   # lr_d          - discriminator learning rate
-        {'low': 1e-4, 'high': 1e-2},   # lr_g          - generator learning rate
-        {'low': 0.5,  'high': 0.99},   # beta1         - RMSProp alpha for D
-        {'low': 0.5,  'high': 0.99},   # beta2         - RMSProp alpha for G
-        {'low': 0.01, 'high': 0.5},    # r1_gamma      - R1 gradient penalty coefficient
-        {'low': 0.5,  'high': 2.0},    # pw1           - p2 loss weight gamma
+        {'low': 1e-4, 'high': 1e-2},   # lr_d - discriminator learning rate
+        {'low': 1e-4, 'high': 1e-2},   # lr_g - generator learning rate
+        {'low': 0.5,  'high': 0.99},   # beta1 - RMSProp alpha for D
+        {'low': 0.5,  'high': 0.99},   # beta2 - RMSProp alpha for G
+        {'low': 0.01, 'high': 0.5},    # r1_gamma - R1 gradient penalty coefficient
+        {'low': 0.5,  'high': 2.0},    # pw1 - p2 loss weight gamma
         {'low': 2,    'high': 8},      # num_timesteps - diffusion steps
-        {'low': 20,   'high': 100},    # nz            - latent dimension
+        {'low': 20,   'high': 100},    # nz - latent dimension
     ]
 }
 
-# Genes: [lr, beta1_opt, beta_min, beta_max, num_scales, ema_rate]
-# n_iters is fixed in the tuner (_GA_NUM_ITERS) to keep GA feasible.
-# VP-SDE is fixed; architecture (hidden_dims, nf, etc.) is kept at defaults.
 genes_sos = {
     "types": [float, float, float, float, int, float],
     "spaces": [
-        {'low': 1e-4, 'high': 1e-3},    # lr            - Adam learning rate
-        {'low': 0.5,  'high': 0.99},    # beta1_opt     - Adam beta1
-        {'low': 0.01, 'high': 1.0},     # beta_min      - VP-SDE beta_min
-        {'low': 5.0,  'high': 30.0},    # beta_max      - VP-SDE beta_max
-        {'low': 10,   'high': 100},     # num_scales    - N diffusion steps
-        {'low': 0.99, 'high': 0.9999},  # ema_rate      - EMA decay
+        {'low': 1e-4, 'high': 1e-3},    # lr - Adam learning rate
+        {'low': 0.5,  'high': 0.99},    # beta1_opt - Adam beta1
+        {'low': 0.01, 'high': 1.0},     # beta_min - VP-SDE beta_min
+        {'low': 5.0,  'high': 30.0},    # beta_max - VP-SDE beta_max
+        {'low': 10,   'high': 100},     # num_scales - N diffusion steps
+        {'low': 0.99, 'high': 0.9999},  # ema_rate - EMA decay
     ]
 }
-
-'''
-
-params_imbalanced_ensemble_self_paced = {
-    "model__n_estimators": [10, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500],
-    "model__base_estimator__criterion": ['gini', 'entropy'],
-    "model__base_estimator__splitter": ['best', 'random'],
-    "model__base_estimator__ccp_alpha": [0.1, 0.3, 0.5, 0.7, 0.9]
-}
-
-params_imbalanced_ensemble_adacost = {
-    "model__n_estimators": [10, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500],
-    "model__learning_rate": [0.001, 0.01, 0.1, 1],
-    "model__algorithm": ['SAMME', 'SAMME.R']
-}
-
-
-genes_crossentropy_loss = {
-    "types": tabnet_gene_types + [float, float, int, float],
-    "space": tabnet_gene_space + [
-        {'low': 0, 'high': 5},  # weight0
-        {'low': 0, 'high': 5}  # weight1
-    ]
-}
-'''

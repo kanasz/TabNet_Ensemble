@@ -6,7 +6,7 @@ import numpy as np
 import torch
 
 from base_functions import get_yeast_3_data
-from constants import GARunConfig
+from constants import GASotaRunConfig
 from optimization.ga_cco_tuner import GaCCOTuner
 
 _PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -27,9 +27,9 @@ if __name__ == '__main__':
     input_dim = data[0].shape[1]  # D = number of features (8 for yeast3)
 
     tuner = GaCCOTuner(
-        GARunConfig.NUM_GENERATIONS.value,
-        GARunConfig.NUM_PARENTS.value,
-        GARunConfig.POPULATION.value,
+        GASotaRunConfig.NUM_GENERATIONS.value,
+        GASotaRunConfig.NUM_PARENTS.value,
+        GASotaRunConfig.POPULATION.value,
         input_dim=input_dim,
     )
     tuner.run_experiment(data, _RESULTS_FILE)

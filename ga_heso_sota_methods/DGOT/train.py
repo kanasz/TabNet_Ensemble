@@ -224,7 +224,7 @@ def train(args):
 
     # Train
     with tqdm(initial=init_epoch, total=args.num_epoch) as pbar:
-        for epoch in range(init_epoch, args.num_epoch + 1):
+        for epoch in range(init_epoch, args.num_epoch):
             for iteration, (x, y) in enumerate(data_loader):
                 for p in netD.parameters():
                     p.requires_grad = True

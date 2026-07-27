@@ -1,6 +1,7 @@
 import contextlib
 import io
 import os
+import random
 import time
 import numpy as np
 import torch
@@ -8,6 +9,7 @@ import torch.optim as optim
 
 from collections import Counter
 from imbalanced_ensemble.metrics import geometric_mean_score
+from joblib import Parallel, delayed
 from pygad import pygad
 from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import MinMaxScaler
@@ -31,6 +33,82 @@ class GaCCOTuner:
         self.train_indices = []
         self.test_indices = []
 
+    def parallel_fit(self, index, train_index, test_index, X, y, k, beta, t, gamma, epochs, batch_size, D):
+        # Reset RNG state per fold so a given solution evaluates
+        # deterministically (same result during GA search and in the
+        # on_stop re-evaluation) even though folds now run concurrently in
+        # separate worker processes — a shared, once-per-call seed wouldn't
+        # reach every worker.
+        torch.manual_seed(seed + index)
+        np.random.seed(seed + index)
+        random.seed(seed + index)
+
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+        X_train, X_test = X[train_index], X[test_index]
+        y_train, y_test = y[train_index], y[test_index]
+
+        # per-split scaling: fit on train, transform both
+        scaler = MinMaxScaler()
+        X_train = scaler.fit_transform(X_train).astype(np.float32)
+        X_test  = scaler.transform(X_test).astype(np.float32)
+
+        X_train_t = torch.tensor(X_train)
+        y_train_t = torch.tensor(y_train)
+        X_test_t  = torch.tensor(X_test).to(device)
+        y_test_t  = torch.tensor(y_test).to(device)
+
+        try:
+            # Suppress CCO's internal debug prints (RADIUS, Counter, etc.)
+            with contextlib.redirect_stdout(io.StringIO()):
+                CC = Cluster(X_train_t, k, D, t, beta)
+                X_syn, Y_syn = synthetic_generation(CC, X_train_t, y_train_t, t)
+        except Exception as e:
+            print("CCO failed for this solution:", e)
+            return y_test.astype(int), np.zeros(len(y_test), dtype=int), 0.0
+
+        X_syn = X_syn.to(device)
+        Y_syn = Y_syn.to(device)
+
+        ct = Counter(y_train.astype(int))
+        per_cls_weights = torch.tensor(
+            [1.0 / ct[0], 1.0 / ct[1]], dtype=torch.float32
+        ).to(device)
+        criterion = FocalLoss(weight=per_cls_weights, gamma=gamma, reduction='none')
+
+        net = Net(D, 2).to(device)
+        optimizer = optim.Adam(net.parameters(), lr=0.001)
+
+        fold_generator = torch.Generator()
+        fold_generator.manual_seed(seed + index)
+        train_loader = torch.utils.data.DataLoader(
+            CustomDataset(X_syn, Y_syn), batch_size=batch_size, shuffle=True,
+            generator=fold_generator,
+        )
+        for _ in range(epochs):
+            net.train()
+            for inputs, labels in train_loader:
+                inputs = inputs.to(device)
+                labels = labels.to(device).long()
+                optimizer.zero_grad()
+                loss = criterion(net(inputs), labels)
+                loss.backward(retain_graph=True)
+                optimizer.step()
+
+        # evaluate once on the test fold after all epochs — no test-set leakage
+        net.eval()
+        preds = []
+        with torch.no_grad():
+            for inputs, _ in torch.utils.data.DataLoader(
+                CustomDataset(X_test_t, y_test_t), batch_size=batch_size, shuffle=False
+            ):
+                preds.extend(net(inputs.to(device)).argmax(dim=1).cpu().numpy())
+        preds = np.array(preds)
+        fold_gmean = geometric_mean_score(y_test.astype(int), preds)
+        print(f"  fold {index + 1}/5  ep={epochs}  gmean={fold_gmean:.4f}")
+
+        return y_test.astype(int), preds, fold_gmean
+
     def eval_func(self, ga_instance, solution, solution_idx):
         k          = float(solution[0])
         beta       = float(solution[1])
@@ -43,78 +121,16 @@ class GaCCOTuner:
         X = self.X_orig.values.astype(np.float32)
         y = self.y_orig.to_numpy().astype(np.float32)
 
-        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        results = Parallel(n_jobs=5)(
+            delayed(self.parallel_fit)(
+                index, self.train_indices[index], self.test_indices[index],
+                X, y, k, beta, t, gamma, epochs, batch_size, D,
+            ) for index in range(len(self.train_indices))
+        )
 
-        gmeans = []
-        true_values = []
-        predicted_values = []
-
-        for index, train_index in enumerate(self.train_indices):
-            test_index = self.test_indices[index]
-            X_train, X_test = X[train_index], X[test_index]
-            y_train, y_test = y[train_index], y[test_index]
-
-            # per-split scaling: fit on train, transform both
-            scaler = MinMaxScaler()
-            X_train = scaler.fit_transform(X_train).astype(np.float32)
-            X_test  = scaler.transform(X_test).astype(np.float32)
-
-            X_train_t = torch.tensor(X_train)
-            y_train_t = torch.tensor(y_train)
-            X_test_t  = torch.tensor(X_test).to(device)
-            y_test_t  = torch.tensor(y_test).to(device)
-
-            try:
-                # Suppress CCO's internal debug prints (RADIUS, Counter, etc.)
-                with contextlib.redirect_stdout(io.StringIO()):
-                    CC = Cluster(X_train_t, k, D, t, beta)
-                    X_syn, Y_syn = synthetic_generation(CC, X_train_t, y_train_t, t)
-            except Exception as e:
-                print("CCO failed for this solution:", e)
-                gmeans.append(0.0)
-                true_values.append(y_test.astype(int))
-                predicted_values.append(np.zeros(len(y_test), dtype=int))
-                continue
-
-            X_syn = X_syn.to(device)
-            Y_syn = Y_syn.to(device)
-
-            ct = Counter(y_train.astype(int))
-            per_cls_weights = torch.tensor(
-                [1.0 / ct[0], 1.0 / ct[1]], dtype=torch.float32
-            ).to(device)
-            criterion = FocalLoss(weight=per_cls_weights, gamma=gamma, reduction='none')
-
-            net = Net(D, 2).to(device)
-            optimizer = optim.Adam(net.parameters(), lr=0.001)
-
-            train_loader = torch.utils.data.DataLoader(
-                CustomDataset(X_syn, Y_syn), batch_size=batch_size, shuffle=True
-            )
-            for _ in range(epochs):
-                net.train()
-                for inputs, labels in train_loader:
-                    inputs = inputs.to(device)
-                    labels = labels.to(device).long()
-                    optimizer.zero_grad()
-                    loss = criterion(net(inputs), labels)
-                    loss.backward(retain_graph=True)
-                    optimizer.step()
-
-            # evaluate once on the test fold after all epochs — no test-set leakage
-            net.eval()
-            preds = []
-            with torch.no_grad():
-                for inputs, _ in torch.utils.data.DataLoader(
-                    CustomDataset(X_test_t, y_test_t), batch_size=batch_size, shuffle=False
-                ):
-                    preds.extend(net(inputs.to(device)).argmax(dim=1).cpu().numpy())
-            preds = np.array(preds)
-            fold_gmean = geometric_mean_score(y_test.astype(int), preds)
-            print(f"  fold {index + 1}/5  ep={epochs}  gmean={fold_gmean:.4f}")
-            true_values.append(y_test.astype(int))
-            predicted_values.append(preds)
-            gmeans.append(fold_gmean)
+        true_values      = [r[0] for r in results]
+        predicted_values = [r[1] for r in results]
+        gmeans            = [r[2] for r in results]
 
         return np.mean(gmeans), true_values, predicted_values
 

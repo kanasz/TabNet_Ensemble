@@ -1,10 +1,12 @@
 import argparse
 import os
+import random
 import sys
 import time
 import numpy as np
 import torch
 
+from joblib import Parallel, delayed
 from pygad import pygad
 from sklearn.ensemble import RandomForestClassifier
 from constants import genes_dgot
@@ -88,65 +90,72 @@ class GaDGOTTuner:
             configs_file=r'.\configs\configs_binary.yaml',
         )
 
+    def parallel_fit(self, k, solution):
+        exp = f'exp{k}'
+        args = self._build_args(solution, exp)
+
+        try:
+            train(args)
+        except Exception as e:
+            print(f"DGOT train failed on {exp}: {e}")
+            return 0.0, [], []
+
+        model_dir = f'./saved_log/DGOT/{self.dataset_name}/{exp}'
+        test_dir  = f'./datasets/{self.dataset_name}/TEST/{exp}'
+        train_dir = f'./datasets/{self.dataset_name}/DGOT/{exp}'
+
+        if not os.path.exists(os.path.join(model_dir, 'netG.pth')):
+            print(f"No checkpoint saved for {exp} — skipping evaluation")
+            return 0.0, [], []
+
+        fold_gmean = 0.0
+        try:
+            clf = RandomForestClassifier(n_estimators=100, random_state=seed)
+            device_str = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+            # Reset RNG state right before dgot_evaluate — its internal
+            # sample_evaluate() draws unseeded torch.randn/np.random.shuffle,
+            # so without this the same solution scores differently every time
+            # it's re-evaluated (e.g. GA search vs. the on_stop re-run).
+            torch.manual_seed(seed + k)
+            np.random.seed(seed + k)
+            random.seed(seed + k)
+            results = dgot_evaluate(filepath=model_dir, testpath=test_dir, classifiers=clf, oversample_rate=1.2,
+                                    repetitions=5, devices=device_str)
+            fold_gmean = results['gmean'].iloc[:-2].mean()
+        except Exception as e:
+            print(f"DGOT evaluate failed on {exp}: {e}")
+
+        # Load fold data and run a supplementary RF to get per-sample predictions.
+        # dgot_evaluate is a black-box so we re-run inference here on original
+        # (non-augmented) training data — G-mean from preds may differ from fitness.
+        true_values, pred_values = [], []
+        try:
+            X_tr = np.load(os.path.join(train_dir, 'xtrain.npy'))[:, 0, :]
+            y_tr = np.load(os.path.join(train_dir, 'ytrain.npy'))
+            X_te = np.load(os.path.join(test_dir,  'xtest.npy'))
+            y_te = np.load(os.path.join(test_dir,  'ytest.npy'))
+            rf_pred = RandomForestClassifier(n_estimators=100, random_state=seed)
+            rf_pred.fit(X_tr, y_tr)
+            fold_preds = rf_pred.predict(X_te)
+            true_values = y_te.astype(int)
+            pred_values = fold_preds.astype(int)
+        except Exception as e:
+            print(f"DGOT per-sample pred failed on {exp}: {e}")
+
+        print(f"  fold {k + 1}/5  gmean={fold_gmean:.4f}")
+        return fold_gmean, true_values, pred_values
+
     def eval_func(self, ga_instance, solution, solution_idx):
-        geometric_mean_scores = []
-        true_values_all       = []
-        pred_values_all       = []
+        # NOTE: runs 5 DGOT trainings concurrently on whatever device is
+        # available. On a single GPU this means 5x the VRAM footprint at
+        # once — if you hit a CUDA OOM, lower n_jobs below.
+        results = Parallel(n_jobs=5)(
+            delayed(self.parallel_fit)(k, solution) for k in range(5)
+        )
 
-        for k in range(5):
-            exp = f'exp{k}'
-            args = self._build_args(solution, exp)
-
-            try:
-                train(args)
-            except Exception as e:
-                print(f"DGOT train failed on {exp}: {e}")
-                geometric_mean_scores.append(0.0)
-                true_values_all.append([])
-                pred_values_all.append([])
-                continue
-
-            model_dir = f'./saved_log/DGOT/{self.dataset_name}/{exp}'
-            test_dir  = f'./datasets/{self.dataset_name}/TEST/{exp}'
-            train_dir = f'./datasets/{self.dataset_name}/DGOT/{exp}'
-
-            if not os.path.exists(os.path.join(model_dir, 'netG.pth')):
-                print(f"No checkpoint saved for {exp} — skipping evaluation")
-                geometric_mean_scores.append(0.0)
-                true_values_all.append([])
-                pred_values_all.append([])
-                continue
-
-            try:
-                clf = RandomForestClassifier(n_estimators=100, random_state=seed)
-                device_str = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-                results = dgot_evaluate(filepath=model_dir, testpath=test_dir, classifiers=clf, oversample_rate=1.2,
-                                        repetitions=5, devices=device_str)
-                fold_gmean = results['gmean'].iloc[:-2].mean()
-            except Exception as e:
-                print(f"DGOT evaluate failed on {exp}: {e}")
-                fold_gmean = 0.0
-
-            # Load fold data and run a supplementary RF to get per-sample predictions.
-            # dgot_evaluate is a black-box so we re-run inference here on original
-            # (non-augmented) training data — G-mean from preds may differ from fitness.
-            try:
-                X_tr = np.load(os.path.join(train_dir, 'xtrain.npy'))[:, 0, :]
-                y_tr = np.load(os.path.join(train_dir, 'ytrain.npy'))
-                X_te = np.load(os.path.join(test_dir,  'xtest.npy'))
-                y_te = np.load(os.path.join(test_dir,  'ytest.npy'))
-                rf_pred = RandomForestClassifier(n_estimators=100, random_state=seed)
-                rf_pred.fit(X_tr, y_tr)
-                fold_preds = rf_pred.predict(X_te)
-                true_values_all.append(y_te.astype(int))
-                pred_values_all.append(fold_preds.astype(int))
-            except Exception as e:
-                print(f"DGOT per-sample pred failed on {exp}: {e}")
-                true_values_all.append([])
-                pred_values_all.append([])
-
-            print(f"  fold {k + 1}/5  gmean={fold_gmean:.4f}")
-            geometric_mean_scores.append(fold_gmean)
+        geometric_mean_scores = [r[0] for r in results]
+        true_values_all       = [r[1] for r in results]
+        pred_values_all       = [r[2] for r in results]
 
         return np.mean(geometric_mean_scores), true_values_all, pred_values_all
 

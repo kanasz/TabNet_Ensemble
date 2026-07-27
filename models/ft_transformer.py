@@ -4,11 +4,11 @@ from sklearn.metrics import accuracy_score
 from torch import nn, einsum, optim
 from einops import rearrange, repeat
 from torch.utils.data import DataLoader, Dataset
-# feedforward and attention
+
 
 class ContinuousDataset(Dataset):
-    def __init__(self, X_cont, y):
-        self.X_cont = X_cont
+    def __init__(self, x_cont, y):
+        self.X_cont = x_cont
         self.y = y
 
     def __len__(self):
@@ -19,6 +19,7 @@ class ContinuousDataset(Dataset):
             'x_cont': torch.tensor(self.X_cont[idx], dtype=torch.float32),
             'y': torch.tensor(self.y[idx], dtype=torch.float32)
         }
+
 
 class GEGLU(nn.Module):
     def forward(self, x):

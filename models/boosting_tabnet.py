@@ -59,11 +59,11 @@ class BoostingTabNet:
 
             self.models.append(model)
 
-    def predict(self, X):
+    def predict(self, x):
         # Weighted sum of predictions from all models
-        final_pred = np.zeros(len(X))
+        final_pred = np.zeros(len(x))
         for model, weight in zip(self.models, self.model_weights):
-            final_pred += weight * model.predict_proba(X)[:, 1]
+            final_pred += weight * model.predict_proba(x)[:, 1]
 
         # Convert probabilities to class labels
         return (final_pred >= 0.5).astype(int)

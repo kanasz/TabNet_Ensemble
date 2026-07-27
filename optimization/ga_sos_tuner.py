@@ -1,4 +1,5 @@
 import os
+import random
 import sys
 import time
 
@@ -130,6 +131,15 @@ def _post_evaluate(cfg, workdir, dataset_name, exp_k):
     with a RandomForest downstream classifier.
     Returns (gmean, auc) floats, or (0.0, 0.0) if no checkpoint was saved.
     """
+    # Reset RNG state before generating synthetic samples — make_noise() and
+    # sampling_fn() draw unseeded torch.randn from the global RNG, and this
+    # function's output IS the fitness the GA sees, so without this the same
+    # solution scores differently every time it's re-evaluated (e.g. GA
+    # search vs. the on_stop re-run).
+    torch.manual_seed(seed + exp_k)
+    np.random.seed(seed + exp_k)
+    random.seed(seed + exp_k)
+
     checkpoint_dir = os.path.join(workdir, 'checkpoints')
 
     # Rebuild the dataset for this fold (needed to get transformer, class splits)

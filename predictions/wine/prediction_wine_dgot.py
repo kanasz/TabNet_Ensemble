@@ -6,7 +6,7 @@ import torch
 
 from base_functions import get_wine_quality_red_3_vs_5_data, get_wine_quality_red_8_vs_6_data
 from base_functions import get_wine_quality_white_3_vs_7_data, get_wine_quality_white_9_vs_4_data
-from constants import GARunConfig
+from constants import GASotaRunConfig
 from optimization.ga_dgot_tuner import GaDGOTTuner
 
 
@@ -31,9 +31,9 @@ def __run_experiment(wine_data, dataset_name, results_file):
 
     print(f"Starting simulation run for {dataset_name}...")
     tuner = GaDGOTTuner(
-        num_generations=GARunConfig.NUM_GENERATIONS.value,
-        num_parents=GARunConfig.NUM_PARENTS.value,
-        population=GARunConfig.POPULATION.value,
+        num_generations=GASotaRunConfig.NUM_GENERATIONS.value,
+        num_parents=GASotaRunConfig.NUM_PARENTS.value,
+        population=GASotaRunConfig.POPULATION.value,
         feature_len=input_dim,
         dataset_name=dataset_name,
         numerical_cols=num_cols,

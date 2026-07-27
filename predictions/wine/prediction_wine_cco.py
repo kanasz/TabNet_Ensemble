@@ -9,7 +9,7 @@ from base_functions import (get_wine_quality_red_3_vs_5_data,
                              get_wine_quality_red_8_vs_6_data,
                              get_wine_quality_white_3_vs_7_data,
                              get_wine_quality_white_9_vs_4_data)
-from constants import GARunConfig
+from constants import GASotaRunConfig
 from optimization.ga_cco_tuner import GaCCOTuner
 
 _PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -30,9 +30,9 @@ def __run_experiment(wine_data, results_file):
     input_dim = wine_data[0].shape[1]
 
     tuner = GaCCOTuner(
-        GARunConfig.NUM_GENERATIONS.value,
-        GARunConfig.NUM_PARENTS.value,
-        GARunConfig.POPULATION.value,
+        GASotaRunConfig.NUM_GENERATIONS.value,
+        GASotaRunConfig.NUM_PARENTS.value,
+        GASotaRunConfig.POPULATION.value,
         input_dim=input_dim,
     )
     tuner.run_experiment(wine_data, results_file)

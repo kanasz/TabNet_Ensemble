@@ -24,25 +24,23 @@ class BaggingTabNet:
     def fit(self, X, y, eval_metric, loss_fn, max_epochs, patience, batch_size, drop_last):
         for _ in range(self.n_estimators):
             # Bootstrap sampling
-            X_resampled, y_resampled = resample(X, y, replace=True, random_state=None)
+            x_resampled, y_resampled = resample(X, y, replace=True, random_state=None)
 
             # Train TabNet model
             model = TabNetClassifier(n_a=self.n_a, n_d=self.n_d, n_steps=self.n_steps, gamma=self.gamma,
                                      verbose=0, lambda_sparse=self.lambda_sparse, momentum=self.momentum,
                                      n_shared=self.n_shared, n_independent=self.n_independent, seed=self.seed,
                                      device_name=self.device)
-            model.fit(X_train=X_resampled, y_train=y_resampled, max_epochs=max_epochs, eval_metric=eval_metric,
+            model.fit(X_train=x_resampled, y_train=y_resampled, max_epochs=max_epochs, eval_metric=eval_metric,
                       loss_fn=loss_fn, patience=patience, batch_size=batch_size, drop_last=drop_last)
-
             self.models.append(model)
 
-    def predict(self, X):
+    def predict(self, x):
         # Collect predictions from all models
-        predictions = np.zeros((len(X), len(self.models)))
+        predictions = np.zeros((len(x), len(self.models)))
         for i, model in enumerate(self.models):
-            predictions[:, i] = model.predict(X)
+            predictions[:, i] = model.predict(x)
 
         # Majority vote
         final_pred = np.round(np.mean(predictions, axis=1)).astype(int)
-
         return final_pred

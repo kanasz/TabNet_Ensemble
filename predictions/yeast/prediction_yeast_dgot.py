@@ -5,7 +5,7 @@ import numpy as np
 import torch
 
 from base_functions import get_yeast_3_data, get_yeast_4_data, get_yeast_5_data, get_yeast_6_data
-from constants import GARunConfig
+from constants import GASotaRunConfig
 
 # Compute absolute paths BEFORE importing ga_dgot_tuner — that module calls
 # os.chdir(_DGOT_PATH) at import time, so any abspath() call after it would
@@ -34,9 +34,9 @@ def __run_experiment(yeast_data, dataset_name, results_file):
 
     print(f"Starting simulation run...")
     tuner = GaDGOTTuner(
-        num_generations=GARunConfig.NUM_GENERATIONS.value,
-        num_parents=GARunConfig.NUM_PARENTS.value,
-        population=GARunConfig.POPULATION.value,
+        num_generations=GASotaRunConfig.NUM_GENERATIONS.value,
+        num_parents=GASotaRunConfig.NUM_PARENTS.value,
+        population=GASotaRunConfig.POPULATION.value,
         feature_len=input_dim,
         dataset_name=dataset_name,
         numerical_cols=num_cols,
