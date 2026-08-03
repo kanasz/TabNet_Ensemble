@@ -5,19 +5,19 @@ from collections import Counter
 
 import numpy as np
 import pandas as pd
+import sklearn.metrics as metrics
 import os
 
 import torch
-from models.GaussionDiffusion import sample_posterior
-
+from ga_heso_sota_methods.DGOT.models.GaussionDiffusion import sample_posterior, Posterior_Coefficients
+from ga_heso_sota_methods.DGOT.models.Generator import Unet
 from sklearn.metrics import accuracy_score
-import sklearn.metrics as metrics
 from imblearn.metrics import geometric_mean_score
-
 
 
 def exists(x):
     return x is not None
+
 
 def configs_read(configs_file):
     with open(configs_file) as f:
@@ -25,6 +25,7 @@ def configs_read(configs_file):
     configs = argparse.Namespace(**configs_dict)
 
     return configs
+
 
 def indicator_cls(labels, predicted, predicted_proba=None):
     accuracy = accuracy_score(labels, predicted)
@@ -57,6 +58,7 @@ def sample_from_model(coefficients, generator, n_time, x_init, nz, nclass):
 
     return x
 
+
 def x_init_sample(pos_coeff,sample_batch,args):
     Xdata = np.load(f'./datasets/{args.dataset}/DGOT/{args.exp}/xtrain.npy')
     Ydata = np.load(f'./datasets/{args.dataset}/DGOT/{args.exp}/ytrain.npy')
@@ -68,7 +70,7 @@ def x_init_sample(pos_coeff,sample_batch,args):
 
     return X_init
 
-#%%
+
 def sample_evaluate(init_num, final_num, xtrain, ytrain, xtest, ytest, classifiers, args_train, netG, pos_coeff, device):
     attrvalues = np.eye(args_train.class_num)
     for i, j in enumerate(init_num):
@@ -99,9 +101,6 @@ def sample_evaluate(init_num, final_num, xtrain, ytrain, xtest, ytest, classifie
 
 
 def DGOT(filepath, testpath, classifiers, oversample_rate, repetitions=20, devices='cuda'):
-    from models.GaussionDiffusion import Posterior_Coefficients
-    from models.Generator import Unet
-
     # initial configuration
     configs_file = os.path.join(filepath, 'configs.yaml')
     args_train = configs_read(configs_file)
