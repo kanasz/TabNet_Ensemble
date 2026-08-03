@@ -7,6 +7,7 @@ import ml_collections
 import numpy as np
 import torch
 from imblearn.metrics import geometric_mean_score
+from joblib import Parallel, delayed
 from pygad import pygad
 from sklearn.ensemble import RandomForestClassifier
 
@@ -227,33 +228,35 @@ class GaSOSTuner:
         self.dataset_name    = dataset_name
         self.image_size      = image_size
 
+    def parallel_fit(self, k, solution):
+        workdir = os.path.join(
+            _SOS_PATH, 'saved_log', self.dataset_name, f'exp{k}'
+        )
+        os.makedirs(workdir, exist_ok=True)
+
+        cfg = _build_config(solution, self.dataset_name, k, self.image_size)
+
+        try:
+            sos_train(cfg, workdir)
+        except Exception as e:
+            print(f"SOS train failed on exp{k}: {e}")
+            return 0.0, [], []
+
+        gm, y_true, y_pred = _post_evaluate(cfg, workdir, self.dataset_name, k)
+        print(f"  fold {k + 1}/5  gmean={gm:.4f}")
+        return gm, y_true, y_pred
+
     def eval_func(self, ga_instance, solution, solution_idx):
-        gmeans          = []
-        true_values_all = []
-        pred_values_all = []
+        # NOTE: runs 5 SOS trainings concurrently. Each fold's score network
+        # is small (tabular MLP, hidden_dims=(256,256)) so VRAM headroom is
+        # usually not tight, but if you hit a CUDA OOM, lower n_jobs below.
+        results = Parallel(n_jobs=5)(
+            delayed(self.parallel_fit)(k, solution) for k in range(5)
+        )
 
-        for k in range(5):
-            workdir = os.path.join(
-                _SOS_PATH, 'saved_log', self.dataset_name, f'exp{k}'
-            )
-            os.makedirs(workdir, exist_ok=True)
-
-            cfg = _build_config(solution, self.dataset_name, k, self.image_size)
-
-            try:
-                sos_train(cfg, workdir)
-            except Exception as e:
-                print(f"SOS train failed on exp{k}: {e}")
-                gmeans.append(0.0)
-                true_values_all.append([])
-                pred_values_all.append([])
-                continue
-
-            gm, y_true, y_pred = _post_evaluate(cfg, workdir, self.dataset_name, k)
-            print(f"  fold {k + 1}/5  gmean={gm:.4f}")
-            gmeans.append(gm)
-            true_values_all.append(y_true)
-            pred_values_all.append(y_pred)
+        gmeans          = [r[0] for r in results]
+        true_values_all = [r[1] for r in results]
+        pred_values_all = [r[2] for r in results]
 
         return float(np.mean(gmeans)), true_values_all, pred_values_all
 
