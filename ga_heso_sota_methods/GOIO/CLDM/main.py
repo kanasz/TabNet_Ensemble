@@ -8,9 +8,9 @@ import warnings
 import time
 
 from tqdm import tqdm
-from CLDM.model import MLPDiffusion, Model
-from CLDM.latent_utils import get_input_train
-from utils_train import DiffDataset
+from ga_heso_sota_methods.GOIO.CLDM.model import MLPDiffusion, Model
+from ga_heso_sota_methods.GOIO.CLDM.latent_utils import get_input_train
+from ga_heso_sota_methods.GOIO.utils_train import DiffDataset
 
 warnings.filterwarnings('ignore')
 

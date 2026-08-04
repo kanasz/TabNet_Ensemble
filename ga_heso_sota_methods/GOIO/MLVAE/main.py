@@ -19,8 +19,8 @@ from tqdm import tqdm
 import json
 import time
 
-from MLVAE.model import Model_VAE, Encoder_model, Decoder_model
-from utils_train import preprocess, TabularDataset_withy
+from ga_heso_sota_methods.GOIO.MLVAE.model import Model_VAE, Encoder_model, Decoder_model
+from ga_heso_sota_methods.GOIO.utils_train import preprocess, TabularDataset_withy
 
 warnings.filterwarnings('ignore')
 

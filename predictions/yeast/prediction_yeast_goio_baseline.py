@@ -21,7 +21,10 @@ import numpy as np
 import pandas as pd
 import torch
 
-from base_functions import get_yeast_3_data
+# from base_functions import get_yeast_3_data
+# from base_functions import get_yeast_4_data
+# from base_functions import get_yeast_5_data
+from base_functions import get_yeast_6_data
 
 seed = 2024  # matches GOIO's own main.py seed, kept identical for consistency
 np.random.seed(seed)
@@ -36,7 +39,7 @@ _GOIO_PATH = os.path.join(_PROJECT_ROOT, 'ga_heso_sota_methods', 'GOIO')
 # Computed before the chdir below (which points GOIO's own relative paths at
 # its own directory) so the final result file lands next to the other
 # methods' results, same convention as prediction_yeast_dgot.py / _sos.py.
-_RESULTS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'results', 'GOIO_yeast_3')
+_RESULTS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'results', 'GOIO_yeast_6')
 
 # GOIO's own modules use relative paths ('./data/...', './ckpt_.../',
 # './synthetic/...') and import each other as top-level packages
@@ -44,13 +47,13 @@ _RESULTS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'result
 os.chdir(_GOIO_PATH)
 sys.path.insert(0, _GOIO_PATH)
 
-from data.dataprocessing import Default_processing          # noqa: E402
-from MLVAE.main import main as train_MLVAE                  # noqa: E402
-from CLDM.main import main as train_CLDM                    # noqa: E402
-from CLDM.sample import main as sample_CLDM                 # noqa: E402
-from CLDM.evaluation import main as eval_CLDM                # noqa: E402
+from ga_heso_sota_methods.GOIO.data.dataprocessing import Default_processing
+from ga_heso_sota_methods.GOIO.MLVAE.main import main as train_MLVAE
+from ga_heso_sota_methods.GOIO.CLDM.main import main as train_CLDM                    
+from ga_heso_sota_methods.GOIO.CLDM.sample import main as sample_CLDM                 
+from ga_heso_sota_methods.GOIO.CLDM.evaluation import main as eval_CLDM
 
-DATANAME = 'yeast3'
+DATANAME = 'yeast6'
 N_FOLDS = 5
 
 
@@ -59,7 +62,8 @@ def _prepare_csv(dataname):
     Default_processing() expects: data/datasets/{name}/{name}.csv, all
     numeric columns, label last, header row present (contents unused —
     only .values is read)."""
-    X_df, y_series = get_yeast_3_data()
+    # X_df, y_series = get_yeast_3_data()
+    X_df, y_series = get_yeast_6_data()
     out_dir = os.path.join(_GOIO_PATH, 'data', 'datasets', dataname)
     os.makedirs(out_dir, exist_ok=True)
 
@@ -69,8 +73,7 @@ def _prepare_csv(dataname):
 
 
 def _build_args(exp, device):
-    """Mirrors GOIO's own get_args() defaults (utils.py) — the paper's
-    published hyperparameters, no tuning."""
+    """Mirrors GOIO's own get_args() defaults (utils.py) — the paper's published hyperparameters, no tuning."""
     return argparse.Namespace(
         dataname=DATANAME,
         exp=exp,
@@ -78,7 +81,7 @@ def _build_args(exp, device):
         dist=1,
         proto=1,
         kld=1,
-        condition=True,       # get_args() uses action='store_false' -> default True
+        condition=True,
         max_beta=1e-2,
         min_beta=1e-5,
         lambd=0.7,
@@ -106,7 +109,7 @@ def _aggregate(fold_csvs):
     return fold_means_df, summary
 
 
-if __name__ == '__main__':
+def train_and_evaluate_goio_method():
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
     print(f"Preparing {DATANAME} data for GOIO...")

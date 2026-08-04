@@ -8,8 +8,8 @@ import json
 import numpy as np
 import pandas as pd
 import torch
-from utils_train import preprocess
-from MLVAE.model import Decoder_model
+from ga_heso_sota_methods.GOIO.utils_train import preprocess
+from ga_heso_sota_methods.GOIO.MLVAE.model import Decoder_model
 
 
 def get_input_train(args):

@@ -6,11 +6,11 @@ import warnings
 import time
 import os
 
-from CLDM.model import MLPDiffusion, Model
-from CLDM.latent_utils import get_input_generate
-from CLDM.diffusion_utils import sample
+from ga_heso_sota_methods.GOIO.CLDM.model import MLPDiffusion, Model
+from ga_heso_sota_methods.GOIO.CLDM.latent_utils import get_input_generate
+from ga_heso_sota_methods.GOIO.CLDM.diffusion_utils import sample
 from collections import Counter
-from utils_train import  split_num_cat_target, recover_data
+from ga_heso_sota_methods.GOIO.utils_train import  split_num_cat_target, recover_data
 import pandas as pd
 
 warnings.filterwarnings('ignore')
