@@ -28,7 +28,7 @@ if __name__ == '__main__':
 
     # ecoli_0_vs_1
     train_and_evaluate_goio_method(data=get_ecoli_0_vs_1_data(), dataset_name='ecoli_0_vs_1')
-
+    
     # ecoli_0_2_3_4_vs_5
     train_and_evaluate_goio_method(data=get_ecoli_0_2_3_4_vs_5_data(), dataset_name='ecoli_0_2_3_4_vs_5')
 

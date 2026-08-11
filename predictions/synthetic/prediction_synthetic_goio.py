@@ -7,8 +7,8 @@ split.
 """
 
 import os
-from base_functions import get_yeast_3_data, get_yeast_4_data, get_yeast_5_data, get_yeast_6_data
 from optimization.no_ga_goio_runner import run_goio_baseline
+from base_functions import get_synthetic_data
 
 _RESULTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'results', 'goio')
 
@@ -23,14 +23,10 @@ def train_and_evaluate_goio_method(data, dataset_name):
 
 if __name__ == '__main__':
 
-    # yeast_3
-    train_and_evaluate_goio_method(data=get_yeast_3_data(), dataset_name='yeast_3')
+    # Dataset synthetic1: data/synthetic_data/01_synthetic_0.3_contamination_50_features.csv
+    train_and_evaluate_goio_method(data=get_synthetic_data(prefix='01', contamination='0.3', features=50),
+                                   dataset_name='01_synthetic_0.3_contamination_50_features')
 
-    # yeast_4
-    train_and_evaluate_goio_method(data=get_yeast_4_data(), dataset_name='yeast_4')
-
-    # yeast_5
-    train_and_evaluate_goio_method(data=get_yeast_5_data(), dataset_name='yeast_5')
-
-    # yeast_6
-    train_and_evaluate_goio_method(data=get_yeast_6_data(), dataset_name='yeast_6')
+    # Dataset synthetic2: data/synthetic_data/02_synthetic_0.1_contamination_100_features_200_samples.csv
+    train_and_evaluate_goio_method(data=get_synthetic_data(prefix='02', contamination='0.1', features=100),
+                                   dataset_name='02_synthetic_0.1_contamination_100_features_200_samples')
