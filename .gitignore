@@ -163,3 +163,7 @@ cython_debug/
 
 # temporary files of SOTA methods
 ga_heso_sota_methods/GOIO/data
+ga_heso_sota_methods/GOIO/ckpt_1_1_1
+ga_heso_sota_methods/GOIO/synthetic
+ga_heso_sota_methods/DGOT/datasets
+ga_heso_sota_methods/DGOT/saved_log
