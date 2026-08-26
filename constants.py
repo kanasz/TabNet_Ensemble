@@ -383,18 +383,21 @@ genes_easy_ensemble = {
     ]
 }
 
+
 class GARunConfig(Enum):
     NUM_GENERATIONS = 50
-    NUM_PARENTS     = 20
-    POPULATION      = 50
+    NUM_PARENTS = 20
+    POPULATION = 50
+
 
 # Reduced GA search budget for the CCO/DGOT/SOS reference-method comparisons.
 # These are SOTA baselines, not the paper's contribution, so a smaller search
 # budget than GA-HESO's own GARunConfig is an acceptable time/quality tradeoff.
 class GASotaRunConfig(Enum):
     NUM_GENERATIONS = 30
-    NUM_PARENTS     = 15
-    POPULATION      = 30
+    NUM_PARENTS = 15
+    POPULATION = 30
+
 
 genes_cco = {
     "types": [float, float, float, float, int],
