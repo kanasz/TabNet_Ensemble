@@ -43,6 +43,7 @@ class GaOCBaggingTabnetEnsembleTunerParallel:
         self.cluster_count = cluster_count
         self.clustering_params = clustering_params
         self.use_cluster_centers = use_cluster_centers
+        self.best_fitness_so_far = -np.inf
 
     def parallel_fit(self, index, train_index, test_index, X, y, solution,
                       tb_cls,  tabnet_max_epochs):
@@ -153,24 +154,30 @@ class GaOCBaggingTabnetEnsembleTunerParallel:
         if np.sum(solution[0:len(self.config_files)]) == 0:
             print("ERROR 0 clfs")
             return 0
-        result = {
-            'fitness': gm_mean,
-            'true_values': true_values,
-            'predicted_values': predicted_values,
-            'solution': np.array(solution)
-        }
-        arr = self.filename.split("/")
-        arr[-1] = "{}_{}".format(gm_mean, arr[-1])
-        f = "/".join(arr)
-        if self.save_partial_output:
-            with open(f + '.txt', 'w') as data:
-                data.write(str(result))
+        # Only persist a result file when this candidate beats the best fitness
+        # seen so far in this run — writing on every single evaluation (every
+        # individual x every generation) was flooding the results folder with
+        # thousands of near-duplicate .txt/.log files.
+        if gm_mean > self.best_fitness_so_far:
+            self.best_fitness_so_far = gm_mean
+            result = {
+                'fitness': gm_mean,
+                'true_values': true_values,
+                'predicted_values': predicted_values,
+                'solution': np.array(solution)
+            }
+            arr = self.filename.split("/")
+            arr[-1] = "{}_{}".format(gm_mean, arr[-1])
+            f = "/".join(arr)
+            if self.save_partial_output:
+                with open(f + '.txt', 'w') as data:
+                    data.write(str(result))
 
-        arr = self.filename.split("/")
-        arr[-1] = "LOG_{}_{}_{}".format(ga_instance.generations_completed, gm_mean, arr[-1])
-        f = "/".join(arr)
-        with open(f + '.log', 'w') as data:
-            data.write(str(result))
+            arr = self.filename.split("/")
+            arr[-1] = "LOG_{}_{}_{}".format(ga_instance.generations_completed, gm_mean, arr[-1])
+            f = "/".join(arr)
+            with open(f + '.log', 'w') as data:
+                data.write(str(result))
 
         t = time.time() - start_time
         print("gmean: {}, n_estimators: {}, {} seconds".format(gm_mean, np.sum(solution[0:len(self.config_files)]), t))
