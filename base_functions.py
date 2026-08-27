@@ -1,9 +1,11 @@
 import csv
 import os
+import random
 from pathlib import Path
 from imblearn.pipeline import Pipeline
 import numpy as np
 import pandas as pd
+import torch
 from imblearn.metrics import geometric_mean_score
 from pytorch_tabnet.tab_model import TabNetClassifier
 from sklearn.cluster import KMeans, MeanShift, estimate_bandwidth, DBSCAN
@@ -32,6 +34,19 @@ from loss_functions.vs_loss_mdr import VSLossMDR
 import imbalanced_ensemble.ensemble as imb
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from models.ft_transformer import FTTransformer, FTTransformerWrapper
+
+
+def set_seed(seed=42):
+    """Seed every RNG a prediction script touches (stdlib random, numpy,
+    torch CPU/CUDA) and force cuDNN into deterministic mode, so GA/TabNet
+    runs are reproducible across executions."""
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)  # for multiGPUs.
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
 
 
 def get_slovak_data(business_area, year, postfix):

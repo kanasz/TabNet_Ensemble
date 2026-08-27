@@ -1,25 +1,13 @@
-import random
 import time
 import numpy as np
-import torch
 
 from base_functions import get_ecoli_0_vs_1_data, get_ecoli_0_4_6_vs_5_data, get_ecoli_0_3_4_vs_5_data
-from base_functions import get_ecoli_0_2_3_4_vs_5_data
+from base_functions import get_ecoli_0_2_3_4_vs_5_data, set_seed
 from optimization.ga_xgboost_tuner import GaXGBoostTuner
 
-seed = 42
-torch.manual_seed(seed)
-random.seed(seed)
-np.random.rand(seed)
-random.SystemRandom(seed)
-torch.manual_seed(seed)
-np.random.seed(seed)
-random.seed(seed)
-torch.cuda.manual_seed(seed)
-torch.cuda.manual_seed_all(seed)  # for multiGPUs.
-torch.backends.cudnn.benchmark = False
-torch.backends.cudnn.deterministic = True
+set_seed(42)
 np.set_printoptions(threshold=np.inf)
+DIR_NAME = 'results/xgboost_smoteenn'
 
 
 def run_experiment(ecoli_data, file_name):
@@ -43,18 +31,19 @@ def run_experiment(ecoli_data, file_name):
 
 
 if __name__ == '__main__':
+
     # ecoli_0_vs_1
     run_experiment(ecoli_data=get_ecoli_0_vs_1_data(),
-                   file_name="results/xgboost_smoteenn_ecoli_0_vs_1")
-    
+                   file_name=f"{DIR_NAME}/xgboost_smoteenn_ecoli_0_vs_1")
+
     # ecoli_0_4_6_vs_5
     run_experiment(ecoli_data=get_ecoli_0_4_6_vs_5_data(),
-                   file_name="results/xgboost_smoteenn_ecoli_0_4_6_vs_5")
+                   file_name=f"{DIR_NAME}/xgboost_smoteenn_ecoli_0_4_6_vs_5")
 
     # ecoli_0_3_4_vs_5
     run_experiment(ecoli_data=get_ecoli_0_3_4_vs_5_data(),
-                   file_name="results/xgboost_smoteenn_ecoli_0_3_4_vs_5")
+                   file_name=f"{DIR_NAME}/xgboost_smoteenn_ecoli_0_3_4_vs_5")
 
     # ecoli_0_2_3_4_vs_5
     run_experiment(ecoli_data=get_ecoli_0_2_3_4_vs_5_data(),
-                   file_name="results/xgboost_smoteenn_ecoli_0_2_3_4_vs_5")
+                   file_name=f"{DIR_NAME}/xgboost_smoteenn_ecoli_0_2_3_4_vs_5")

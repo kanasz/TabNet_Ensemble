@@ -1,26 +1,15 @@
-import random
 import time
 import numpy as np
-import torch
 
 from base_functions import get_abalone_9_vs_18_data, get_abalone_19_vs_10_11_12_13_data
 from base_functions import get_abalone_20_vs_8_9_10_data, get_abalone_3_vs_11_data
-from base_functions import get_abalone19_data
+from base_functions import get_abalone19_data, set_seed
 from optimization.ga_tuner import GaTuner
 from base_functions import Classifier
 
-seed = 42
-torch.manual_seed(seed)
-random.seed(seed)
-np.random.rand(seed)
-random.SystemRandom(seed)
-torch.manual_seed(seed)
-np.random.seed(seed)
-random.seed(seed)
-torch.cuda.manual_seed(seed)
-torch.cuda.manual_seed_all(seed)  # for multiGPUs.
-torch.backends.cudnn.benchmark = False
-torch.backends.cudnn.deterministic = True
+set_seed(42)
+np.set_printoptions(threshold=np.inf)
+DIR_NAME = 'results/svc_smoteenn'
 
 
 def run_experiment(abalone_data, file_name):
@@ -46,22 +35,23 @@ def run_experiment(abalone_data, file_name):
 
 
 if __name__ == '__main__':
+
     # abalone_9_vs_18
     run_experiment(abalone_data=get_abalone_9_vs_18_data(),
-                   file_name="results/svc_smoteenn_abalone_9_vs_18")
+                   file_name=f"{DIR_NAME}/svc_smoteenn_abalone_9_vs_18")
     
     # abalone_19_vs_10_11_12_13
     run_experiment(abalone_data=get_abalone_19_vs_10_11_12_13_data(),
-                   file_name="results/svc_smoteenn_abalone_19_vs_10_11_12_13")
+                   file_name=f"{DIR_NAME}/svc_smoteenn_abalone_19_vs_10_11_12_13")
     
     # abalone_20_vs_8_9_10
     run_experiment(abalone_data=get_abalone_20_vs_8_9_10_data(),
-                   file_name="results/svc_smoteenn_abalone_20_vs_8_9_10")
+                   file_name=f"{DIR_NAME}/svc_smoteenn_abalone_20_vs_8_9_10")
     
     # abalone_3_vs_11
     run_experiment(abalone_data=get_abalone_3_vs_11_data(),
-                   file_name="results/svc_smoteenn_abalone_3_vs_11")
+                   file_name=f"{DIR_NAME}/svc_smoteenn_abalone_3_vs_11")
 
     # abalone19
     run_experiment(abalone_data=get_abalone19_data(),
-                   file_name="results/svc_smoteenn_abalone19")
+                   file_name=f"{DIR_NAME}/svc_smoteenn_abalone19")

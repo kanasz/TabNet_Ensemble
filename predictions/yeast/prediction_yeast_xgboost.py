@@ -1,87 +1,50 @@
-import random
 import time
-
 import numpy as np
-import torch
 
-from base_functions import get_synthetic_data, get_slovak_data, get_abalone_9_vs_18_data, \
-    get_abalone_19_vs_10_11_12_13_data, get_abalone_20_vs_8_9_10_data, get_ecoli_0_vs_1_data, get_ecoli_0_4_6_vs_5_data, \
-    get_ecoli_0_3_4_vs_5_data, get_ecoli_0_2_3_4_vs_5_data, get_glass_0_1_6_vs_5_data, get_glass_2_data, \
-    get_glass_4_data, get_glass_5_data, get_yeast_3_data, get_yeast_4_data, get_yeast_5_data, get_yeast_6_data
-from constants import LossFunction, Classifier
-from optimization.ga_boosting_tabnet_tuner import GaBoostingTabnetTuner
-from optimization.ga_tuner import GaTuner
+from base_functions import get_yeast_3_data, get_yeast_4_data, get_yeast_5_data, get_yeast_6_data
+from base_functions import set_seed
 from optimization.ga_xgboost_tuner import GaXGBoostTuner
 
-seed = 42
-torch.manual_seed(seed)
-random.seed(seed)
-np.random.rand(seed)
-random.SystemRandom(seed)
-torch.manual_seed(seed)
-np.random.seed(seed)
-random.seed(seed)
-torch.cuda.manual_seed(seed)
-torch.cuda.manual_seed_all(seed)  # for multiGPUs.
-torch.backends.cudnn.benchmark = False
-torch.backends.cudnn.deterministic = True
+set_seed(seed=42)
+np.set_printoptions(threshold=np.inf)
+DIR_NAME = 'results/xgboost'
+
+
+def run_experiment(yeast_data, file_name):
+    num_generations = 50
+    num_parents = 20
+    population = 50
+    start_time = time.time()
+    data = yeast_data
+    numerical_cols = list(data[0].columns.values)
+
+    print(f"Starting simulation run...")
+    tuner = GaXGBoostTuner(num_generations=num_generations,
+                           num_parents=num_parents,
+                           population=population,
+                           use_smote=False,
+                           use_adasyn=False,
+                           use_smoteenn=False,
+                           numerical_cols=numerical_cols
+                           )
+    tuner.run_experiment(data, file_name)
+    print("--- total: %s seconds ---" % (time.time() - start_time))
+
 
 if __name__ == '__main__':
-    tabnet_max_epochs = 50
-    num_generations = 50
-    num_parents = 20  # 10
-    population = 50  # 20
-    start_time = time.time()
 
+    # yeast_3
+    run_experiment(yeast_data=get_yeast_3_data(),
+                   file_name=f"{DIR_NAME}/xgboost_yeast_3")
 
-    data = get_yeast_3_data()
-    numerical_cols = list(data[0].columns.values)
-    categorical_cols = None
-    tuner = GaXGBoostTuner(num_generations, num_parents, population, False, False,numerical_cols, categorical_cols)
-    tuner.run_experiment(data, 'results/XGBoost_yeast_3')
-    print("--- total: %s seconds ---" % (time.time() - start_time))
+    # yeast_4
+    run_experiment(yeast_data=get_yeast_4_data(),
+                   file_name=f"{DIR_NAME}/xgboost_yeast_4")
 
-    tuner = GaXGBoostTuner(num_generations, num_parents, population, True, False,numerical_cols, categorical_cols)
-    tuner.run_experiment(data, 'results/XGBoost_SMOTE_yeast_3')
-    print("--- total: %s seconds ---" % (time.time() - start_time))
+    # yeast_5
+    run_experiment(yeast_data=get_yeast_5_data(),
+                   file_name=f"{DIR_NAME}/xgboost_yeast_5")
 
-    #----------------------------------------------------------------------------------------
-
-    data = get_yeast_4_data()
-    numerical_cols = list(data[0].columns.values)
-    categorical_cols = None
-    tuner = GaXGBoostTuner(num_generations, num_parents, population, False, False, numerical_cols, categorical_cols)
-    tuner.run_experiment(data, 'results/XGBoost_yeast_4')
-    print("--- total: %s seconds ---" % (time.time() - start_time))
-
-    tuner = GaXGBoostTuner(num_generations, num_parents, population, True, False, numerical_cols, categorical_cols)
-    tuner.run_experiment(data, 'results/XGBoost_SMOTE_yeast_4')
-    print("--- total: %s seconds ---" % (time.time() - start_time))
-
-    #----------------------------------------------------------------------------------------
-
-    data = get_yeast_5_data()
-    numerical_cols = list(data[0].columns.values)
-    categorical_cols = None
-    tuner = GaXGBoostTuner(num_generations, num_parents, population, False, False, numerical_cols, categorical_cols)
-    tuner.run_experiment(data, 'results/XGBoost_yeast_5')
-    print("--- total: %s seconds ---" % (time.time() - start_time))
-
-    tuner = GaXGBoostTuner(num_generations, num_parents, population, True, False, numerical_cols, categorical_cols)
-    tuner.run_experiment(data, 'results/XGBoost_SMOTE_yeast_5')
-    print("--- total: %s seconds ---" % (time.time() - start_time))
-
-    #----------------------------------------------------------------------------------------
-
-    data = get_yeast_6_data()
-    numerical_cols = list(data[0].columns.values)
-    categorical_cols = None
-    numerical_cols = list(data[0].columns.values)
-    categorical_cols = None
-    tuner = GaXGBoostTuner(num_generations, num_parents, population, False, False, numerical_cols, categorical_cols)
-    tuner.run_experiment(data, 'results/XGBoost_yeast_6')
-    print("--- total: %s seconds ---" % (time.time() - start_time))
-
-    tuner = GaXGBoostTuner(num_generations, num_parents, population, True, False, numerical_cols, categorical_cols)
-    tuner.run_experiment(data, 'results/XGBoost_SMOTE_yeast_6')
-    print("--- total: %s seconds ---" % (time.time() - start_time))
+    # yeast_6
+    run_experiment(yeast_data=get_yeast_6_data(),
+                   file_name=f"{DIR_NAME}/xgboost_yeast_6")

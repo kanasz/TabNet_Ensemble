@@ -1,25 +1,14 @@
-import random
 import time
 import numpy as np
-import torch
 
 from base_functions import get_yeast_3_data, get_yeast_4_data, get_yeast_5_data, get_yeast_6_data
+from base_functions import set_seed
 from constants import Classifier
 from optimization.ga_tuner import GaTuner
 
-seed = 42
-torch.manual_seed(seed)
-random.seed(seed)
-np.random.rand(seed)
-random.SystemRandom(seed)
-torch.manual_seed(seed)
-np.random.seed(seed)
-random.seed(seed)
-torch.cuda.manual_seed(seed)
-torch.cuda.manual_seed_all(seed)  # for multiGPUs.
-torch.backends.cudnn.benchmark = False
-torch.backends.cudnn.deterministic = True
+set_seed(seed=42)
 np.set_printoptions(threshold=np.inf)
+DIR_NAME = 'results/easy_ensemble'
 
 
 def run_experiment(yeast_data, file_name):
@@ -42,14 +31,19 @@ def run_experiment(yeast_data, file_name):
 
 
 if __name__ == '__main__':
-    # yeast 3
-    run_experiment(yeast_data=get_yeast_3_data(), file_name="results/easy_ensemble_yeast_3")
-    
-    # yeast 4
-    run_experiment(yeast_data=get_yeast_4_data(), file_name="results/easy_ensemble_yeast_4")
 
-    # yeast 5
-    run_experiment(yeast_data=get_yeast_5_data(), file_name="results/easy_ensemble_yeast_5")
+    # yeast_3
+    run_experiment(yeast_data=get_yeast_3_data(),
+                   file_name=f"{DIR_NAME}/easy_ensemble_yeast_3")
 
-    # yeast 6
-    run_experiment(yeast_data=get_yeast_6_data(), file_name="results/easy_ensemble_yeast_6")
+    # yeast_4
+    run_experiment(yeast_data=get_yeast_4_data(),
+                   file_name=f"{DIR_NAME}/easy_ensemble_yeast_4")
+
+    # yeast_5
+    run_experiment(yeast_data=get_yeast_5_data(),
+                   file_name=f"{DIR_NAME}/easy_ensemble_yeast_5")
+
+    # yeast_6
+    run_experiment(yeast_data=get_yeast_6_data(),
+                   file_name=f"{DIR_NAME}/easy_ensemble_yeast_6")

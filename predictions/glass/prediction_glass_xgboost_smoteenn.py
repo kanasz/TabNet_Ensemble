@@ -1,24 +1,13 @@
-import random
 import time
 import numpy as np
-import torch
 
 from base_functions import get_glass_2_data, get_glass_4_data, get_glass_5_data, get_glass_0_1_6_vs_5_data
+from base_functions import set_seed
 from optimization.ga_xgboost_tuner import GaXGBoostTuner
 
-seed = 42
-torch.manual_seed(seed)
-random.seed(seed)
-np.random.rand(seed)
-random.SystemRandom(seed)
-torch.manual_seed(seed)
-np.random.seed(seed)
-random.seed(seed)
-torch.cuda.manual_seed(seed)
-torch.cuda.manual_seed_all(seed)  # for multiGPUs.
-torch.backends.cudnn.benchmark = False
-torch.backends.cudnn.deterministic = True
+set_seed(seed=42)
 np.set_printoptions(threshold=np.inf)
+DIR_NAME = 'results/xgboost_smoteenn'
 
 
 def run_experiment(glass_data, file_name):
@@ -43,18 +32,19 @@ def run_experiment(glass_data, file_name):
 
 
 if __name__ == '__main__':
+
     # glass_2
     run_experiment(glass_data=get_glass_2_data(),
-                   file_name="results/xgboost_smoteenn_glass_2")
-    
+                   file_name=f"{DIR_NAME}/xgboost_smoteenn_glass_2")
+
     # glass_4
     run_experiment(glass_data=get_glass_4_data(),
-                   file_name="results/xgboost_smoteenn_glass_4")
-    
+                   file_name=f"{DIR_NAME}/xgboost_smoteenn_glass_4")
+
     # glass_5
     run_experiment(glass_data=get_glass_5_data(),
-                   file_name="results/xgboost_smoteenn_glass_5")
+                   file_name=f"{DIR_NAME}/xgboost_smoteenn_glass_5")
 
     # glass_0_1_6_vs_5
     run_experiment(glass_data=get_glass_0_1_6_vs_5_data(),
-                   file_name="results/xgboost_smoteenn_glass_0_1_6_vs_5")
+                   file_name=f"{DIR_NAME}/xgboost_smoteenn_glass_0_1_6_vs_5")

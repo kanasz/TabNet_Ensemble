@@ -1,109 +1,54 @@
 import time
+import numpy as np
 
 from base_functions import get_abalone_9_vs_18_data, get_abalone_3_vs_11_data, get_abalone_19_vs_10_11_12_13_data
-from base_functions import get_abalone_20_vs_8_9_10_data, get_abalone19_data
+from base_functions import get_abalone_20_vs_8_9_10_data, get_abalone19_data, set_seed
 from optimization.ga_xgboost_tuner import GaXGBoostTuner
 
+set_seed(42)
+np.set_printoptions(threshold=np.inf)
+DIR_NAME = 'results/xgboost'
 
-if __name__ == '__main__':
-    numerical_cols = ['Length', 'Diameter', 'Height', 'Whole_weight', 'Shucked_weight', 'Viscera_weight', 'Shell_weight']
-    categorical_cols = ['Sex']
+
+def run_experiment(abalone_data, file_name):
     num_generations = 50
     num_parents = 20
     population = 50
+    start_time = time.time()
+    data = abalone_data
+    numerical_cols = ['Length', 'Diameter', 'Height', 'Whole_weight', 'Shucked_weight', 'Viscera_weight',
+                      'Shell_weight']
+    categorical_cols = ['Sex']
 
-    """
-    start_time = time.time()
-    data = get_abalone_9_vs_18_data()
-    tuner = GaXGBoostTuner(num_generations, num_parents, population, False, False,numerical_cols, categorical_cols)
-    tuner.run_experiment(data, 'results/XGBOOST_Abalone_9_vs_18')
-    print("--- total: %s seconds ---" % (time.time() - start_time))
-
-    start_time = time.time()
-    data = get_abalone_9_vs_18_data()
-    tuner = GaXGBoostTuner(num_generations, num_parents, population, True, False, numerical_cols, categorical_cols)
-    tuner.run_experiment(data, 'results/XGBOOST_SMOTE_Abalone_9_vs_18')
-    print("--- total: %s seconds ---" % (time.time() - start_time))
-
-    start_time = time.time()
-    data = get_abalone_9_vs_18_data()
-    tuner = GaXGBoostTuner(num_generations, num_parents, population, False, True, numerical_cols, categorical_cols)
-    tuner.run_experiment(data, 'results/XGBOOST_WEIGHTED_Abalone_9_vs_18')
-    print("--- total: %s seconds ---" % (time.time() - start_time))
-
-    start_time = time.time()
-    data = get_abalone_3_vs_11_data()
-    tuner = GaXGBoostTuner(num_generations, num_parents, population, False, False, numerical_cols, categorical_cols)
-    tuner.run_experiment(data, 'results/XGBOOST_Abalone_3_vs_11')
-    print("--- total: %s seconds ---" % (time.time() - start_time))
-
-    start_time = time.time()
-    data = get_abalone_3_vs_11_data()
-    tuner = GaXGBoostTuner(num_generations, num_parents, population, True, False, numerical_cols, categorical_cols)
-    tuner.run_experiment(data, 'results/XGBOOST_SMOTE_Abalone_3_vs_11')
-    print("--- total: %s seconds ---" % (time.time() - start_time))
-
-    start_time = time.time()
-    data = get_abalone_3_vs_11_data()
-    tuner = GaXGBoostTuner(num_generations, num_parents, population, False, True, numerical_cols, categorical_cols)
-    tuner.run_experiment(data, 'results/XGBOOST_WEIGHTED_Abalone_3_vs_11')
-    print("--- total: %s seconds ---" % (time.time() - start_time))
-    
-    start_time = time.time()
-    data = get_abalone_19_vs_10_11_12_13_data()
-    tuner = GaXGBoostTuner(num_generations, num_parents, population, False, False, numerical_cols, categorical_cols)
-    tuner.run_experiment(data, 'results/XGBOOST_Abalone_19_vs_10_11_12_13')
-    print("--- total: %s seconds ---" % (time.time() - start_time))
-
-    start_time = time.time()
-    data = get_abalone_19_vs_10_11_12_13_data()
-    tuner = GaXGBoostTuner(num_generations, num_parents, population, True, False, numerical_cols, categorical_cols)
-    tuner.run_experiment(data, 'results/XGBOOST_SMOTE_Abalone_19_vs_10_11_12_13')
-    print("--- total: %s seconds ---" % (time.time() - start_time))
-
-    start_time = time.time()
-    data = get_abalone_19_vs_10_11_12_13_data()
-    tuner = GaXGBoostTuner(num_generations, num_parents, population, False, True, numerical_cols, categorical_cols)
-    tuner.run_experiment(data, 'results/XGBOOST_WEIGHTED_Abalone_19_vs_10_11_12_13')
-    print("--- total: %s seconds ---" % (time.time() - start_time))
-
-    start_time = time.time()
-    data = get_abalone_20_vs_8_9_10_data()
-    tuner = GaXGBoostTuner(num_generations, num_parents, population, False, False, numerical_cols, categorical_cols)
-    tuner.run_experiment(data, 'results/XGBOOST_Abalone_20_vs_8_9_10')
-    print("--- total: %s seconds ---" % (time.time() - start_time))
-
-    start_time = time.time()
-    data = get_abalone_20_vs_8_9_10_data()
-    tuner = GaXGBoostTuner(num_generations, num_parents, population, True, False, numerical_cols, categorical_cols)
-    tuner.run_experiment(data, 'results/XGBOOST_SMOTE_Abalone_20_vs_8_9_10')
-    print("--- total: %s seconds ---" % (time.time() - start_time))
-
-    start_time = time.time()
-    data = get_abalone_20_vs_8_9_10_data()
-    tuner = GaXGBoostTuner(num_generations, num_parents, population, False, True, numerical_cols, categorical_cols)
-    tuner.run_experiment(data, 'results/XGBOOST_WEIGHTED_Abalone_20_vs_8_9_10')
-    print("--- total: %s seconds ---" % (time.time() - start_time))
-
-    start_time = time.time()
-    data = get_abalone19_data()
+    print(f"Starting simulation run...")
     tuner = GaXGBoostTuner(num_generations=num_generations,
                            num_parents=num_parents,
                            population=population,
                            use_smote=False, use_adasyn=False, use_smoteenn=False,
                            numerical_cols=numerical_cols,
                            categorical_cols=categorical_cols)
-    tuner.run_experiment(data=data, fname="results/xgboost_abalone19")
+    tuner.run_experiment(data, file_name)
     print("--- total: %s seconds ---" % (time.time() - start_time))
-    """
 
-    start_time = time.time()
-    data = get_abalone19_data()
-    tuner = GaXGBoostTuner(num_generations=num_generations,
-                           num_parents=num_parents,
-                           population=population,
-                           use_smote=True, use_adasyn=False, use_smoteenn=False,
-                           numerical_cols=numerical_cols,
-                           categorical_cols=categorical_cols)
-    tuner.run_experiment(data=data, fname="results/xgboost_smote_abalone19")
-    print("--- total: %s seconds ---" % (time.time() - start_time))
+
+if __name__ == '__main__':
+
+    # abalone_9_vs_18
+    run_experiment(abalone_data=get_abalone_9_vs_18_data(),
+                   file_name=f"{DIR_NAME}/xgboost_abalone_9_vs_18")
+
+    # abalone_19_vs_10_11_12_13
+    run_experiment(abalone_data=get_abalone_19_vs_10_11_12_13_data(),
+                   file_name=f"{DIR_NAME}/xgboost_abalone_19_vs_10_11_12_13")
+
+    # abalone_20_vs_8_9_10
+    run_experiment(abalone_data=get_abalone_20_vs_8_9_10_data(),
+                   file_name=f"{DIR_NAME}/xgboost_abalone_20_vs_8_9_10")
+
+    # abalone_3_vs_11
+    run_experiment(abalone_data=get_abalone_3_vs_11_data(),
+                   file_name=f"{DIR_NAME}/xgboost_abalone_3_vs_11")
+
+    # abalone19
+    run_experiment(abalone_data=get_abalone19_data(),
+                   file_name=f"{DIR_NAME}/xgboost_abalone19")
