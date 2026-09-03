@@ -20,6 +20,12 @@ torch.cuda.manual_seed_all(seed)
 torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.deterministic = True
 
+# The result files are written as str() of a dict of numpy arrays, so numpy
+# has to print them in full — the default threshold of 1000 elements silently
+# replaces the middle of a fold or solution array with '...', which makes the
+# saved chromosome unrecoverable.
+np.set_printoptions(threshold=np.inf)
+
 # Same GA budget as the clustering-based main experiments (tabnet_max_epochs=50,
 # num_generations=50, num_parents=20, population=50) — this ablation only
 # removes clustering, everything else must stay comparable.

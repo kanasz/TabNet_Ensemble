@@ -157,8 +157,8 @@ class GaOCBaggingTabnetEnsembleTunerParallel:
         # Only persist a result file when this candidate beats the best fitness
         # seen so far in this run — writing on every single evaluation (every
         # individual x every generation) was flooding the results folder with
-        # thousands of near-duplicate .txt/.log files.
-        if gm_mean > self.best_fitness_so_far:
+        # thousands of near-duplicate files.
+        if self.save_partial_output and gm_mean > self.best_fitness_so_far:
             self.best_fitness_so_far = gm_mean
             result = {
                 'fitness': gm_mean,
@@ -169,14 +169,7 @@ class GaOCBaggingTabnetEnsembleTunerParallel:
             arr = self.filename.split("/")
             arr[-1] = "{}_{}".format(gm_mean, arr[-1])
             f = "/".join(arr)
-            if self.save_partial_output:
-                with open(f + '.txt', 'w') as data:
-                    data.write(str(result))
-
-            arr = self.filename.split("/")
-            arr[-1] = "LOG_{}_{}_{}".format(ga_instance.generations_completed, gm_mean, arr[-1])
-            f = "/".join(arr)
-            with open(f + '.log', 'w') as data:
+            with open(f + '.txt', 'w') as data:
                 data.write(str(result))
 
         t = time.time() - start_time
