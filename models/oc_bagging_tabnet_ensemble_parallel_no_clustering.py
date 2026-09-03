@@ -132,9 +132,7 @@ class GaOCBaggingTabnetEnsembleTunerParallelNoClustering:
                 'predicted_values': predicted_values,
                 'solution': np.array(solution)
             }
-            arr = self.filename.split("/")
-            arr[-1] = "{}_{}".format(gm_mean, arr[-1])
-            f = "/".join(arr)
+            f = os.path.join(self.log_dir, "{}_{}".format(gm_mean, self.basename))
             with open(f + '.txt', 'w') as data:
                 data.write(str(result))
 
@@ -142,9 +140,27 @@ class GaOCBaggingTabnetEnsembleTunerParallelNoClustering:
         print("gmean: {}, n_estimators: {}, {} seconds".format(gm_mean, np.sum(solution[0:len(self.config_files)]), t))
         return gm_mean
 
-    def run_experiment(self, data, fname, max_classifier_count=None):
+    def run_experiment(self, data, fname, max_classifier_count=None, log_dir=None):
+        """Runs the GA and writes two kinds of output to two places.
+
+        fname is the final result: '{fname}.txt' (metrics + predictions) and
+        '{fname}.pkl' (the finished GA state holding the best solution) are the
+        only files written there, so a results/{method}/ folder ends up with
+        exactly one .txt and one .pkl per dataset.
+
+        log_dir takes everything transient - the per-improvement partial dumps
+        and the per-generation resume checkpoint. It defaults to fname's own
+        folder, which keeps the old single-directory behaviour for callers that
+        have not been migrated yet.
+        """
         kf = StratifiedKFold(n_splits=5, random_state=42, shuffle=True)
         self.filename = fname
+        self.basename = os.path.basename(fname)
+        self.log_dir = log_dir if log_dir is not None else os.path.dirname(fname)
+        if self.log_dir:
+            os.makedirs(self.log_dir, exist_ok=True)
+        # Resume state lives with the transient output, not with the results.
+        checkpoint = os.path.join(self.log_dir, 'checkpoint')
 
         sol_per_pop = self.population
         num_parents_mating = self.num_parents
@@ -201,7 +217,9 @@ class GaOCBaggingTabnetEnsembleTunerParallelNoClustering:
             print("Generation : {gen}, Fitness: {fitness}".format(
                 gen=ga_instance.generations_completed,
                 fitness=ga_instance.best_solution(pop_fitness=ga_instance.last_generation_fitness)[1]))
-            ga_instance.save(filename=self.filename)
+            # Per-generation resume checkpoint - transient, so it goes to the
+            # log dir and is overwritten in place.
+            ga_instance.save(filename=checkpoint)
             sys.stdout.flush()
 
         def on_stop(ga_instance, last_population_fitness):
@@ -216,8 +234,11 @@ class GaOCBaggingTabnetEnsembleTunerParallelNoClustering:
                 'true_values': true_values,
                 'predicted_values': predicted_values
             }
+            os.makedirs(os.path.dirname(self.filename), exist_ok=True)
             with open(self.filename + '.txt', 'w') as data:
                 data.write(str(result))
+            # The final model: one .pkl next to the one .txt in results/.
+            ga_instance.save(filename=self.filename)
             print('evaluated fitness: {}'.format(new_fitness))
             sys.stdout.flush()
             gm = [geometric_mean_score(true_values[i], predicted_values[i]) for i in range(len(true_values))]
@@ -226,10 +247,10 @@ class GaOCBaggingTabnetEnsembleTunerParallelNoClustering:
             print('------------------------------------------------')
             sys.stdout.flush()
 
-        exists = os.path.exists(self.filename + '.pkl')
+        exists = os.path.exists(checkpoint + '.pkl')
 
         if exists:
-            ga_instance = pygad.load(self.filename)
+            ga_instance = pygad.load(checkpoint)
         else:
             mutation_type = "random"
             initial_population = None
