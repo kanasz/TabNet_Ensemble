@@ -172,10 +172,28 @@ class GaDGOTTuner:
         )
         return gm_mean
 
-    def run_experiment(self, data, fname):
+    def run_experiment(self, data, fname, log_dir=None):
+        """Runs the GA and writes two kinds of output to two places.
+
+        fname is the final result: '{fname}.txt' (metrics + predictions) and
+        '{fname}.pkl' (the finished GA state holding the best solution) are the
+        only files written there, so a results/{method}/ folder ends up with
+        exactly one .txt and one .pkl per dataset.
+
+        log_dir takes the transient per-generation resume checkpoint. It
+        defaults to fname's own folder, which keeps the old single-directory
+        behaviour for callers that have not been migrated yet. Pass an absolute
+        path - this module chdir()s into the DGOT directory at import time, so
+        a relative one would resolve there.
+        """
         filename = fname
         self.data = data
         os.makedirs(os.path.dirname(os.path.abspath(filename)), exist_ok=True)
+
+        log_dir = log_dir if log_dir is not None else os.path.dirname(os.path.abspath(filename))
+        os.makedirs(log_dir, exist_ok=True)
+        # Resume state lives with the transient output, not with the results.
+        checkpoint = os.path.join(log_dir, 'checkpoint')
 
         # prepare dataset folder structure; encoded_len reflects OHE expansion
         encoded_len = prepare_dgot_data(
@@ -190,7 +208,9 @@ class GaDGOTTuner:
             print("Generation: {}".format(ga_instance.generations_completed))
             print("Fitness: {}".format(ga_instance.best_solution(pop_fitness=ga_instance.last_generation_fitness)[1]))
             print("Solution: {}".format(ga_instance.best_solutions[-1]))
-            ga_instance.save(filename=filename)
+            # Per-generation resume checkpoint - transient, so it goes to the
+            # log dir and is overwritten in place.
+            ga_instance.save(filename=checkpoint)
 
         def on_stop(ga_instance, last_population_fitness):
             print('------------------------------------------------')
@@ -204,11 +224,13 @@ class GaDGOTTuner:
             }
             with open(filename + '.txt', 'w') as f:
                 f.write(str(result))
+            # The final model: one .pkl next to the one .txt in results/.
+            ga_instance.save(filename=filename)
             print('evaluated fitness: {:.6f}'.format(new_fitness))
             print('------------------------------------------------')
 
-        if os.path.exists(filename + '.pkl'):
-            ga_instance = pygad.load(filename)
+        if os.path.exists(checkpoint + '.pkl'):
+            ga_instance = pygad.load(checkpoint)
         else:
             ga_instance = pygad.GA(
                 num_generations=self.num_generations,

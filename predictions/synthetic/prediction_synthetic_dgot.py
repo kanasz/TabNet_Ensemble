@@ -10,6 +10,9 @@ from optimization.ga_dgot_tuner import GaDGOTTuner
 
 _PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 _RESULTS_DIR = os.path.join(_PROJECT_ROOT, 'results')
+# Transient GA output (the per-generation resume checkpoint) - absolute,
+# because ga_dgot_tuner chdir()s into the DGOT directory on import.
+_LOG_DIR = os.path.join(_PROJECT_ROOT, 'ga_logs', 'dgot')
 
 seed = 42
 torch.manual_seed(seed)
@@ -40,7 +43,9 @@ def __run_experiment(data_prefix, data_contamination, data_features, dataset_nam
         numerical_cols=num_cols,
         categorical_cols=categorical_cols,
     )
-    tuner.run_experiment(data=synthetic_data, fname=results_file)
+    log_dir = os.path.join(_LOG_DIR, dataset_name)
+    os.makedirs(log_dir, exist_ok=True)
+    tuner.run_experiment(data=synthetic_data, fname=results_file, log_dir=log_dir)
     print("--- total: %s seconds ---" % (time.time() - start_time))
 
 
