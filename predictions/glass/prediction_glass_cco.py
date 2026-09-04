@@ -3,8 +3,7 @@ import time
 
 import numpy as np
 
-from base_functions import get_wine_quality_red_3_vs_5_data, get_wine_quality_red_8_vs_6_data, \
-    get_wine_quality_white_3_vs_7_data, get_wine_quality_white_9_vs_4_data, set_seed
+from base_functions import get_glass_0_1_6_vs_5_data, get_glass_2_data, get_glass_4_data, get_glass_5_data, set_seed
 from constants import GASotaRunConfig
 from optimization.ga_cco_tuner import GaCCOTuner
 
@@ -13,7 +12,7 @@ np.set_printoptions(threshold=np.inf)
 
 # GA-tuned CCO: searches k, beta, t, focal gamma and batch_size (constants.genes_cco)
 # with mean G-mean over the 5 folds as fitness. The counterpart fixed-default run
-# is prediction_wine_cco_baseline.py.
+# is prediction_glass_cco_baseline.py.
 METHOD = 'cco'
 RESULTS_DIR = 'results/{}'.format(METHOD)
 # Transient GA output (the per-generation resume checkpoint) - can be wiped
@@ -40,7 +39,7 @@ def __run(data, dataset_name):
 
 
 if __name__ == '__main__':
-    __run(get_wine_quality_red_3_vs_5_data(), 'wine_red_3_vs_5')
-    __run(get_wine_quality_red_8_vs_6_data(), 'wine_red_8_vs_6')
-    __run(get_wine_quality_white_3_vs_7_data(), 'wine_white_3_vs_7')
-    __run(get_wine_quality_white_9_vs_4_data(), 'wine_white_9_vs_4')
+    __run(get_glass_0_1_6_vs_5_data(), 'glass_0_1_6_vs_5')
+    __run(get_glass_2_data(), 'glass_2')
+    __run(get_glass_4_data(), 'glass_4')
+    __run(get_glass_5_data(), 'glass_5')

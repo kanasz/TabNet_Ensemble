@@ -14,7 +14,8 @@ from pygad import pygad
 from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import MinMaxScaler
 from constants import genes_cco
-from ga_heso_sota_methods.CCO.utils import Cluster, synthetic_generation, Net, FocalLoss, CustomDataset
+from ga_heso_sota_methods.CCO.cco_common import build_cco_net, encode_categorical
+from ga_heso_sota_methods.CCO.utils import Cluster, synthetic_generation, FocalLoss, CustomDataset
 
 seed = 42
 pygad.random.seed(42)
@@ -23,11 +24,16 @@ pygad.random.seed(42)
 
 class GaCCOTuner:
 
-    def __init__(self, num_generations, num_parents=10, population=20, input_dim=8):
+    def __init__(self, num_generations, num_parents=10, population=20, input_dim=8,
+                 categorical_cols=None):
         self.num_generations = num_generations
         self.num_parents = num_parents
         self.population = population
         self.input_dim = input_dim  # D: number of features, fixed per dataset
+        # Names of true categorical columns (e.g. ['Sex'] for abalone). CCO
+        # works on raw pairwise distances, so they are label encoded before the
+        # frame is cast to float32 in eval_func.
+        self.categorical_cols = categorical_cols
         self.X_orig = None
         self.y_orig = None
         self.train_indices = []
@@ -76,7 +82,9 @@ class GaCCOTuner:
         ).to(device)
         criterion = FocalLoss(weight=per_cls_weights, gamma=gamma, reduction='none')
 
-        net = Net(D, 2).to(device)
+        # build_cco_net works against a pristine CCO clone too, whose Net is
+        # hardwired to 34 features / 6 classes and takes no arguments.
+        net = build_cco_net(D, 2).to(device)
         optimizer = optim.Adam(net.parameters(), lr=0.001)
 
         fold_generator = torch.Generator()
@@ -147,12 +155,29 @@ class GaCCOTuner:
         )
         return gm_mean
 
-    def run_experiment(self, data, fname):
+    def run_experiment(self, data, fname, log_dir=None):
+        """Runs the GA and writes two kinds of output to two places.
+
+        fname is the final result: '{fname}.txt' (metrics + predictions) and
+        '{fname}.pkl' (the finished GA state holding the best solution) are the
+        only files written there, so a results/{method}/ folder ends up with
+        exactly one .txt and one .pkl per dataset.
+
+        log_dir takes the transient per-generation resume checkpoint. It
+        defaults to fname's own folder, which keeps the old single-directory
+        behaviour for callers that have not been migrated yet.
+        """
         kf = StratifiedKFold(n_splits=5, random_state=42, shuffle=True)
         filename = fname
         os.makedirs(os.path.dirname(os.path.abspath(filename)), exist_ok=True)
 
+        log_dir = log_dir if log_dir is not None else os.path.dirname(os.path.abspath(filename))
+        os.makedirs(log_dir, exist_ok=True)
+        # Resume state lives with the transient output, not with the results.
+        checkpoint = os.path.join(log_dir, 'checkpoint')
+
         self.X_orig, self.y_orig = data
+        self.X_orig = encode_categorical(self.X_orig, self.categorical_cols)
         self.train_indices = []
         self.test_indices = []
         for train_index, test_index in kf.split(self.X_orig, self.y_orig):
@@ -165,7 +190,9 @@ class GaCCOTuner:
                 ga_instance.best_solution(pop_fitness=ga_instance.last_generation_fitness)[1]
             ))
             print("Solution   : {}".format(ga_instance.best_solutions[-1]))
-            ga_instance.save(filename=filename)
+            # Per-generation resume checkpoint - transient, so it goes to the
+            # log dir and is overwritten in place.
+            ga_instance.save(filename=checkpoint)
 
         def on_stop(ga_instance, last_population_fitness):
             print('------------------------------------------------')
@@ -179,11 +206,13 @@ class GaCCOTuner:
             }
             with open(filename + '.txt', 'w') as f:
                 f.write(str(result))
+            # The final model: one .pkl next to the one .txt in results/.
+            ga_instance.save(filename=filename)
             print('evaluated fitness: {:.6f}'.format(new_fitness))
             print('------------------------------------------------')
 
-        if os.path.exists(filename + '.pkl'):
-            ga_instance = pygad.load(filename)
+        if os.path.exists(checkpoint + '.pkl'):
+            ga_instance = pygad.load(checkpoint)
         else:
             ga_instance = pygad.GA(
                 num_generations=self.num_generations,

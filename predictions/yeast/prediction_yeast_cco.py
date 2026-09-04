@@ -1,40 +1,45 @@
-﻿import os
-import random
+import os
 import time
 
 import numpy as np
-import torch
 
-from base_functions import get_yeast_3_data
+from base_functions import get_yeast_3_data, get_yeast_4_data, get_yeast_5_data, get_yeast_6_data, set_seed
 from constants import GASotaRunConfig
 from optimization.ga_cco_tuner import GaCCOTuner
 
-_PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
-_RESULTS_FILE = os.path.join(_PROJECT_ROOT, 'results', 'CCO_yeast_3')
+set_seed(seed=42)
+np.set_printoptions(threshold=np.inf)
 
-seed = 42
-torch.manual_seed(seed)
-random.seed(seed)
-np.random.seed(seed)
-torch.cuda.manual_seed(seed)
-torch.cuda.manual_seed_all(seed)
-torch.backends.cudnn.benchmark = False
-torch.backends.cudnn.deterministic = True
+# GA-tuned CCO: searches k, beta, t, focal gamma and batch_size (constants.genes_cco)
+# with mean G-mean over the 5 folds as fitness. The counterpart fixed-default run
+# is prediction_yeast_cco_baseline.py.
+METHOD = 'cco'
+RESULTS_DIR = 'results/{}'.format(METHOD)
+# Transient GA output (the per-generation resume checkpoint) - can be wiped
+# without losing a result.
+LOG_DIR = 'ga_logs/{}'.format(METHOD)
 
-if __name__ == '__main__':
+
+def __run(data, dataset_name):
     start_time = time.time()
-    data = get_yeast_3_data()
-    input_dim = data[0].shape[1]  # D = number of features (8 for yeast3)
+    results_file = os.path.join(RESULTS_DIR, '{}_{}'.format(METHOD, dataset_name))
+    log_dir = os.path.join(LOG_DIR, dataset_name)
+    os.makedirs(RESULTS_DIR, exist_ok=True)
+    os.makedirs(log_dir, exist_ok=True)
 
+    print(f"Starting GA-tuned CCO run for {dataset_name}...")
     tuner = GaCCOTuner(
         GASotaRunConfig.NUM_GENERATIONS.value,
         GASotaRunConfig.NUM_PARENTS.value,
         GASotaRunConfig.POPULATION.value,
-        input_dim=input_dim,
+        input_dim=data[0].shape[1],
     )
-    tuner.run_experiment(data, _RESULTS_FILE)
-
-    print("--- total: %s seconds ---" % (time.time() - start_time))
-
+    tuner.run_experiment(data, results_file, log_dir=log_dir)
+    print("--- {}: {} seconds ---".format(dataset_name, time.time() - start_time))
 
 
+if __name__ == '__main__':
+    __run(get_yeast_3_data(), 'yeast_3')
+    __run(get_yeast_4_data(), 'yeast_4')
+    __run(get_yeast_5_data(), 'yeast_5')
+    __run(get_yeast_6_data(), 'yeast_6')
