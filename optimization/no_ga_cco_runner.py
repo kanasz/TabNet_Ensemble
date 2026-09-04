@@ -2,11 +2,13 @@
 Fixed-baseline (no GA) runner for CCO — reusable across datasets.
 
 CCO is imported and run exactly as published: ga_heso_sota_methods/CCO stays
-untouched and Cluster(), synthetic_generation(), FocalLoss(), CustomDataset()
-and train() are used as-is. This module only replaces CCO's main.py, which is
-a CLI script hardwired to one dataset (it torch.load()s a pickled X/Y pair and
-its Net is fixed at 34 features in / 6 classes out), with a function that takes
-the (X_df, y_series) pairs the rest of this project uses.
+untouched and Cluster(), synthetic_generation(), FocalLoss() and
+CustomDataset() are used as-is. This module only replaces CCO's main.py, which
+is a CLI script hardwired to one dataset (it torch.load()s a pickled X/Y pair
+and its Net is fixed at 34 features in / 6 classes out), with a function that
+takes the (X_df, y_series) pairs the rest of this project uses. CCO's train()
+is the one function reimplemented rather than called - see the comment on the
+epoch loop for why.
 
 run_cco_baseline() reproduces CCO's own protocol once with the paper's
 hyperparameters — no hyperparameter search — and writes the standard
@@ -52,7 +54,6 @@ from ga_heso_sota_methods.CCO.utils import (
     FocalLoss,
     set_seeds,
     synthetic_generation,
-    train as cco_train,
 )
 
 # CCO's own default: StratifiedKFold(n_splits=5) in utils.py::load_data.
@@ -145,6 +146,22 @@ def run_cco_baseline(data, dataset_name, results_file, k=0.3, beta=0.5, t=0.5,
         cluster_labels = Cluster(x_train_t, k, D, t, beta)
         x_syn, y_syn = synthetic_generation(cluster_labels, x_train_t, y_train_t, t)
 
+        # The training step casts labels to int64, which would silently round
+        # anything fractional, so fail loudly instead. synthetic_generation
+        # builds its labels from cluster-local class values, so a non-integer
+        # here means those got mixed up with something else.
+        if len(x_syn) != len(y_syn):
+            raise ValueError(
+                f"CCO returned {len(x_syn)} samples but {len(y_syn)} labels "
+                f"on fold {fold} of {dataset_name}"
+            )
+        uniq = torch.unique(y_syn)
+        if not torch.equal(uniq, uniq.round()):
+            raise ValueError(
+                f"CCO returned non-integer labels on fold {fold} of "
+                f"{dataset_name}: {uniq.tolist()[:10]}"
+            )
+
         counts = Counter(y_train.tolist())
         per_cls_weights = torch.tensor(
             [1.0 / counts[c] for c in range(num_classes)], dtype=torch.float32
@@ -160,10 +177,22 @@ def run_cco_baseline(data, dataset_name, results_file, k=0.3, beta=0.5, t=0.5,
         )
         x_test_t = torch.tensor(x_test)
 
+        # CCO's utils.py::train() ends by computing a train-set balanced
+        # accuracy that its own models.py::model_train discards, and that call
+        # raises "ValueError: continuous is not supported" on label dtypes
+        # other than the pickled int64 its dermatology set ships with. The loop
+        # below is its gradient step with that dead metric left out - same
+        # zero_grad / forward / int64 cast / FocalLoss / backward / step.
         best = None
         for epoch in range(epochs):
-            # CCO's own single-epoch training step, used unmodified.
-            net, _ = cco_train(net, optimizer, criterion, train_loader, device)
+            net.train()
+            for inputs, labels in train_loader:
+                inputs = inputs.to(device).float()
+                labels = labels.to(device).type(torch.int64)
+                optimizer.zero_grad()
+                loss = criterion(net(inputs), labels)
+                loss.backward(retain_graph=True)
+                optimizer.step()
             preds = _predict(net, x_test_t, batch_size, device)
             scores = _metrics(y_test, preds)
             if epoch_selection == 'final' or best is None or scores['bacc'] > best[1]['bacc']:
