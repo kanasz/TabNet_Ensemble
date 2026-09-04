@@ -1,34 +1,17 @@
 import os
-import random
 import time
 
 import numpy as np
-import torch
 from imblearn.over_sampling import SMOTE
 
 from base_functions import get_config_files, get_abalone19_data, get_abalone_9_vs_18_data, \
-    get_abalone_3_vs_11_data, get_abalone_19_vs_10_11_12_13_data, get_abalone_20_vs_8_9_10_data
+    get_abalone_3_vs_11_data, get_abalone_19_vs_10_11_12_13_data, get_abalone_20_vs_8_9_10_data, set_seed
 from constants import SYNTHETIC_MINORITY_COUNT
 from models.oc_bagging_tabnet_ensemble_parallel_no_clustering import GaOCBaggingTabnetEnsembleTunerParallelNoClustering
 
-seed = 42
-torch.manual_seed(seed)
-random.seed(seed)
-np.random.seed(seed)
-torch.cuda.manual_seed(seed)
-torch.cuda.manual_seed_all(seed)
-torch.backends.cudnn.benchmark = False
-torch.backends.cudnn.deterministic = True
-
-# The result files are written as str() of a dict of numpy arrays, so numpy
-# has to print them in full — the default threshold of 1000 elements silently
-# replaces the middle of a fold or solution array with '...', which makes the
-# saved chromosome unrecoverable.
+set_seed(seed=42)
 np.set_printoptions(threshold=np.inf)
 
-# Same GA budget as the clustering-based main experiments (tabnet_max_epochs=50,
-# num_generations=50, num_parents=20, population=50) — this ablation only
-# removes clustering, everything else must stay comparable.
 tabnet_max_epochs = 50
 num_generations = 50
 num_parents = 20
@@ -37,8 +20,16 @@ population = 50
 # Abalone's one true categorical feature ('Sex': M/F/I) — everything else numeric.
 _CATEGORICAL_COLS = ['Sex']
 
+# Where output goes. RESULTS_DIR keeps one .txt (metrics) and one .pkl (final
+# model) per dataset, named {METHOD}_{dataset} so results_parser can read the
+# folder as a method. LOG_DIR takes the transient GA output - partial dumps and
+# the resume checkpoint - and can be wiped without losing a result.
+METHOD = 'ga_heso_no_clustering_smote'
+RESULTS_DIR = 'results/{}'.format(METHOD)
+LOG_DIR = 'ga_logs/{}'.format(METHOD)
 
-def __run_experiment(data, dataset_name, results_file):
+
+def __run_experiment(data, dataset_name, results_file, log_dir):
     start_time = time.time()
     numerical_cols = [col for col in data[0].columns.values if col not in _CATEGORICAL_COLS]
     categorical_cols = _CATEGORICAL_COLS
@@ -53,23 +44,23 @@ def __run_experiment(data, dataset_name, results_file):
     )
 
     os.makedirs(os.path.dirname(results_file), exist_ok=True)
-    print(f"Starting no-clustering ablation run for {dataset_name}...")
-    tuner.run_experiment(data, results_file)
+    os.makedirs(log_dir, exist_ok=True)
+    print(f"Starting GA-HESO with no clustering ablation run for {dataset_name}...")
+    tuner.run_experiment(data, results_file, log_dir=log_dir)
     print("--- {}: {} seconds ---".format(dataset_name, time.time() - start_time))
 
 
+def __run(data, dataset_name):
+    __run_experiment(
+        data, dataset_name,
+        results_file=os.path.join(RESULTS_DIR, '{}_{}'.format(METHOD, dataset_name)),
+        log_dir=os.path.join(LOG_DIR, dataset_name),
+    )
+
+
 if __name__ == '__main__':
-    __run_experiment(get_abalone19_data(), 'abalone19',
-                     'results/no_clustering_smote_abalone19/NO_CLUSTERING_OC_TABNET_ENSEMBLE_SMOTE_abalone19')
-
-    __run_experiment(get_abalone_9_vs_18_data(), 'abalone_9_vs_18',
-                     'results/no_clustering_smote_abalone_9_vs_18/NO_CLUSTERING_OC_TABNET_ENSEMBLE_SMOTE_abalone_9_vs_18')
-
-    __run_experiment(get_abalone_3_vs_11_data(), 'abalone_3_vs_11',
-                     'results/no_clustering_smote_abalone_3_vs_11/NO_CLUSTERING_OC_TABNET_ENSEMBLE_SMOTE_abalone_3_vs_11')
-
-    __run_experiment(get_abalone_19_vs_10_11_12_13_data(), 'abalone_19_vs_10_11_12_13',
-                     'results/no_clustering_smote_abalone_19_vs_10_11_12_13/NO_CLUSTERING_OC_TABNET_ENSEMBLE_SMOTE_abalone_19_vs_10_11_12_13')
-
-    __run_experiment(get_abalone_20_vs_8_9_10_data(), 'abalone_20_vs_8_9_10',
-                     'results/no_clustering_smote_abalone_20_vs_8_9_10/NO_CLUSTERING_OC_TABNET_ENSEMBLE_SMOTE_abalone_20_vs_8_9_10')
+    __run(get_abalone19_data(), 'abalone19')
+    __run(get_abalone_9_vs_18_data(), 'abalone_9_vs_18')
+    __run(get_abalone_3_vs_11_data(), 'abalone_3_vs_11')
+    __run(get_abalone_19_vs_10_11_12_13_data(), 'abalone_19_vs_10_11_12_13')
+    __run(get_abalone_20_vs_8_9_10_data(), 'abalone_20_vs_8_9_10')
