@@ -203,8 +203,18 @@ def run_cco_baseline(data, dataset_name, results_file, k=0.3, beta=0.5, t=0.5,
         fold_metrics.append(scores)
         true_values.append(y_test)
         predicted_values.append(preds)
-        print("  fold {}/{}  bacc={bacc:.4f} mcc={mcc:.4f} f1={f1:.4f} "
-              "gmean={gmean:.4f} (epoch {epoch})".format(fold + 1, N_FOLDS, **scores))
+        # Class distributions make a degenerate fold obvious: all four metrics
+        # collapse to 0.0 both when the model predicts a label absent from
+        # y_test and when y_test itself holds a single class, and only these
+        # counts tell the two apart.
+        print("  fold {}/{}  train={} (synth {}) test={} preds={}".format(
+            fold + 1, N_FOLDS,
+            dict(sorted(Counter(y_train.tolist()).items())),
+            dict(sorted(Counter(np.asarray(y_syn.cpu()).astype(int).tolist()).items())),
+            dict(sorted(Counter(y_test.tolist()).items())),
+            dict(sorted(Counter(preds.tolist()).items()))))
+        print("            bacc={bacc:.4f} mcc={mcc:.4f} f1={f1:.4f} "
+              "gmean={gmean:.4f} (epoch {epoch})".format(**scores))
 
     os.makedirs(os.path.dirname(os.path.abspath(results_file)), exist_ok=True)
 
