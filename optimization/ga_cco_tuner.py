@@ -213,6 +213,30 @@ class GaCCOTuner:
 
         if os.path.exists(checkpoint + '.pkl'):
             ga_instance = pygad.load(checkpoint)
+
+            # pygad's run() executes num_generations MORE generations on a
+            # loaded instance instead of treating it as a total budget, so a
+            # job that stopped at generation 31 would otherwise finish at 81.
+            # Clamp to what is left of the configured budget.
+            done = ga_instance.generations_completed
+            remaining = self.num_generations - done
+            print("Resuming {}.pkl at generation {}/{} ({} to go)".format(
+                checkpoint, done, self.num_generations, max(remaining, 0)))
+
+            # save() pickles the callbacks together with the tuner they were
+            # bound to, so a resumed run would otherwise keep using the
+            # previous run's paths and settings. Re-bind them to this instance.
+            ga_instance.fitness_func = self.fitness_func
+            ga_instance.on_generation = callback_generation
+            ga_instance.on_stop = on_stop
+
+            if remaining <= 0:
+                print("Configured generations already completed - writing the "
+                      "final result without running further generations.")
+                on_stop(ga_instance, getattr(ga_instance, 'last_generation_fitness', [0.0]))
+                return
+
+            ga_instance.num_generations = remaining
         else:
             ga_instance = pygad.GA(
                 num_generations=self.num_generations,
