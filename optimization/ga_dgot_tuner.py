@@ -24,6 +24,20 @@ sys.path.insert(0, _DGOT_PATH)                       # noqa: E402
 seed = 42
 pygad.random.seed(42)
 
+
+def _best_overall_solution(ga_instance):
+    """The best solution over the whole run, not just the last generation.
+
+    pygad's best_solutions list holds one entry per generation (it is filled
+    because save_best_solutions=True), so best_solutions[-1] is whatever the
+    final generation happened to produce. best_solutions_fitness holds their
+    scores, so the global best is the argmax of that.
+    """
+    fitness_history = getattr(ga_instance, 'best_solutions_fitness', None)
+    if fitness_history is not None and len(fitness_history) > 0:
+        return ga_instance.best_solutions[int(np.argmax(fitness_history))]
+    return ga_instance.best_solutions[-1]
+
 # num_epoch is reduced from the original 800 to keep each GA fitness
 # evaluation feasible. Use the full 800 in prediction_yeast_dgot.py.
 _GA_NUM_EPOCH = 400
@@ -214,8 +228,10 @@ class GaDGOTTuner:
 
         def on_stop(ga_instance, last_population_fitness):
             print('------------------------------------------------')
+            # best_solutions[-1] is the best of the LAST generation, not the
+            # best found over the whole run — pick the global best instead.
             new_fitness, true_values, predicted_values = self.eval_func(
-                ga_instance, ga_instance.best_solutions[-1], None
+                ga_instance, _best_overall_solution(ga_instance), None
             )
             result = {
                 'fitness':          new_fitness,
