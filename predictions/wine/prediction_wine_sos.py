@@ -1,39 +1,42 @@
-﻿import os
-import random
+import os
 import time
 
 import numpy as np
-import torch
 
-from base_functions import (get_wine_quality_red_3_vs_5_data,
-                             get_wine_quality_red_8_vs_6_data,
-                             get_wine_quality_white_3_vs_7_data,
-                             get_wine_quality_white_9_vs_4_data)
+from base_functions import get_wine_quality_red_3_vs_5_data, get_wine_quality_red_8_vs_6_data, \
+    get_wine_quality_white_3_vs_7_data, get_wine_quality_white_9_vs_4_data, set_seed
 from constants import GASotaRunConfig
 from optimization.ga_sos_tuner import GaSOSTuner
 
+set_seed(seed=42)
+np.set_printoptions(threshold=np.inf)
+
 _PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
-_RESULTS_DIR  = os.path.join(_PROJECT_ROOT, 'results')
 
-seed = 42
-torch.manual_seed(seed)
-random.seed(seed)
-np.random.seed(seed)
-torch.cuda.manual_seed(seed)
-torch.cuda.manual_seed_all(seed)
-torch.backends.cudnn.benchmark = False
-torch.backends.cudnn.deterministic = True
+# GA-tuned SOS: searches lr, beta1, beta_min, beta_max, num_scales and ema_rate
+# (constants.genes_sos) with mean G-mean over the 5 folds as fitness.
+# RESULTS_DIR keeps one .txt (metrics) and one .pkl (final model) per dataset,
+# named {METHOD}_{dataset} so results_parser can read the folder as a method.
+# LOG_DIR takes the transient GA output - the per-improvement dumps and the
+# resume checkpoint - and can be wiped without losing a result.
+METHOD = 'sos'
+RESULTS_DIR = os.path.join(_PROJECT_ROOT, 'results', METHOD)
+LOG_DIR = os.path.join(_PROJECT_ROOT, 'ga_logs', METHOD)
 
 
-def __run_experiment(wine_data, dataset_name, results_file):
+def __run(data, dataset_name):
     start_time = time.time()
-    X_df, y_series = wine_data
+    x_df, y_series = data
 
     # image_size = n_features + n_label_classes (categorical label -> one-hot)
-    n_classes = len(y_series.unique())
-    image_size = X_df.shape[1] + n_classes
+    image_size = x_df.shape[1] + len(y_series.unique())
 
-    print(f"Starting simulation run for {dataset_name}...")
+    results_file = os.path.join(RESULTS_DIR, '{}_{}'.format(METHOD, dataset_name))
+    log_dir = os.path.join(LOG_DIR, dataset_name)
+    os.makedirs(RESULTS_DIR, exist_ok=True)
+    os.makedirs(log_dir, exist_ok=True)
+
+    print(f"Starting GA-tuned SOS run for {dataset_name}...")
     tuner = GaSOSTuner(
         num_generations=GASotaRunConfig.NUM_GENERATIONS.value,
         num_parents=GASotaRunConfig.NUM_PARENTS.value,
@@ -41,28 +44,12 @@ def __run_experiment(wine_data, dataset_name, results_file):
         dataset_name=dataset_name,
         image_size=image_size,
     )
-    tuner.run_experiment(wine_data, results_file)
-    print("--- total: %s seconds ---" % (time.time() - start_time))
+    tuner.run_experiment(data, results_file, log_dir=log_dir)
+    print("--- {}: {} seconds ---".format(dataset_name, time.time() - start_time))
 
 
 if __name__ == '__main__':
-    _SOS_RESULTS_DIR = os.path.join(_RESULTS_DIR, 'sos')
-    os.makedirs(_SOS_RESULTS_DIR, exist_ok=True)
-
-    __run_experiment(get_wine_quality_red_3_vs_5_data(),
-                     dataset_name='wine_red_3_vs_5',
-                     results_file=os.path.join(_SOS_RESULTS_DIR, 'sos_wine_red_3_vs_5'))
-
-    __run_experiment(get_wine_quality_red_8_vs_6_data(),
-                     dataset_name='wine_red_8_vs_6',
-                     results_file=os.path.join(_SOS_RESULTS_DIR, 'sos_wine_red_8_vs_6'))
-
-    __run_experiment(get_wine_quality_white_3_vs_7_data(),
-                     dataset_name='wine_white_3_vs_7',
-                     results_file=os.path.join(_SOS_RESULTS_DIR, 'sos_wine_white_3_vs_7'))
-
-    __run_experiment(get_wine_quality_white_9_vs_4_data(),
-                     dataset_name='wine_white_9_vs_4',
-                     results_file=os.path.join(_SOS_RESULTS_DIR, 'sos_wine_white_9_vs_4'))
-
-
+    __run(get_wine_quality_red_3_vs_5_data(), 'wine_red_3_vs_5')
+    __run(get_wine_quality_red_8_vs_6_data(), 'wine_red_8_vs_6')
+    __run(get_wine_quality_white_3_vs_7_data(), 'wine_white_3_vs_7')
+    __run(get_wine_quality_white_9_vs_4_data(), 'wine_white_9_vs_4')

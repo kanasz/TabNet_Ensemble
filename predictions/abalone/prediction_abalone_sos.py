@@ -49,7 +49,8 @@ def __run(data, dataset_name):
 
 
 if __name__ == '__main__':
-    __run(get_yeast_3_data(), 'yeast_3')
-    __run(get_yeast_4_data(), 'yeast_4')
-    __run(get_yeast_5_data(), 'yeast_5')
-    __run(get_yeast_6_data(), 'yeast_6')
+    __run(get_abalone19_data(), 'abalone19')
+    __run(get_abalone_9_vs_18_data(), 'abalone_9_vs_18')
+    __run(get_abalone_3_vs_11_data(), 'abalone_3_vs_11')
+    __run(get_abalone_19_vs_10_11_12_13_data(), 'abalone_19_vs_10_11_12_13')
+    __run(get_abalone_20_vs_8_9_10_data(), 'abalone_20_vs_8_9_10')

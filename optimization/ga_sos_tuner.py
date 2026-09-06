@@ -41,6 +41,20 @@ _sos_datasets.get_dataset = get_dataset_noleak
 seed = 42
 pygad.random.seed(42)
 
+
+def _best_overall_solution(ga_instance):
+    """The best solution over the whole run, not just the last generation.
+
+    pygad's best_solutions list holds one entry per generation (it is filled
+    because save_best_solutions=True), so best_solutions[-1] is whatever the
+    final generation happened to produce. best_solutions_fitness holds their
+    scores, so the global best is the argmax of that.
+    """
+    fitness_history = getattr(ga_instance, 'best_solutions_fitness', None)
+    if fitness_history is not None and len(fitness_history) > 0:
+        return ga_instance.best_solutions[int(np.argmax(fitness_history))]
+    return ga_instance.best_solutions[-1]
+
 # Reduced from 1,300,001 — enough to get a meaningful checkpoint within GA time budget.
 _GA_NUM_ITERS = 30000
 
@@ -221,12 +235,18 @@ def _post_evaluate(cfg, workdir, dataset_name, exp_k):
 class GaSOSTuner:
 
     def __init__(self, num_generations, num_parents=10, population=20,
-                 dataset_name='yeast3', image_size=10):
+                 dataset_name='yeast3', image_size=10, save_partial_output=True):
         self.num_generations = num_generations
         self.num_parents     = num_parents
         self.population      = population
         self.dataset_name    = dataset_name
         self.image_size      = image_size
+        # Per-improvement dumps, so a run killed mid-way still leaves its
+        # best-so-far behind. Set by run_experiment().
+        self.save_partial_output = save_partial_output
+        self.best_fitness_so_far = -np.inf
+        self.log_dir  = None
+        self.basename = None
 
     def parallel_fit(self, k, solution):
         workdir = os.path.join(
@@ -262,8 +282,26 @@ class GaSOSTuner:
 
     def fitness_func(self, ga_instance, solution, solution_idx):
         start_time = time.time()
-        gm, _, _ = self.eval_func(ga_instance, solution, solution_idx)
+        gm, true_values, predicted_values = self.eval_func(ga_instance, solution, solution_idx)
         elapsed = time.time() - start_time
+
+        # Persist a partial result whenever this candidate beats the best seen
+        # so far. Without it a run that hits the wall clock or dies at
+        # evaluation 800 of 900 leaves nothing at all behind, since on_stop is
+        # the only other writer. Named by fitness, so the best-so-far is
+        # readable straight off the filenames.
+        if self.save_partial_output and gm > self.best_fitness_so_far:
+            self.best_fitness_so_far = gm
+            result = {
+                'fitness': gm,
+                'true_values': true_values,
+                'predicted_values': predicted_values,
+                'solution': np.array(solution),
+            }
+            partial = os.path.join(self.log_dir, '{}_{}'.format(gm, self.basename))
+            with open(partial + '.txt', 'w') as f:
+                f.write(str(result))
+
         print(
             "gmean: {:.6f}  lr={:.5f} beta1={:.3f} beta_min={:.3f} "
             "beta_max={:.1f} num_scales={} ema={:.4f}  ({:.1f}s)".format(
@@ -273,9 +311,27 @@ class GaSOSTuner:
         )
         return gm
 
-    def run_experiment(self, data, fname):
+    def run_experiment(self, data, fname, log_dir=None):
+        """Runs the GA and writes two kinds of output to two places.
+
+        fname is the final result: '{fname}.txt' (metrics + predictions) and
+        '{fname}.pkl' (the finished GA state holding the best solution) are the
+        only files written there, so a results/{method}/ folder ends up with
+        exactly one .txt and one .pkl per dataset.
+
+        log_dir takes everything transient - the per-improvement partial dumps
+        and the per-generation resume checkpoint. It defaults to fname's own
+        folder, which keeps the old single-directory behaviour for callers that
+        have not been migrated yet.
+        """
         filename = fname
+        self.basename = os.path.basename(fname)
         os.makedirs(os.path.dirname(os.path.abspath(filename)), exist_ok=True)
+
+        self.log_dir = log_dir if log_dir is not None else os.path.dirname(os.path.abspath(filename))
+        os.makedirs(self.log_dir, exist_ok=True)
+        # Resume state lives with the transient output, not with the results.
+        checkpoint = os.path.join(self.log_dir, 'checkpoint')
 
         prepare_sos_data(data, self.dataset_name)
 
@@ -285,12 +341,16 @@ class GaSOSTuner:
                 ga_instance.best_solution(pop_fitness=ga_instance.last_generation_fitness)[1]
             ))
             print("Solution   : {}".format(ga_instance.best_solutions[-1]))
-            ga_instance.save(filename=filename)
+            # Per-generation resume checkpoint - transient, so it goes to the
+            # log dir and is overwritten in place.
+            ga_instance.save(filename=checkpoint)
 
         def on_stop(ga_instance, last_population_fitness):
             print('------------------------------------------------')
+            # best_solutions[-1] is the best of the LAST generation, not the
+            # best found over the whole run — pick the global best instead.
             new_fitness, true_values, predicted_values = self.eval_func(
-                ga_instance, ga_instance.best_solutions[-1], None
+                ga_instance, _best_overall_solution(ga_instance), None
             )
             result = {
                 'fitness':          new_fitness,
@@ -299,11 +359,37 @@ class GaSOSTuner:
             }
             with open(filename + '.txt', 'w') as f:
                 f.write(str(result))
+            # The final model: one .pkl next to the one .txt in results/.
+            ga_instance.save(filename=filename)
             print('evaluated fitness: {:.6f}'.format(new_fitness))
             print('------------------------------------------------')
 
-        if os.path.exists(filename + '.pkl'):
-            ga_instance = pygad.load(filename)
+        if os.path.exists(checkpoint + '.pkl'):
+            ga_instance = pygad.load(checkpoint)
+
+            # pygad's run() executes num_generations MORE generations on a
+            # loaded instance instead of treating it as a total budget, so a
+            # job that stopped at generation 21 would otherwise finish at 51.
+            # Clamp to what is left of the configured budget.
+            done = ga_instance.generations_completed
+            remaining = self.num_generations - done
+            print("Resuming {}.pkl at generation {}/{} ({} to go)".format(
+                checkpoint, done, self.num_generations, max(remaining, 0)))
+
+            # save() pickles the callbacks together with the tuner they were
+            # bound to, so a resumed run would otherwise keep using the
+            # previous run's paths and settings. Re-bind them to this instance.
+            ga_instance.fitness_func = self.fitness_func
+            ga_instance.on_generation = callback_generation
+            ga_instance.on_stop = on_stop
+
+            if remaining <= 0:
+                print("Configured generations already completed - writing the "
+                      "final result without running further generations.")
+                on_stop(ga_instance, getattr(ga_instance, 'last_generation_fitness', [0.0]))
+                return
+
+            ga_instance.num_generations = remaining
         else:
             ga_instance = pygad.GA(
                 num_generations=self.num_generations,

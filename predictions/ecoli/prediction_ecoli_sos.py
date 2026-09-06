@@ -49,7 +49,7 @@ def __run(data, dataset_name):
 
 
 if __name__ == '__main__':
-    __run(get_yeast_3_data(), 'yeast_3')
-    __run(get_yeast_4_data(), 'yeast_4')
-    __run(get_yeast_5_data(), 'yeast_5')
-    __run(get_yeast_6_data(), 'yeast_6')
+    __run(get_ecoli_0_vs_1_data(), 'ecoli_0_vs_1')
+    __run(get_ecoli_0_2_3_4_vs_5_data(), 'ecoli_0_2_3_4_vs_5')
+    __run(get_ecoli_0_3_4_vs_5_data(), 'ecoli_0_3_4_vs_5')
+    __run(get_ecoli_0_4_6_vs_5_data(), 'ecoli_0_4_6_vs_5')

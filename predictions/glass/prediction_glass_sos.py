@@ -49,7 +49,7 @@ def __run(data, dataset_name):
 
 
 if __name__ == '__main__':
-    __run(get_yeast_3_data(), 'yeast_3')
-    __run(get_yeast_4_data(), 'yeast_4')
-    __run(get_yeast_5_data(), 'yeast_5')
-    __run(get_yeast_6_data(), 'yeast_6')
+    __run(get_glass_0_1_6_vs_5_data(), 'glass_0_1_6_vs_5')
+    __run(get_glass_2_data(), 'glass_2')
+    __run(get_glass_4_data(), 'glass_4')
+    __run(get_glass_5_data(), 'glass_5')
