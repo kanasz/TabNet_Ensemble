@@ -70,6 +70,55 @@ def _prepare_csv(data, dataset_name, categorical_cols=None):
     df.to_csv(os.path.join(out_dir, f'{dataset_name}.csv'), index=False)
 
 
+def _check_prepared_folds(dataset_name):
+    """Reports what MLVAE will load, and fails early if a fold is empty.
+
+    MLVAE reads data/datasets/{name}/GOIO/exp{k}/ (see MLVAE/main.py:93), which
+    Default_processing writes via data_GOIO(). If any of those arrays comes out
+    empty, training does not fail where the problem is: the first batch reaches
+    Model_VAE.calc_sim_scores (MLVAE/model.py:363), whose
+
+        sim_scores = 0.0
+        for i in torch.unique(labels):   # never runs when labels is empty
+            sim_scores += ...
+
+    returns the plain float 0.0, and main.py:198 then raises
+    "AttributeError: 'float' object has no attribute 'item'" — 200 lines away
+    from the real cause. Printing the shapes here makes the actual state
+    visible either way.
+    """
+    goio_dir = os.path.join(_GOIO_PATH, 'data', 'datasets', dataset_name, 'GOIO')
+    problems = []
+
+    for exp in range(N_FOLDS):
+        exp_dir = os.path.join(goio_dir, f'exp{exp}')
+        shapes = {}
+        for array_name in ('X_num_train', 'X_cat_train', 'y_train'):
+            path = os.path.join(exp_dir, f'{array_name}.npy')
+            if not os.path.exists(path):
+                problems.append(f'exp{exp}: {array_name}.npy is missing')
+                shapes[array_name] = 'missing'
+                continue
+            array = np.load(path, allow_pickle=True)
+            shapes[array_name] = array.shape
+            # A zero-width X_cat is normal (no categorical columns); zero rows,
+            # or no numeric columns at all, is not.
+            if array.shape[0] == 0:
+                problems.append(f'exp{exp}: {array_name} has 0 rows')
+            elif array_name == 'X_num_train' and array.ndim > 1 and array.shape[1] == 0:
+                problems.append(f'exp{exp}: X_num_train has 0 feature columns')
+
+        print(f"  exp{exp}: " + '  '.join(f'{k}={v}' for k, v in shapes.items()))
+
+    if problems:
+        raise ValueError(
+            f"GOIO's prepared data for '{dataset_name}' is unusable:\n  "
+            + '\n  '.join(problems)
+            + f"\nCheck {os.path.join(goio_dir, 'exp0')} and the column types in "
+              f"{os.path.join(_GOIO_PATH, 'data', 'datasets', dataset_name, dataset_name + '.json')}"
+        )
+
+
 def _build_args(dataset_name, exp, device, dist, proto, kld, condition, max_beta, min_beta, lambd, threshold):
     return argparse.Namespace(
         dataname=dataset_name,
@@ -123,6 +172,8 @@ def run_goio_baseline(data, dataset_name, results_file, categorical_cols=None, d
 
     split_args = argparse.Namespace(dataname=dataset_name)
     Default_processing(split_args)
+
+    _check_prepared_folds(dataset_name)
 
     fold_csvs = []
     true_values = []
