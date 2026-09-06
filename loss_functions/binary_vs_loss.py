@@ -27,10 +27,10 @@ class BinaryVSLoss(nn.Module):
         index = torch.zeros((x.shape[0], 2), dtype=torch.uint8).to(torch.device(self.device))
         softmax_pred = torch.nn.Softmax(dim=-1)(x.to(torch.float64)).to(torch.device(self.device))
         if self.device=='cpu':
-            target = F.one_hot(target, num_classes=num_classes).to(torch.device('cpu')).float()  # Change to float here
+            target = F.one_hot(target).to(torch.device('cpu')).float()  # Change to float here
             index_float = index.type(torch.FloatTensor)
         else:
-            target = F.one_hot(target, num_classes=num_classes).to(torch.device(self.device)).float()  # Change to float here
+            target = F.one_hot(target).to(torch.device(self.device)).float()  # Change to float here
             index_float = index.type(torch.cuda.FloatTensor).to(torch.device(self.device)).float()
         index_float.scatter_(1, target.long(), 1)
         batch_iota = torch.matmul(self.iota_list, index_float.t())

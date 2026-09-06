@@ -26,7 +26,7 @@ class VSLoss(nn.Module):
 
     def forward(self, x, target, features=None):
         softmax_pred = torch.nn.Softmax(dim=-1)(x.to(torch.float64))
-        target = F.one_hot(target, num_classes=num_classes).float()  # Change to float here
+        target = F.one_hot(target).float()  # Change to float here
         output = softmax_pred / self.Delta_list + self.iota_list
         loss = F.cross_entropy(output, target)
         return loss.to(torch.device(self.device))
