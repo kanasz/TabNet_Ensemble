@@ -40,11 +40,11 @@ import math
 import numpy as np
 import logging
 # Keep the import below for registering all model definitions
-from models import ncsnpp_tabular
+from ga_heso_sota_methods.SOS.models import ncsnpp_tabular
 import losses
 import sampling
-from models import utils as mutils
-from models.ema import ExponentialMovingAverage
+from ga_heso_sota_methods.SOS.models import utils as mutils
+from ga_heso_sota_methods.SOS.models.ema import ExponentialMovingAverage
 import datasets
 from torch.utils.data import DataLoader
 import evaluation

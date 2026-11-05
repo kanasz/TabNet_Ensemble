@@ -1,0 +1,4 @@
+# Shell scripts run on the HPC cluster, where CRLF breaks the shebang
+# ("bad interpreter: /bin/bash^M"), so always check them out with LF endings
+# even when the working copy is edited on Windows.
+*.sh text eol=lf

@@ -8,7 +8,11 @@ dict (see ga_cco_tuner.py / ga_dgot_tuner.py / ga_sos_tuner.py / no_ga_goio_runn
 on_stop/run_goio_baseline), with true_values/predicted_values holding one
 array per CV fold. Two directory conventions exist in this repo:
   - results/{cco,dgot,sos}/{method}_{dataset}.txt
-  - predictions/{dataset_folder}/results/goio/goio_{dataset}.txt
+  - predictions/{dataset_folder}/results/{goio,dgot_baseline}/{method}_{dataset}.txt
+
+dgot_baseline (optimization/no_ga_dgot_runner.py) evaluates 5 classifiers x 10
+repeats per fold; its .txt holds only RandomForest's last repeat, so its cell
+is built from the per-fold G-means in {method}_{dataset}_folds.csv instead.
 """
 
 import os
@@ -19,7 +23,10 @@ from imbalanced_ensemble.metrics import geometric_mean_score
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _TOP_LEVEL_METHODS = ['cco', 'dgot', 'sos']
-_METHOD_COLUMN_ORDER = ['cco', 'dgot', 'sos', 'goio']
+_PREDICTIONS_FOLDER_METHODS = ['goio', 'dgot_baseline']
+# Methods whose per-fold G-means are read from {method}_{dataset}_folds.csv.
+_FOLD_CSV_METHODS = {'dgot_baseline'}
+_METHOD_COLUMN_ORDER = ['cco', 'dgot', 'dgot_baseline', 'sos', 'goio']
 
 
 def _parse_result_txt(path):
@@ -69,27 +76,34 @@ def _find_top_level_results():
     return found
 
 
-def _find_goio_results():
+def _find_predictions_folder_results():
     found = []
     predictions_dir = os.path.join(_PROJECT_ROOT, 'predictions')
     if not os.path.isdir(predictions_dir):
         return found
     for ds_folder in os.listdir(predictions_dir):
-        goio_dir = os.path.join(predictions_dir, ds_folder, 'results', 'goio')
-        if not os.path.isdir(goio_dir):
-            continue
-        for fname in os.listdir(goio_dir):
-            if fname.startswith('goio_') and fname.endswith('.txt'):
-                dataset = fname[len('goio_'):-len('.txt')]
-                found.append(('goio', dataset, os.path.join(goio_dir, fname)))
+        for method in _PREDICTIONS_FOLDER_METHODS:
+            method_dir = os.path.join(predictions_dir, ds_folder, 'results', method)
+            if not os.path.isdir(method_dir):
+                continue
+            prefix = f'{method}_'
+            for fname in os.listdir(method_dir):
+                if fname.startswith(prefix) and fname.endswith('.txt'):
+                    dataset = fname[len(prefix):-len('.txt')]
+                    found.append((method, dataset, os.path.join(method_dir, fname)))
     return found
 
 
+def _geometric_means_from_folds_csv(txt_path):
+    folds_csv = txt_path[:-len('.txt')] + '_folds.csv'
+    return pd.read_csv(folds_csv, index_col=0)['gmean'].tolist()
+
+
 def build_summary():
-    all_files = _find_top_level_results() + _find_goio_results()
+    all_files = _find_top_level_results() + _find_predictions_folder_results()
     if not all_files:
         print("No result .txt files found under results/{cco,dgot,sos}/ or "
-              "predictions/*/results/goio/ yet.")
+              "predictions/*/results/{goio,dgot_baseline}/ yet.")
         return pd.DataFrame()
 
     rows = {}
@@ -97,8 +111,10 @@ def build_summary():
     for method, dataset, path in all_files:
         methods_seen.add(method)
         try:
-            data = _parse_result_txt(path)
-            cell = _format_cell(_geometric_means_per_fold(data))
+            if method in _FOLD_CSV_METHODS:
+                cell = _format_cell(_geometric_means_from_folds_csv(path))
+            else:
+                cell = _format_cell(_geometric_means_per_fold(_parse_result_txt(path)))
         except Exception as exc:
             print(f"Failed to parse {path}: {exc}")
             cell = ''

@@ -19,9 +19,9 @@ sys.path.insert(0, _SOS_PATH)
 
 from run_lib       import train as sos_train, make_noise  # noqa: E402
 from datasets      import get_data_inverse_scaler              # noqa: E402
-from models        import utils as mutils                  # noqa: E402
-from models.ema    import ExponentialMovingAverage          # noqa: E402
-from models        import ncsnpp_tabular                   # noqa: E402  registers the model
+from ga_heso_sota_methods.SOS.models        import utils as mutils                  # noqa: E402
+from ga_heso_sota_methods.SOS.models.ema    import ExponentialMovingAverage          # noqa: E402
+from ga_heso_sota_methods.SOS.models        import ncsnpp_tabular                   # noqa: E402  registers the model
 import losses                                              # noqa: E402
 import sampling    as sos_sampling                         # noqa: E402
 import sde_lib                                             # noqa: E402

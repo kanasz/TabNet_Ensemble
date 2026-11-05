@@ -167,3 +167,8 @@ ga_heso_sota_methods/GOIO/ckpt_1_1_1
 ga_heso_sota_methods/GOIO/synthetic
 ga_heso_sota_methods/DGOT/datasets
 ga_heso_sota_methods/DGOT/saved_log
+# DGOT baseline (untouched upstream copy): generated folds and models.
+# Keep upstream's bundled abalone_15 example tracked.
+ga_heso_sota_methods/DGOT_BASELINE/saved_log
+ga_heso_sota_methods/DGOT_BASELINE/datasets/*
+!ga_heso_sota_methods/DGOT_BASELINE/datasets/abalone_15

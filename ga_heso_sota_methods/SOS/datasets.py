@@ -34,7 +34,7 @@
 
 import torch
 import numpy as np
-from models.tabular_utils import GeneralTransformer
+from ga_heso_sota_methods.SOS.models.tabular_utils import GeneralTransformer
 from datasets_tabular import load_data
 
 

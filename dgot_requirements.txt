@@ -1,0 +1,42 @@
+# Packages needed to run the DGOT baseline:
+#   optimization/no_ga_dgot_runner.py
+#   predictions/*/prediction_*_dgot_baseline.py
+#   ga_heso_sota_methods/DGOT_BASELINE (untouched upstream DGOT, commit bb5ea8b)
+#
+# Meant to be installed ON TOP OF the project's conda env (pGnip_TabNet,
+# Python 3.9, see environment.yml), which already has most of these:
+#
+#   conda activate pGnip_TabNet
+#   pip install -r dgot_requirements.txt
+#
+# Ranges, not pins, so pip keeps the versions the env already has whenever
+# they fit and GA-HESO is not disturbed. Upstream's own
+# ga_heso_sota_methods/DGOT_BASELINE/requirements.txt pins older versions
+# (torch 2.0.1, pandas 2.2.2, numpy 1.23.0, ...) and omits einops and pyyaml,
+# which its code imports, so it cannot be installed as-is.
+# Verified 2026-11-05 with a short end-to-end run on torch 2.15 (CPU),
+# pandas 2.3.3, scikit-learn 1.9.1, xgboost 3.4.1.
+
+# --- PyTorch ---------------------------------------------------------------
+# Deliberately NOT upgraded here: the env's CUDA build (torch 1.13.1+cu117)
+# must match the cluster driver. If torch is missing, install a CUDA build
+# first, e.g.
+#   pip install torch --index-url https://download.pytorch.org/whl/cu118
+torch>=1.13
+
+# --- DGOT upstream (train.py, evaluation.py, scripts/, models/) ------------
+einops>=0.6          # models/Generator.py; not in upstream's requirements.txt
+pyyaml>=5.4          # train.py/evaluate_binary.py write/read configs.yaml; not in upstream's requirements.txt
+xgboost>=1.7         # evaluation classifier, imported at module level
+tqdm>=4.66           # progress bars; >=4.66 honours TQDM_MININTERVAL (quieter SLURM logs)
+numpy>=1.23
+# DataFrame._append is used by scripts/evaluate_binary.py and was removed in pandas 3.
+pandas>=2.0,<3
+scikit-learn>=1.2
+
+# --- runner metrics (G-mean) -------------------------------------------------
+imbalanced-learn>=0.10
+
+# --- project code imported by the prediction scripts (base_functions.py) ----
+pytorch-tabnet>=4.0
+imbalanced-ensemble>=0.2

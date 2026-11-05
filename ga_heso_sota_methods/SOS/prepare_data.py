@@ -26,7 +26,7 @@ import os
 import numpy as np
 import torch
 from sklearn.model_selection import StratifiedKFold
-from models.tabular_utils import GeneralTransformer
+from ga_heso_sota_methods.SOS.models.tabular_utils import GeneralTransformer
 from datasets_tabular import load_data
 
 _SOS_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -146,7 +146,12 @@ def get_dataset_noleak(config, uniform_dequantization=False, evaluation=False):
     test_transformed = transformer.transform(np.array(test))
 
     return (
-        np.array(train_major_lst + train_minor_lst),
+        # One entry per class, and the classes have different row counts, so
+        # this is a ragged sequence. numpy < 1.24 (SOS pins 1.23.4) built an
+        # object array here with only a VisibleDeprecationWarning; 1.24+ raises
+        # "setting an array element with a sequence ... inhomogeneous shape".
+        # dtype=object keeps exactly the old behaviour on both.
+        np.array(train_major_lst + train_minor_lst, dtype=object),
         test_transformed,
         (transformer, cols[2]),
         major,
