@@ -17,10 +17,17 @@ dgot_baseline (optimization/no_ga_dgot_runner.py) evaluates 5 classifiers x 10
 repeats per fold; its .txt holds only RandomForest's last repeat, so its cell
 is built from the per-fold values in {method}_{dataset}_folds.csv instead.
 
+goio (optimization/no_ga_goio_runner.py) likewise evaluates 5 classifiers x 10
+repeats per fold, and its .txt holds only RandomForest's last repeat. Its cell
+therefore comes from goio_{dataset}_summary.csv (mean/std across the 5 folds,
+AUC from predict_proba), so goio and dgot_baseline are aggregated the same way.
+That file stores the sample std (ddof=1); it is rescaled to the population std
+used by every other cell. Falls back to the .txt if the summary is missing.
+
 AUC caveat: the .txt files hold only hard 0/1 predictions, so for cco / dgot /
-sos / goio the AUC computed from them is not a curve-based AUC (with hard labels
-it equals balanced accuracy). dgot_baseline's AUC is a real one, computed from
-predict_proba scores by the runner.
+sos the AUC computed from them is not a curve-based AUC (with hard labels it
+equals balanced accuracy). dgot_baseline's and goio's AUCs are real ones,
+computed from predict_proba scores.
 """
 
 import os
@@ -35,6 +42,9 @@ _TOP_LEVEL_METHODS = ['cco', 'dgot', 'sos']
 _PREDICTIONS_FOLDER_METHODS = ['goio', 'dgot_baseline']
 # Methods whose per-fold G-means are read from {method}_{dataset}_folds.csv.
 _FOLD_CSV_METHODS = {'dgot_baseline'}
+# Methods whose mean/std are read from {method}_{dataset}_summary.csv.
+_SUMMARY_CSV_METHODS = {'goio'}
+_N_FOLDS = 5
 _METHOD_COLUMN_ORDER = ['cco', 'dgot', 'dgot_baseline', 'sos', 'goio']
 _OUTPUT_FILES = {
     'gmean': 'aggregated_sota_geometric_means.csv',
@@ -133,6 +143,14 @@ def _metric_per_fold_from_txt(path, metric):
     return _roc_aucs_per_fold(data)
 
 
+def _format_summary_cell(summary_csv, metric):
+    row = pd.read_csv(summary_csv, index_col=0).loc[metric]
+    mean_pct = row['mean_across_folds'] * 100
+    # pandas .std() is ddof=1; convert to np.std's ddof=0 like _format_cell.
+    std_pct = row['std_across_folds'] * np.sqrt((_N_FOLDS - 1) / _N_FOLDS) * 100
+    return f'${mean_pct:.1f}_{{{std_pct:.0f}}}$'
+
+
 def build_summary(metric='gmean'):
     """metric: 'gmean' or 'auc'."""
     if metric not in _OUTPUT_FILES:
@@ -148,8 +166,11 @@ def build_summary(metric='gmean'):
     for method, dataset, path in all_files:
         methods_seen.add(method)
         try:
+            summary_csv = path[:-len('.txt')] + '_summary.csv'
             if method in _FOLD_CSV_METHODS:
                 cell = _format_cell(_metric_from_folds_csv(path, metric))
+            elif method in _SUMMARY_CSV_METHODS and os.path.exists(summary_csv):
+                cell = _format_summary_cell(summary_csv, metric)
             else:
                 cell = _format_cell(_metric_per_fold_from_txt(path, metric))
         except Exception as exc:

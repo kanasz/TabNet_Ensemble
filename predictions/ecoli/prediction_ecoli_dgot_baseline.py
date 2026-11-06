@@ -27,6 +27,13 @@ _CATEGORICAL_COLS = None
 # paper, recorded under deviations_from_paper in each _run_info.json.
 SMALL_DATASET_BATCH_SIZE = 64
 
+# ecoli has 7 features. DGOT's generator halves the feature axis once per
+# ch_mult entry with a size-4 kernel, so the paper's ch_mult=[1, 2, 2] needs
+# >= 8 features (7 -> 3 -> 1 -> crash). Two levels fit: 7 -> 3 -> 1, and the
+# upsampling restores 1 -> 3 -> 7. Passed through DGOT's own --ch_mult flag and
+# recorded as a deviation in each _run_info.json.
+ECOLI_CH_MULT = [1, 2]
+
 
 def __run(data, dataset_name, batch_size=PAPER_BATCH_SIZE):
     start_time = time.time()
@@ -35,6 +42,7 @@ def __run(data, dataset_name, batch_size=PAPER_BATCH_SIZE):
         results_file=os.path.join(_RESULTS_DIR, '{}_{}'.format(METHOD, dataset_name)),
         categorical_cols=_CATEGORICAL_COLS,
         batch_size=batch_size,
+        ch_mult=ECOLI_CH_MULT,
     )
     print("--- {}: {:.0f} seconds ---".format(dataset_name, time.time() - start_time))
 

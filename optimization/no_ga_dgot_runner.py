@@ -107,6 +107,11 @@ N_FOLDS = 5
 # experiments", README).
 PAPER_NUM_EPOCH = 800
 PAPER_BATCH_SIZE = 512
+# The generator (models/Generator.py::Unet) halves the feature axis once per
+# ch_mult entry with Conv1d(kernel 4, stride 2, padding 1), which needs an
+# input of length >= 2 at every step, so feature_len >= 2 ** len(ch_mult).
+# The default [1, 2, 2] therefore needs >= 8 features; ecoli (7) needs [1, 2].
+PAPER_CH_MULT = [1, 2, 2]
 # evaluation.py: --repeats default, the rate hardcoded in validation(), and
 # the module-level seed.
 PAPER_EVAL_REPEATS = 10
@@ -287,7 +292,7 @@ def _fold_shapes(dataset_name, k):
     return y_train, y_test.astype(int)
 
 
-def _train_fold(dataset_name, k, feature_len, num_epoch, batch_size, device):
+def _train_fold(dataset_name, k, feature_len, num_epoch, batch_size, ch_mult, device):
     exp_dir = os.path.join(DGOT_PATH, 'saved_log', 'DGOT', dataset_name, f'exp{k}')
     # train.py only writes netG.pth when the test macro-F1 improves, so a
     # model left over from an earlier run could otherwise be evaluated in
@@ -303,6 +308,8 @@ def _train_fold(dataset_name, k, feature_len, num_epoch, batch_size, device):
         cmd += ['--num_epoch', str(num_epoch)]
     if batch_size != PAPER_BATCH_SIZE:
         cmd += ['--batch_size', str(batch_size)]
+    if list(ch_mult) != PAPER_CH_MULT:
+        cmd += ['--ch_mult', *map(str, ch_mult)]
 
     env = dict(os.environ, PYTHONUNBUFFERED='1')
     # train.py redraws its tqdm bar every iteration; in a SLURM log that is
@@ -389,7 +396,7 @@ def _aggregate(runs):
 
 def run_dgot_baseline(data, dataset_name, results_file, categorical_cols=None,
                       num_epoch=PAPER_NUM_EPOCH, batch_size=PAPER_BATCH_SIZE,
-                      repeats=PAPER_EVAL_REPEATS, resume=True):
+                      repeats=PAPER_EVAL_REPEATS, ch_mult=None, resume=True):
     """Runs the published DGOT pipeline over 5 folds and writes the results.
 
     data              (X_df, y_series) from a base_functions get_*_data().
@@ -397,8 +404,9 @@ def run_dgot_baseline(data, dataset_name, results_file, categorical_cols=None,
     results_file      output path prefix, without extension.
     categorical_cols  names of true categorical columns in data[0] (abalone:
                       ['Sex']); None for purely numeric datasets.
-    num_epoch, batch_size, repeats
-                      paper defaults; anything else is logged as a deviation.
+    num_epoch, batch_size, repeats, ch_mult
+                      paper defaults (ch_mult None = [1, 2, 2]); anything else
+                      is logged as a deviation.
     resume            reuse cached finished folds (see module docstring).
     """
     if dataset_name in _UPSTREAM_EXAMPLE_DATASETS:
@@ -419,6 +427,9 @@ def run_dgot_baseline(data, dataset_name, results_file, categorical_cols=None,
         deviations.append(f'batch_size={batch_size} (paper {PAPER_BATCH_SIZE})')
     if repeats != PAPER_EVAL_REPEATS:
         deviations.append(f'repeats={repeats} (paper {PAPER_EVAL_REPEATS})')
+    ch_mult = list(PAPER_CH_MULT if ch_mult is None else ch_mult)
+    if ch_mult != PAPER_CH_MULT:
+        deviations.append(f'ch_mult={ch_mult} (paper {PAPER_CH_MULT})')
 
     print(f"=== DGOT baseline: {dataset_name} (upstream {UPSTREAM_COMMIT[:7]}, device={device}) ===")
     if deviations:
@@ -428,11 +439,20 @@ def run_dgot_baseline(data, dataset_name, results_file, categorical_cols=None,
     with _inside_dgot():
         _upstream()['dataprocessing'].Default_processing(dataset_name)
     print(f"  {n_rows} rows, feature_len={feature_len}, data sha1={data_sha1[:12]}")
+    min_features = 2 ** len(ch_mult)
+    if feature_len < min_features:
+        raise ValueError(
+            f"{dataset_name}: {feature_len} features, but DGOT's generator with "
+            f"ch_mult={ch_mult} downsamples the feature axis {len(ch_mult)} times and "
+            f"needs at least {min_features}. Pass a shorter ch_mult, e.g. "
+            f"ch_mult={ch_mult[:-1]}.")
 
     cache_key = {
         'upstream_commit': UPSTREAM_COMMIT, 'data_sha1': data_sha1,
         'num_epoch': num_epoch, 'batch_size': batch_size, 'repeats': repeats,
     }
+    if ch_mult != PAPER_CH_MULT:  # keeps existing caches valid for default runs
+        cache_key['ch_mult'] = ch_mult
     cache_dir = os.path.join(DGOT_PATH, 'saved_log', 'runner', dataset_name)
     os.makedirs(cache_dir, exist_ok=True)
 
@@ -471,7 +491,7 @@ def run_dgot_baseline(data, dataset_name, results_file, categorical_cols=None,
             fold = cached
         else:
             t0 = time.time()
-            _train_fold(dataset_name, k, feature_len, num_epoch, batch_size, device)
+            _train_fold(dataset_name, k, feature_len, num_epoch, batch_size, ch_mult, device)
             train_seconds = time.time() - t0
             t0 = time.time()
             rows, y_true, rf_pred = _evaluate_fold(dataset_name, k, repeats, device)
@@ -512,7 +532,7 @@ def run_dgot_baseline(data, dataset_name, results_file, categorical_cols=None,
         'dataset': dataset_name, 'n_rows': n_rows, 'feature_len': feature_len,
         'categorical_cols': categorical_cols or [], 'data_sha1': data_sha1,
         'num_epoch': num_epoch, 'batch_size': batch_size, 'repeats': repeats,
-        'oversample_rate': PAPER_OVERSAMPLE_RATE, 'eval_seed': PAPER_EVAL_SEED,
+        'ch_mult': ch_mult, 'oversample_rate': PAPER_OVERSAMPLE_RATE, 'eval_seed': PAPER_EVAL_SEED,
         'device': device, 'deviations_from_paper': deviations, 'warnings': warnings,
         'folds': fold_info, 'total_seconds': round(time.time() - start, 1),
         'fitness_definition': 'mean G-mean over 5 classifiers x repeats, averaged over 5 folds',
