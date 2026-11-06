@@ -172,3 +172,8 @@ ga_heso_sota_methods/DGOT/saved_log
 ga_heso_sota_methods/DGOT_BASELINE/saved_log
 ga_heso_sota_methods/DGOT_BASELINE/datasets/*
 !ga_heso_sota_methods/DGOT_BASELINE/datasets/abalone_15
+# CCO original (untouched upstream copy): generated per-dataset folders.
+# Keep upstream's bundled dermatology example tracked.
+ga_heso_sota_methods/CCO_ORIGINAL/data/*
+!ga_heso_sota_methods/CCO_ORIGINAL/data/dermatology
+!ga_heso_sota_methods/CCO_ORIGINAL/data/diagram_updated_workflow.png

@@ -1,0 +1,6 @@
+Pytorch==2.1.2+cu121
+Pandas==1.5.3
+Numpy==1.26.3
+Scikit Learn==1.2.2
+Imbalanced Learn=0.10.1
+Matplotlib==3.5.1
