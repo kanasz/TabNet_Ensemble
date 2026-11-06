@@ -45,6 +45,9 @@ _FOLD_CSV_METHODS = {'dgot_baseline', 'cco_original'}
 # Methods whose mean/std are read from {method}_{dataset}_summary.csv.
 _SUMMARY_CSV_METHODS = {'goio'}
 _N_FOLDS = 5
+# .txt files in a method folder that are not result files: cco_original also
+# keeps upstream CCO's raw log as {method}_{dataset}_upstream_TEST.txt.
+_AUXILIARY_TXT_SUFFIXES = ('_upstream_TEST.txt',)
 _METHOD_COLUMN_ORDER = ['cco', 'cco_original', 'dgot', 'dgot_baseline', 'sos', 'goio']
 _OUTPUT_FILES = {
     'gmean': 'aggregated_sota_geometric_means.csv',
@@ -125,7 +128,8 @@ def _find_predictions_folder_results():
                 continue
             prefix = f'{method}_'
             for fname in os.listdir(method_dir):
-                if fname.startswith(prefix) and fname.endswith('.txt'):
+                if (fname.startswith(prefix) and fname.endswith('.txt')
+                        and not fname.endswith(_AUXILIARY_TXT_SUFFIXES)):
                     dataset = fname[len(prefix):-len('.txt')]
                     found.append((method, dataset, os.path.join(method_dir, fname)))
     return found
