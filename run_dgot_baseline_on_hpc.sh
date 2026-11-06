@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --job-name=dgot-baseline
-#SBATCH --partition=gpu_short
+#SBATCH --partition=gpu_long
 #SBATCH --gres=gpu:1
 #SBATCH --nodes=1
 #SBATCH --ntasks=1

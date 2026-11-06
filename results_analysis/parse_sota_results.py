@@ -1,7 +1,10 @@
 """
 Parses the .txt result files written by the CCO/DGOT/SOS/GOIO baseline
-tuners/runners and aggregates them into one gmean summary table, matching
-the $mean%_{std%}$ cell format used in results_aggregation/aggregated_real_data_gmeans.csv.
+tuners/runners and aggregates them into a G-mean and a ROC AUC summary table,
+matching the $mean%_{std%}$ cell format used in
+results_aggregation/aggregated_real_data_gmeans.csv:
+  results_aggregation/aggregated_sota_geometric_means.csv
+  results_aggregation/aggregated_sota_roc_auc.csv
 
 Each .txt is a str()-dumped {'fitness', 'true_values', 'predicted_values'}
 dict (see ga_cco_tuner.py / ga_dgot_tuner.py / ga_sos_tuner.py / no_ga_goio_runner.py
@@ -12,7 +15,12 @@ array per CV fold. Two directory conventions exist in this repo:
 
 dgot_baseline (optimization/no_ga_dgot_runner.py) evaluates 5 classifiers x 10
 repeats per fold; its .txt holds only RandomForest's last repeat, so its cell
-is built from the per-fold G-means in {method}_{dataset}_folds.csv instead.
+is built from the per-fold values in {method}_{dataset}_folds.csv instead.
+
+AUC caveat: the .txt files hold only hard 0/1 predictions, so for cco / dgot /
+sos / goio the AUC computed from them is not a curve-based AUC (with hard labels
+it equals balanced accuracy). dgot_baseline's AUC is a real one, computed from
+predict_proba scores by the runner.
 """
 
 import os
@@ -20,6 +28,7 @@ import os
 import numpy as np
 import pandas as pd
 from imbalanced_ensemble.metrics import geometric_mean_score
+from sklearn.metrics import roc_auc_score
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _TOP_LEVEL_METHODS = ['cco', 'dgot', 'sos']
@@ -27,6 +36,10 @@ _PREDICTIONS_FOLDER_METHODS = ['goio', 'dgot_baseline']
 # Methods whose per-fold G-means are read from {method}_{dataset}_folds.csv.
 _FOLD_CSV_METHODS = {'dgot_baseline'}
 _METHOD_COLUMN_ORDER = ['cco', 'dgot', 'dgot_baseline', 'sos', 'goio']
+_OUTPUT_FILES = {
+    'gmean': 'aggregated_sota_geometric_means.csv',
+    'auc': 'aggregated_sota_roc_auc.csv',
+}
 
 
 def _parse_result_txt(path):
@@ -54,11 +67,25 @@ def _geometric_means_per_fold(data):
     ]
 
 
-def _format_cell(geometric_means):
-    if not geometric_means:
+def _roc_aucs_per_fold(data):
+    if data.get('true_values') is None:
+        return None
+    aucs = []
+    for true_values, predicted in zip(data['true_values'], data['predicted_values']):
+        # A fold whose test part holds one class only has no defined AUC.
+        if len(np.unique(true_values)) == 2:
+            aucs.append(roc_auc_score(true_values, predicted))
+    return aucs
+
+
+def _format_cell(values):
+    if values is None:
         return ''
-    mean_pct = np.mean(geometric_means) * 100
-    std_pct = np.std(geometric_means) * 100
+    values = [v for v in values if not np.isnan(v)]
+    if not values:
+        return ''
+    mean_pct = np.mean(values) * 100
+    std_pct = np.std(values) * 100
     return f'${mean_pct:.1f}_{{{std_pct:.0f}}}$'
 
 
@@ -94,12 +121,22 @@ def _find_predictions_folder_results():
     return found
 
 
-def _geometric_means_from_folds_csv(txt_path):
+def _metric_from_folds_csv(txt_path, metric):
     folds_csv = txt_path[:-len('.txt')] + '_folds.csv'
-    return pd.read_csv(folds_csv, index_col=0)['gmean'].tolist()
+    return pd.read_csv(folds_csv, index_col=0)[metric].tolist()
 
 
-def build_summary():
+def _metric_per_fold_from_txt(path, metric):
+    data = _parse_result_txt(path)
+    if metric == 'gmean':
+        return _geometric_means_per_fold(data)
+    return _roc_aucs_per_fold(data)
+
+
+def build_summary(metric='gmean'):
+    """metric: 'gmean' or 'auc'."""
+    if metric not in _OUTPUT_FILES:
+        raise ValueError(f"metric must be one of {sorted(_OUTPUT_FILES)}")
     all_files = _find_top_level_results() + _find_predictions_folder_results()
     if not all_files:
         print("No result .txt files found under results/{cco,dgot,sos}/ or "
@@ -112,9 +149,9 @@ def build_summary():
         methods_seen.add(method)
         try:
             if method in _FOLD_CSV_METHODS:
-                cell = _format_cell(_geometric_means_from_folds_csv(path))
+                cell = _format_cell(_metric_from_folds_csv(path, metric))
             else:
-                cell = _format_cell(_geometric_means_per_fold(_parse_result_txt(path)))
+                cell = _format_cell(_metric_per_fold_from_txt(path, metric))
         except Exception as exc:
             print(f"Failed to parse {path}: {exc}")
             cell = ''
@@ -128,11 +165,14 @@ def build_summary():
 
 
 if __name__ == '__main__':
-    summary = build_summary()
-    if not summary.empty:
-        out_dir = os.path.join(_PROJECT_ROOT, 'results_aggregation')
+    out_dir = os.path.join(_PROJECT_ROOT, 'results_aggregation')
+    for metric, file_name in _OUTPUT_FILES.items():
+        summary = build_summary(metric)
+        if summary.empty:
+            continue
         os.makedirs(out_dir, exist_ok=True)
-        out_path = os.path.join(out_dir, 'aggregated_sota_geometric_means.csv')
+        out_path = os.path.join(out_dir, file_name)
         summary.to_csv(out_path)
+        print(f"\n=== {metric} ===")
         print(summary)
-        print(f"\nSaved summary to {out_path}")
+        print(f"Saved summary to {out_path}")
