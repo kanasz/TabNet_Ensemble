@@ -177,3 +177,11 @@ ga_heso_sota_methods/DGOT_BASELINE/datasets/*
 ga_heso_sota_methods/CCO_ORIGINAL/data/*
 !ga_heso_sota_methods/CCO_ORIGINAL/data/dermatology
 !ga_heso_sota_methods/CCO_ORIGINAL/data/diagram_updated_workflow.png
+# SOS original (untouched upstream copy): per-run work dirs and generated
+# per-fold datasets. Keep upstream's bundled example datasets tracked.
+ga_heso_sota_methods/SOS_ORIGINAL/runs
+ga_heso_sota_methods/SOS_ORIGINAL/tabular_datasets/*
+!ga_heso_sota_methods/SOS_ORIGINAL/tabular_datasets/default.*
+!ga_heso_sota_methods/SOS_ORIGINAL/tabular_datasets/satimage.*
+!ga_heso_sota_methods/SOS_ORIGINAL/tabular_datasets/shoppers.*
+!ga_heso_sota_methods/SOS_ORIGINAL/tabular_datasets/weatherAUS.*

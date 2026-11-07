@@ -11,7 +11,7 @@ dict (see ga_cco_tuner.py / ga_dgot_tuner.py / ga_sos_tuner.py / no_ga_goio_runn
 on_stop/run_goio_baseline), with true_values/predicted_values holding one
 array per CV fold. Two directory conventions exist in this repo:
   - results/{cco,dgot,sos}/{method}_{dataset}.txt
-  - predictions/{dataset_folder}/results/{goio,dgot_baseline,cco_original}/{method}_{dataset}.txt
+  - predictions/{dataset_folder}/results/{goio,dgot_baseline,cco_original,sos_original}/{method}_{dataset}.txt
 
 dgot_baseline (optimization/no_ga_dgot_runner.py) evaluates 5 classifiers x 10
 repeats per fold; its .txt holds only RandomForest's last repeat, so its cell
@@ -39,16 +39,16 @@ from sklearn.metrics import roc_auc_score
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _TOP_LEVEL_METHODS = ['cco', 'dgot', 'sos']
-_PREDICTIONS_FOLDER_METHODS = ['goio', 'dgot_baseline', 'cco_original']
+_PREDICTIONS_FOLDER_METHODS = ['goio', 'dgot_baseline', 'cco_original', 'sos_original']
 # Methods whose per-fold G-means are read from {method}_{dataset}_folds.csv.
-_FOLD_CSV_METHODS = {'dgot_baseline', 'cco_original'}
+_FOLD_CSV_METHODS = {'dgot_baseline', 'cco_original', 'sos_original'}
 # Methods whose mean/std are read from {method}_{dataset}_summary.csv.
 _SUMMARY_CSV_METHODS = {'goio'}
 _N_FOLDS = 5
 # .txt files in a method folder that are not result files: cco_original also
 # keeps upstream CCO's raw log as {method}_{dataset}_upstream_TEST.txt.
 _AUXILIARY_TXT_SUFFIXES = ('_upstream_TEST.txt',)
-_METHOD_COLUMN_ORDER = ['cco', 'cco_original', 'dgot', 'dgot_baseline', 'sos', 'goio']
+_METHOD_COLUMN_ORDER = ['cco', 'cco_original', 'dgot', 'dgot_baseline', 'sos', 'sos_original', 'goio']
 _OUTPUT_FILES = {
     'gmean': 'aggregated_sota_geometric_means.csv',
     'auc': 'aggregated_sota_roc_auc.csv',
@@ -162,7 +162,7 @@ def build_summary(metric='gmean'):
     all_files = _find_top_level_results() + _find_predictions_folder_results()
     if not all_files:
         print("No result .txt files found under results/{cco,dgot,sos}/ or "
-              "predictions/*/results/{goio,dgot_baseline,cco_original}/ yet.")
+              "predictions/*/results/{goio,dgot_baseline,cco_original,sos_original}/ yet.")
         return pd.DataFrame()
 
     rows = {}
