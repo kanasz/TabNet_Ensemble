@@ -185,3 +185,10 @@ ga_heso_sota_methods/SOS_ORIGINAL/tabular_datasets/*
 !ga_heso_sota_methods/SOS_ORIGINAL/tabular_datasets/satimage.*
 !ga_heso_sota_methods/SOS_ORIGINAL/tabular_datasets/shoppers.*
 !ga_heso_sota_methods/SOS_ORIGINAL/tabular_datasets/weatherAUS.*
+# GOIO original (untouched upstream copy): generated per-dataset folds,
+# checkpoints, synthetic data and evaluation outputs. Keep upstream's bundled
+# abalone_15 example tracked.
+ga_heso_sota_methods/GOIO_ORIGINAL/data/datasets/*
+!ga_heso_sota_methods/GOIO_ORIGINAL/data/datasets/abalone_15
+ga_heso_sota_methods/GOIO_ORIGINAL/ckpt_*
+ga_heso_sota_methods/GOIO_ORIGINAL/synthetic
