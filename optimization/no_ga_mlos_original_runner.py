@@ -38,9 +38,21 @@ _runs.csv / _run_info.json ('mlos_branch'):
                            upstream returns the data unchanged, no oversampling
   - 'singular_covariance'  np.linalg.inv raised on the majority covariance:
                            upstream adds minority copies with Gaussian noise
-Upstream's _msqrt uses np.linalg.eig, which can return a complex array with
-zero imaginary parts; such output is cast to real (recorded). Any real
-imaginary part or NaN in MLOS's output stops the run.
+
+Singularity test. Upstream relies on np.linalg.inv raising for a singular
+majority covariance. It only does so on an exact zero pivot, so a covariance
+that is singular up to rounding (a feature that is constant within the
+majority of a training fold, e.g. ecoli's 'Chg') is "inverted" into garbage;
+_msqrt's np.linalg.eig then returns complex values and upstream crashes in its
+own NearestNeighbors call - and whether inv raises depends on the BLAS build,
+so the same fold crashed on one machine and not on another. Inside MLOS.py,
+np.linalg.inv therefore treats a matrix with condition number > 1/eps (the
+standard numerical-rank criterion) as singular, so upstream takes its own
+'singular_covariance' branch for such folds, identically on every platform.
+MLOS.py itself is not edited; well-conditioned folds are unaffected.
+Upstream's _msqrt can still return a complex array with zero imaginary parts;
+such output is cast to real (recorded). Any real imaginary part or NaN in
+MLOS's output stops the run.
 
 Outputs (results_file is an absolute or caller-relative path prefix):
   {results_file}.txt                {'fitness', 'true_values', 'predicted_values'}:
@@ -61,6 +73,7 @@ import os
 import random
 import sys
 import time
+import types
 
 os.environ.setdefault('MPLBACKEND', 'Agg')   # MLOS.py imports pyplot at module level
 
@@ -95,14 +108,37 @@ METRICS = ['accuracy', 'balanced_accuracy', 'macro_f1', 'mcc', 'gmean', 'auc']
 _mlos_module = None
 
 
+SINGULAR_COND = 1.0 / np.finfo(float).eps
+
+
+def _numerically_singular_inv(upstream_inv):
+    """np.linalg.inv that raises for numerically singular matrices, not only
+    for an exact zero pivot (see the module docstring)."""
+    def inv(a):
+        a = np.asarray(a)
+        if a.ndim == 2 and np.isrealobj(a) and np.linalg.cond(a) > SINGULAR_COND:
+            raise np.linalg.LinAlgError('Singular matrix (condition number > 1/eps)')
+        return upstream_inv(a)
+    return inv
+
+
 def load_mlos():
-    """The upstream MLOS.py module, loaded from MLOS_ORIGINAL by file path."""
+    """The upstream MLOS.py module, loaded from MLOS_ORIGINAL by file path.
+    Its `np` is numpy with np.linalg.inv replaced as described above."""
     global _mlos_module
     if _mlos_module is None:
         path = os.path.join(MLOS_PATH, 'MLOS.py')
         spec = importlib.util.spec_from_file_location('MLOS', path)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
+        linalg = types.ModuleType('numpy_linalg_mlos')
+        linalg.__dict__.update({k: getattr(np.linalg, k) for k in dir(np.linalg)
+                                if not k.startswith('__')})
+        linalg.inv = _numerically_singular_inv(np.linalg.inv)
+        numpy_proxy = types.ModuleType('numpy_mlos')
+        numpy_proxy.__dict__.update({k: getattr(np, k) for k in dir(np) if not k.startswith('__')})
+        numpy_proxy.linalg = linalg
+        module.np = numpy_proxy
         _mlos_module = module
     return _mlos_module
 
@@ -271,6 +307,9 @@ def run_mlos_original(data, dataset_name, results_file, categorical_cols=None,
         'dataset': dataset_name, 'n_rows': int(len(y)), 'n_features': int(x.shape[1]),
         'categorical_cols': list(categorical_cols or []), 'minority_label': minority,
         'mlos_branch_counts': all_branches,
+        'singularity_test': 'np.linalg.inv inside MLOS.py raises when cond > 1/eps, so '
+                            "numerically singular majority covariances take upstream's "
+                            "'singular_covariance' branch",
         'evaluation': {'classifiers': [n for n, _ in CLASSIFIERS], 'repeats_per_fold': n_repeats,
                        'scaling': '[-1, 1] min/max of the original training fold',
                        'split': f'StratifiedKFold({N_FOLDS}, shuffle=True, '
