@@ -4,8 +4,7 @@ Fixed-baseline (no GA) runner for SOS, run the way the authors designed it.
 SOS ("SOS: Score-based Oversampling for Tabular Data", KDD 2022,
 https://github.com/JayoungKim408/SOS) is driven through its own main.py from
 an untouched vendored copy in ga_heso_sota_methods/SOS_ORIGINAL (upstream
-commit UPSTREAM_COMMIT). Nothing in that directory is edited. The project's
-other copy, ga_heso_sota_methods/SOS, is the GA-adapted variant and is not used.
+commit UPSTREAM_COMMIT). Nothing in that directory is edited.
 
 Per fold this runs exactly upstream's run.sh:
 

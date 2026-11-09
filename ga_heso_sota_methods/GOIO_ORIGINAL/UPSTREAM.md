@@ -14,9 +14,7 @@ Do not edit anything in this directory except this file. It is driven by
     python main.py --dataname <name> --method CLDM  --mode sample --exp <k>
     python main.py --dataname <name> --method CLDM  --mode eval   --exp <k>
 
-with all of upstream's default arguments. The project's other copy,
-`ga_heso_sota_methods/GOIO`, has rewritten imports and an edited
-`CLDM/evaluation.py` and is not used by the original-way baseline.
+with all of upstream's default arguments.
 
 Generated at run time (gitignored): `data/datasets/<name>/` (the csv and
 upstream's CLASSIC/SOS/TEST/GOIO fold folders), `ckpt_1_1_1/<name>/exp<k>/`

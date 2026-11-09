@@ -5,9 +5,7 @@ CCO ("A Cluster Core-based Oversampling Technique for Improved
 Class-Imbalanced Learning", https://github.com/priyomondal/CCO) is driven
 through its own main.py::main(), from an untouched vendored copy in
 ga_heso_sota_methods/CCO_ORIGINAL (upstream commit UPSTREAM_COMMIT). Nothing
-in that directory is edited. Unlike optimization/no_ga_cco_runner.py, which
-re-implements CCO's training loop, this runner executes upstream's whole
-pipeline:
+in that directory is edited. This runner executes upstream's whole pipeline:
 
   load_data()   torch.load(PATH/X, PATH/Y), MinMax over the full dataset,
                 StratifiedKFold(5, shuffle=True, random_state=state)
@@ -45,8 +43,7 @@ knowing when using CCO as a baseline:
     split, so the scores are optimistic;
   - load_data() MinMax-scales the whole dataset before splitting (then each
     split is rescaled on its training part).
-optimization/no_ga_cco_runner.py offers leakage-free switches for both; this
-runner deliberately does not.
+This runner deliberately keeps both as upstream has them.
 
 Outputs (results_file is an absolute or caller-relative path prefix):
   {results_file}.txt                {'fitness', 'true_values', 'predicted_values'}:
@@ -82,9 +79,8 @@ _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CCO_PATH = os.path.join(_PROJECT_ROOT, 'ga_heso_sota_methods', 'CCO_ORIGINAL')
 UPSTREAM_COMMIT = '8064bca3b20a18d971be84ce44973d8546595d42'
 
-# The README gives no default values. These are the ones the project's existing
-# CCO baseline (predictions/*/prediction_*_cco_baseline.py) uses, kept the
-# same so the two CCO runs are comparable.
+# The README gives no default values; these are the values used for all
+# cco_original runs.
 DEFAULT_K = 0.3
 DEFAULT_BETA = 0.5
 DEFAULT_T = 0.5

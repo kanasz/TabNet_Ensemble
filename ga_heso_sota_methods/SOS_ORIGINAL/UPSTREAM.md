@@ -8,8 +8,7 @@ Do not edit anything in this directory except this file. It is driven by
 `optimization/no_ga_sos_original_runner.py`, which runs upstream's own
 `main.py` per fold exactly as `run.sh` does (`--mode train`, then
 `--mode fine_tune`) with upstream's `configs/ve/default.py`, setting only the
-dataset name and `image_size`. The GA-adapted variant lives in
-`ga_heso_sota_methods/SOS`.
+dataset name and `image_size`.
 
 Upstream pins numpy 1.23, pandas 1.5, torch 1.12 and pomegranate 0.14. The
 runner restores that behaviour at runtime where the installed versions differ

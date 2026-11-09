@@ -7,7 +7,7 @@ cloned 2026-11-05 with its `.git` removed. Byte-identical to
 
 Do not edit anything in this directory except this file. It is driven by
 `optimization/no_ga_dgot_runner.py` (published pipeline, paper defaults, no
-GA). The GA-adapted variant lives in `ga_heso_sota_methods/DGOT`.
+GA).
 
 Generated at run time (gitignored): `datasets/<name>/` for project datasets,
 `saved_log/DGOT/<name>/exp<k>/` (configs.yaml, netG.pth),

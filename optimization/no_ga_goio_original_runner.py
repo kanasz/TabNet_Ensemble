@@ -4,9 +4,7 @@ Fixed-baseline (no GA) runner for GOIO, run the way the authors designed it.
 GOIO ("GOIO: Generative Oversampling Approach to Class Imbalance and Overlap
 of Tabular Data", https://github.com/MLneuers/GOIO) is driven through its own
 main.py from an untouched vendored copy in ga_heso_sota_methods/GOIO_ORIGINAL
-(upstream commit UPSTREAM_COMMIT). Nothing in that directory is edited. The
-project's other copy, ga_heso_sota_methods/GOIO, has rewritten imports and an
-edited CLDM/evaluation.py and is not used here.
+(upstream commit UPSTREAM_COMMIT). Nothing in that directory is edited.
 
 Per dataset this runs exactly the README's commands, with all of upstream's
 default arguments:

@@ -4,8 +4,7 @@ Fixed-baseline (no GA) runner for DGOT, reusable across datasets.
 DGOT ("Diffusion GAN-based Oversampling for Imbalanced Tabular Data",
 https://github.com/MLneuers/DGOT) is run exactly as its README describes,
 from an untouched vendored copy in ga_heso_sota_methods/DGOT_BASELINE
-(upstream commit UPSTREAM_COMMIT). Nothing in that directory is edited. The
-GA-adapted copy in ga_heso_sota_methods/DGOT is not used here.
+(upstream commit UPSTREAM_COMMIT). Nothing in that directory is edited.
 
 The published pipeline, step by step:
 
