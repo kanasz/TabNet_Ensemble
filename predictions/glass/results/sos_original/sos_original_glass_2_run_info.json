@@ -1,0 +1,70 @@
+{
+  "method": "SOS (upstream main.py train + fine_tune, no hyperparameter search)",
+  "upstream": "https://github.com/JayoungKim408/SOS",
+  "upstream_commit": "f1b450cf199d5e0013b401e380008446ef8757f7",
+  "dataset": "glass_2",
+  "n_rows": 214,
+  "n_features": 9,
+  "categorical_cols": [],
+  "image_size": 11,
+  "config_template": "configs/ve/default.py",
+  "deviations_from_upstream": {},
+  "compat_shims": [
+    "numpy 1.26.4: ragged np.array -> object array in datasets.py",
+    "pandas 2.3.3: groupby().mean(numeric_only=True)",
+    "pomegranate: stub BayesianNetwork (imported, never used)",
+    "torch 2.6.0+cu124: torch.load(weights_only=False), the pre-2.6 default (upstream checkpoints hold numpy scalars)"
+  ],
+  "labels_swapped_for_sos": false,
+  "dropped_constant_columns": [],
+  "folds_run": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "reported": "phase 'after' fine-tuning, variant 'z_major', mean over DecisionTree/AdaBoost/LogisticRegression/MLP x 5 repeats per fold",
+  "protocol_notes": [
+    "checkpoint selected by macro-F1 on the TEST split (upstream)",
+    "GeneralTransformer fitted on train+test (upstream)"
+  ],
+  "folds": [
+    {
+      "exp": 0,
+      "n_train": 171,
+      "n_test": 43,
+      "train_seconds": 179.1,
+      "fine_tune_seconds": 69.5
+    },
+    {
+      "exp": 1,
+      "n_train": 171,
+      "n_test": 43,
+      "train_seconds": 199.9,
+      "fine_tune_seconds": 48.9
+    },
+    {
+      "exp": 2,
+      "n_train": 171,
+      "n_test": 43,
+      "train_seconds": 195.0,
+      "fine_tune_seconds": 41.1
+    },
+    {
+      "exp": 3,
+      "n_train": 171,
+      "n_test": 43,
+      "train_seconds": 210.3,
+      "fine_tune_seconds": 21.5
+    },
+    {
+      "exp": 4,
+      "n_train": 172,
+      "n_test": 42,
+      "train_seconds": 200.3,
+      "fine_tune_seconds": 30.5
+    }
+  ],
+  "total_seconds": 1197.2
+}

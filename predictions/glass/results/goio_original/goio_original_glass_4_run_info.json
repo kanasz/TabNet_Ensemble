@@ -1,0 +1,97 @@
+{
+  "method": "GOIO (upstream main.py split, MLVAE/CLDM train, sample, eval; no hyperparameter search)",
+  "upstream": "https://github.com/MLneuers/GOIO",
+  "upstream_commit": "4551ca6164f86c3f7c8964fe935713c5ea6862cf",
+  "dataset": "glass_4",
+  "n_rows": 214,
+  "n_features": 9,
+  "categorical_cols": [],
+  "upstream_column_types": {
+    "continuous": [
+      "X0",
+      "X1",
+      "X2",
+      "X3",
+      "X4",
+      "X5",
+      "X6",
+      "X7",
+      "X8"
+    ],
+    "ordinal": [],
+    "categorical": []
+  },
+  "arguments": "upstream defaults (utils.get_args)",
+  "deviations_from_upstream": {},
+  "compat_shims": [],
+  "labels_swapped_for_goio": false,
+  "folds_run": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "reported": "mean over GaussianNB/DecisionTree/SVC/RandomForest/KNN x 10 repeats per fold (upstream eval); AUC from predict_proba, SVC decision_function",
+  "protocol_notes": [
+    "MLVAE checkpoint selected by reconstruction loss on the TEST fold (upstream)"
+  ],
+  "folds": [
+    {
+      "exp": 0,
+      "n_train": 171,
+      "n_test": 43,
+      "seconds": {
+        "MLVAE_train": 70.4,
+        "CLDM_train": 9.3,
+        "CLDM_sample": 4.5,
+        "CLDM_eval": 4.3
+      }
+    },
+    {
+      "exp": 1,
+      "n_train": 171,
+      "n_test": 43,
+      "seconds": {
+        "MLVAE_train": 70.3,
+        "CLDM_train": 10.4,
+        "CLDM_sample": 4.1,
+        "CLDM_eval": 4.3
+      }
+    },
+    {
+      "exp": 2,
+      "n_train": 171,
+      "n_test": 43,
+      "seconds": {
+        "MLVAE_train": 73.1,
+        "CLDM_train": 10.4,
+        "CLDM_sample": 4.0,
+        "CLDM_eval": 5.5
+      }
+    },
+    {
+      "exp": 3,
+      "n_train": 171,
+      "n_test": 43,
+      "seconds": {
+        "MLVAE_train": 72.5,
+        "CLDM_train": 11.0,
+        "CLDM_sample": 4.1,
+        "CLDM_eval": 4.3
+      }
+    },
+    {
+      "exp": 4,
+      "n_train": 172,
+      "n_test": 42,
+      "seconds": {
+        "MLVAE_train": 69.7,
+        "CLDM_train": 10.2,
+        "CLDM_sample": 4.1,
+        "CLDM_eval": 4.3
+      }
+    }
+  ],
+  "total_seconds": 455.1
+}

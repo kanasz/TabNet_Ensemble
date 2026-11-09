@@ -1,0 +1,62 @@
+{
+  "method": "DGOT (published pipeline, no hyperparameter search)",
+  "upstream": "https://github.com/MLneuers/DGOT",
+  "upstream_commit": "bb5ea8b54d8c005ef4651cc17110e034d6bfab77",
+  "dataset": "wine_white_3_vs_7",
+  "n_rows": 900,
+  "feature_len": 11,
+  "categorical_cols": [],
+  "data_sha1": "82c29f3026cfe1dcc192d079e011a1f26d3fa70d",
+  "num_epoch": 800,
+  "batch_size": 512,
+  "repeats": 10,
+  "oversample_rate": 1.2,
+  "eval_seed": 666,
+  "device": "cuda:0",
+  "deviations_from_paper": [],
+  "warnings": [],
+  "folds": [
+    {
+      "exp": 0,
+      "n_train": 720,
+      "n_test": 180,
+      "steps_per_epoch": 1,
+      "train_seconds": 157.0,
+      "eval_seconds": 3.2
+    },
+    {
+      "exp": 1,
+      "n_train": 720,
+      "n_test": 180,
+      "steps_per_epoch": 1,
+      "train_seconds": 150.5,
+      "eval_seconds": 3.6
+    },
+    {
+      "exp": 2,
+      "n_train": 720,
+      "n_test": 180,
+      "steps_per_epoch": 1,
+      "train_seconds": 152.0,
+      "eval_seconds": 3.5
+    },
+    {
+      "exp": 3,
+      "n_train": 720,
+      "n_test": 180,
+      "steps_per_epoch": 1,
+      "train_seconds": 152.3,
+      "eval_seconds": 3.1
+    },
+    {
+      "exp": 4,
+      "n_train": 720,
+      "n_test": 180,
+      "steps_per_epoch": 1,
+      "train_seconds": 153.7,
+      "eval_seconds": 3.2
+    }
+  ],
+  "total_seconds": 782.5,
+  "fitness_definition": "mean G-mean over 5 classifiers x repeats, averaged over 5 folds"
+}

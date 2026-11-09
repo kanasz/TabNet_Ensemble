@@ -1,0 +1,30 @@
+{
+  "method": "CCO (upstream main.py pipeline, no hyperparameter search)",
+  "upstream": "https://github.com/priyomondal/CCO",
+  "upstream_commit": "8064bca3b20a18d971be84ce44973d8546595d42",
+  "dataset": "ecoli_0_4_6_vs_5",
+  "n_rows": 203,
+  "n_features": 6,
+  "n_classes": 2,
+  "categorical_cols": [],
+  "main_py_args": {
+    "k": 0.3,
+    "D": 6.0,
+    "beta": 0.5,
+    "t": 0.5,
+    "batch_size": 32,
+    "num_workers": 0,
+    "epochs": 100,
+    "state": 42,
+    "split_no": 5
+  },
+  "adaptations": [
+    "Net input width 6 (upstream 34), output width 2 (upstream 6); hidden layers unchanged"
+  ],
+  "protocol_notes": [
+    "epoch selected by best TEST balanced accuracy (upstream)",
+    "MinMax over the full dataset before splitting (upstream)"
+  ],
+  "device": "cuda",
+  "total_seconds": 39.5
+}

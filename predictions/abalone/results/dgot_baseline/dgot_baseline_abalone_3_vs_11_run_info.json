@@ -1,0 +1,66 @@
+{
+  "method": "DGOT (published pipeline, no hyperparameter search)",
+  "upstream": "https://github.com/MLneuers/DGOT",
+  "upstream_commit": "bb5ea8b54d8c005ef4651cc17110e034d6bfab77",
+  "dataset": "abalone_3_vs_11",
+  "n_rows": 502,
+  "feature_len": 8,
+  "categorical_cols": [
+    "Sex"
+  ],
+  "data_sha1": "5a96d5c745961be7e2972f4281debc7713b508c6",
+  "num_epoch": 800,
+  "batch_size": 64,
+  "repeats": 10,
+  "oversample_rate": 1.2,
+  "eval_seed": 666,
+  "device": "cuda:0",
+  "deviations_from_paper": [
+    "batch_size=64 (paper 512)"
+  ],
+  "warnings": [],
+  "folds": [
+    {
+      "exp": 0,
+      "n_train": 401,
+      "n_test": 101,
+      "steps_per_epoch": 6,
+      "train_seconds": 209.4,
+      "eval_seconds": 2.3
+    },
+    {
+      "exp": 1,
+      "n_train": 401,
+      "n_test": 101,
+      "steps_per_epoch": 6,
+      "train_seconds": 225.2,
+      "eval_seconds": 2.3
+    },
+    {
+      "exp": 2,
+      "n_train": 402,
+      "n_test": 100,
+      "steps_per_epoch": 6,
+      "train_seconds": 221.3,
+      "eval_seconds": 2.2
+    },
+    {
+      "exp": 3,
+      "n_train": 402,
+      "n_test": 100,
+      "steps_per_epoch": 6,
+      "train_seconds": 215.8,
+      "eval_seconds": 2.2
+    },
+    {
+      "exp": 4,
+      "n_train": 402,
+      "n_test": 100,
+      "steps_per_epoch": 6,
+      "train_seconds": 210.9,
+      "eval_seconds": 2.2
+    }
+  ],
+  "total_seconds": 1094.1,
+  "fitness_definition": "mean G-mean over 5 classifiers x repeats, averaged over 5 folds"
+}

@@ -1,0 +1,147 @@
+{
+  "method": "MLOS (upstream MLOS.fit_Sample, len=1, numSamples = n_maj - n_min; no hyperparameter search)",
+  "upstream": "https://github.com/ytyancp/MLOS",
+  "upstream_commit": "2f0a4b0ccbcbbd308faf6a20e28d67b2d79b6cb4",
+  "upstream_parameters": {
+    "k": 5,
+    "aer": -0.5,
+    "len": 1
+  },
+  "dataset": "glass_0_1_6_vs_5",
+  "n_rows": 184,
+  "n_features": 9,
+  "categorical_cols": [],
+  "minority_label": 1,
+  "mlos_branch_counts": {
+    "mlos": 50
+  },
+  "evaluation": {
+    "classifiers": [
+      "GaussianNB",
+      "DecisionTreeClassifier",
+      "SVC",
+      "RandomForestClassifier",
+      "KNeighborsClassifier"
+    ],
+    "repeats_per_fold": 10,
+    "scaling": "[-1, 1] min/max of the original training fold",
+    "split": "StratifiedKFold(5, shuffle=True, random_state=42)",
+    "note": "upstream defines no evaluation protocol; same for all datasets"
+  },
+  "folds_run": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "reported": "mean over GaussianNB/DecisionTree/SVC/RandomForest/KNN x repeats per fold; AUC from predict_proba, SVC decision_function",
+  "folds": [
+    {
+      "exp": 0,
+      "n_train": 147,
+      "n_test": 37,
+      "mlos_branches": {
+        "mlos": 10
+      },
+      "n_synthetic": [
+        133,
+        133,
+        133,
+        133,
+        133,
+        133,
+        133,
+        133,
+        133,
+        133
+      ],
+      "seconds": 1.0
+    },
+    {
+      "exp": 1,
+      "n_train": 147,
+      "n_test": 37,
+      "mlos_branches": {
+        "mlos": 10
+      },
+      "n_synthetic": [
+        133,
+        133,
+        133,
+        133,
+        133,
+        133,
+        133,
+        133,
+        133,
+        133
+      ],
+      "seconds": 0.9
+    },
+    {
+      "exp": 2,
+      "n_train": 147,
+      "n_test": 37,
+      "mlos_branches": {
+        "mlos": 10
+      },
+      "n_synthetic": [
+        133,
+        133,
+        133,
+        133,
+        133,
+        133,
+        133,
+        133,
+        133,
+        133
+      ],
+      "seconds": 1.0
+    },
+    {
+      "exp": 3,
+      "n_train": 147,
+      "n_test": 37,
+      "mlos_branches": {
+        "mlos": 10
+      },
+      "n_synthetic": [
+        133,
+        133,
+        133,
+        133,
+        133,
+        133,
+        133,
+        133,
+        133,
+        133
+      ],
+      "seconds": 1.0
+    },
+    {
+      "exp": 4,
+      "n_train": 148,
+      "n_test": 36,
+      "mlos_branches": {
+        "mlos": 10
+      },
+      "n_synthetic": [
+        132,
+        132,
+        132,
+        132,
+        132,
+        132,
+        132,
+        132,
+        132,
+        132
+      ],
+      "seconds": 1.0
+    }
+  ],
+  "total_seconds": 4.8
+}

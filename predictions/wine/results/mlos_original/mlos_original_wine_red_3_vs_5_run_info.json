@@ -1,0 +1,147 @@
+{
+  "method": "MLOS (upstream MLOS.fit_Sample, len=1, numSamples = n_maj - n_min; no hyperparameter search)",
+  "upstream": "https://github.com/ytyancp/MLOS",
+  "upstream_commit": "2f0a4b0ccbcbbd308faf6a20e28d67b2d79b6cb4",
+  "upstream_parameters": {
+    "k": 5,
+    "aer": -0.5,
+    "len": 1
+  },
+  "dataset": "wine_red_3_vs_5",
+  "n_rows": 691,
+  "n_features": 11,
+  "categorical_cols": [],
+  "minority_label": 1,
+  "mlos_branch_counts": {
+    "mlos": 50
+  },
+  "evaluation": {
+    "classifiers": [
+      "GaussianNB",
+      "DecisionTreeClassifier",
+      "SVC",
+      "RandomForestClassifier",
+      "KNeighborsClassifier"
+    ],
+    "repeats_per_fold": 10,
+    "scaling": "[-1, 1] min/max of the original training fold",
+    "split": "StratifiedKFold(5, shuffle=True, random_state=42)",
+    "note": "upstream defines no evaluation protocol; same for all datasets"
+  },
+  "folds_run": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "reported": "mean over GaussianNB/DecisionTree/SVC/RandomForest/KNN x repeats per fold; AUC from predict_proba, SVC decision_function",
+  "folds": [
+    {
+      "exp": 0,
+      "n_train": 552,
+      "n_test": 139,
+      "mlos_branches": {
+        "mlos": 10
+      },
+      "n_synthetic": [
+        536,
+        536,
+        536,
+        536,
+        536,
+        536,
+        536,
+        536,
+        536,
+        536
+      ],
+      "seconds": 2.6
+    },
+    {
+      "exp": 1,
+      "n_train": 553,
+      "n_test": 138,
+      "mlos_branches": {
+        "mlos": 10
+      },
+      "n_synthetic": [
+        537,
+        537,
+        537,
+        537,
+        537,
+        537,
+        537,
+        537,
+        537,
+        537
+      ],
+      "seconds": 2.5
+    },
+    {
+      "exp": 2,
+      "n_train": 553,
+      "n_test": 138,
+      "mlos_branches": {
+        "mlos": 10
+      },
+      "n_synthetic": [
+        537,
+        537,
+        537,
+        537,
+        537,
+        537,
+        537,
+        537,
+        537,
+        537
+      ],
+      "seconds": 2.5
+    },
+    {
+      "exp": 3,
+      "n_train": 553,
+      "n_test": 138,
+      "mlos_branches": {
+        "mlos": 10
+      },
+      "n_synthetic": [
+        537,
+        537,
+        537,
+        537,
+        537,
+        537,
+        537,
+        537,
+        537,
+        537
+      ],
+      "seconds": 2.6
+    },
+    {
+      "exp": 4,
+      "n_train": 553,
+      "n_test": 138,
+      "mlos_branches": {
+        "mlos": 10
+      },
+      "n_synthetic": [
+        537,
+        537,
+        537,
+        537,
+        537,
+        537,
+        537,
+        537,
+        537,
+        537
+      ],
+      "seconds": 2.6
+    }
+  ],
+  "total_seconds": 12.8
+}

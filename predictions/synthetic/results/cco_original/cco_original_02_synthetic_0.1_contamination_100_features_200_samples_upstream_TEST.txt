@@ -1,0 +1,17 @@
+Split,0,,, 
+Model,bacc,mcc,f1,gmean
+ours,0.5,0.0,0.010465116279069767,0.0,0
+Split,1,,, 
+Model,bacc,mcc,f1,gmean
+ours,0.6756756756756757,0.1975829927879397,0.4960000000000001,0.5927489783638191,69
+Split,3,,, 
+Model,bacc,mcc,f1,gmean
+ours,0.5,0.0,0.010465116279069767,0.0,0
+Split,5,,, 
+Model,bacc,mcc,f1,gmean
+ours,0.5138888888888888,0.018663083698528475,0.40116054158607356,0.45643546458763845,74
+Split,7,,, 
+Model,bacc,mcc,f1,gmean
+ours,0.5,0.0,0.8526315789473685,0.0,0
+Split,9,,, 
+Model,bacc,mcc,f1,gmean

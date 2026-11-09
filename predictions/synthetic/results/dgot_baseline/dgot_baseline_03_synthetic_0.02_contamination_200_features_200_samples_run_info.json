@@ -1,0 +1,64 @@
+{
+  "method": "DGOT (published pipeline, no hyperparameter search)",
+  "upstream": "https://github.com/MLneuers/DGOT",
+  "upstream_commit": "bb5ea8b54d8c005ef4651cc17110e034d6bfab77",
+  "dataset": "03_synthetic_0.02_contamination_200_features_200_samples",
+  "n_rows": 200,
+  "feature_len": 200,
+  "categorical_cols": [],
+  "data_sha1": "af4fc9811962a3d0392063a42316dfe06464ef89",
+  "num_epoch": 800,
+  "batch_size": 64,
+  "repeats": 10,
+  "oversample_rate": 1.2,
+  "eval_seed": 666,
+  "device": "cuda:0",
+  "deviations_from_paper": [
+    "batch_size=64 (paper 512)"
+  ],
+  "warnings": [],
+  "folds": [
+    {
+      "exp": 0,
+      "n_train": 160,
+      "n_test": 40,
+      "steps_per_epoch": 2,
+      "train_seconds": 202.7,
+      "eval_seconds": 4.8
+    },
+    {
+      "exp": 1,
+      "n_train": 160,
+      "n_test": 40,
+      "steps_per_epoch": 2,
+      "train_seconds": 220.3,
+      "eval_seconds": 3.3
+    },
+    {
+      "exp": 2,
+      "n_train": 160,
+      "n_test": 40,
+      "steps_per_epoch": 2,
+      "train_seconds": 217.9,
+      "eval_seconds": 4.6
+    },
+    {
+      "exp": 3,
+      "n_train": 160,
+      "n_test": 40,
+      "steps_per_epoch": 2,
+      "train_seconds": 212.8,
+      "eval_seconds": 4.6
+    },
+    {
+      "exp": 4,
+      "n_train": 160,
+      "n_test": 40,
+      "steps_per_epoch": 2,
+      "train_seconds": 203.1,
+      "eval_seconds": 4.7
+    }
+  ],
+  "total_seconds": 1079.2,
+  "fitness_definition": "mean G-mean over 5 classifiers x repeats, averaged over 5 folds"
+}
