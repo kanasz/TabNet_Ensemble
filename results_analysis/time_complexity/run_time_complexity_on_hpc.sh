@@ -9,8 +9,10 @@
 #SBATCH --mem=64G
 #SBATCH --time=48:00:00
 #SBATCH --account=perun26011493
-# Not shared with other jobs: another job on the same node would distort the times.
-#SBATCH --exclusive
+# No --exclusive: on this cluster that requires all 8 GPUs of the node. The task
+# still owns its GPU and its CPU cores (cgroups); only node-wide resources (memory
+# bandwidth, disk) are shared with other jobs. The 20 interleaved runs and the
+# median/IQR in the summary absorb that noise.
 # One array task per method (index into METHODS below).
 #SBATCH --array=0-6
 #SBATCH --output=/mnt/home/pegnke460/TabNet_Ensemble/logs/slurm_time_%A_%a.log
