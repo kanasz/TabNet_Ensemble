@@ -165,8 +165,27 @@ def _load_checkpoint(method, dataset):
         solution = np.asarray(_best_overall_solution(ga))
     else:
         # GaTuner / GaXGBoostTuner on_stop report best_solutions[-1]
-        solution = np.asarray(ga.best_solutions[-1])
+        solution = _typed_solution(ga, ga.best_solutions[-1])
     return stem, ga, tuner, solution
+
+
+def _typed_solution(ga, solution):
+    """Applies each gene's declared type, as pygad does before calling the fitness
+    function. Some checkpoints store best_solutions as a float array, so int genes
+    such as n_estimators come back as 159.0, which the classifiers reject."""
+    n = len(solution)
+    if getattr(ga, 'gene_type_single', True):
+        types = [ga.gene_type] * n
+    else:
+        types = list(ga.gene_type)
+    out = []
+    for value, gt in zip(solution, types):
+        t = gt[0] if isinstance(gt, (list, tuple)) else gt
+        if isinstance(t, type) and issubclass(t, (int, np.integer)):
+            out.append(int(round(float(value))))
+        else:
+            out.append(float(value))
+    return out
 
 
 def _ga_search_estimate(ga, fitness_eval_seconds, fitness_eval_seconds_parallel=None):
