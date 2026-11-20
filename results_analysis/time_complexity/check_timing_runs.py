@@ -75,6 +75,9 @@ def check_pair(method, dataset, args):
     for rid, msg in sorted(errors.items(), key=lambda x: str(x[0])):
         if rid not in runs:
             fail('{} run {} FAILED: {}'.format(tag, rid, msg[:200]))
+        else:
+            warn('{} run {}: stale .error file from an earlier failed attempt (run since succeeded) - '
+                 'safe to delete'.format(tag, rid))
     if missing:
         fail('{} missing timed runs: {}'.format(tag, missing if len(missing) < 10 else
                                                  '{} of {}'.format(len(missing), args.runs)))
@@ -126,7 +129,8 @@ def check_pair(method, dataset, args):
     if len(walls) >= 2:
         med = statistics.median(walls)
         cv = 100 * statistics.stdev(walls) / statistics.mean(walls)
-        if cv > args.cv_tol:
+        # CV of a handful of sub-5 s runs is dominated by interpreter/import noise
+        if cv > args.cv_tol and len(walls) >= 5 and med >= 5:
             warn('{} wall time CV {:.0f} % (> {} %) - noisy node?'.format(tag, cv, args.cv_tol))
         slow = [round(w) for w in walls if w > 3 * med]
         if slow:
