@@ -182,7 +182,7 @@ def _typed_solution(ga, solution):
     for value, gt in zip(solution, types):
         t = gt[0] if isinstance(gt, (list, tuple)) else gt
         if isinstance(t, type) and issubclass(t, (int, np.integer)):
-            out.append(int(round(float(value))))
+            out.append(int(float(value)))  # truncation, like pygad's gene_type cast and int() in eval_func
         else:
             out.append(float(value))
     return out
@@ -570,6 +570,8 @@ def main():
     with open(tmp, 'w') as f:
         json.dump(record, f, indent=2, default=str)
     os.replace(tmp, out)  # a killed job never leaves a half-written result
+    if os.path.exists(out + '.error'):  # stale failure from an earlier attempt
+        os.remove(out + '.error')
     print('{} {} run {}: wall {:.1f}s  train {}  G-mean {}  -> {}'.format(
         args.method, args.dataset, args.run, record['wall_seconds'],
         None if record['train_seconds'] is None else round(record['train_seconds'], 1),
