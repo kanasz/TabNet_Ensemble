@@ -16,6 +16,12 @@ Outputs (summary/):
   fig_boxplot_<metric>.png distribution of the runs, one panel per dataset, log scale
   fig_scaling.png          mean wall time vs dataset size, log-log
   fig_phases.png           where the time goes (GA methods): setup/preprocess/resample/fit/predict
+  cost_split.csv/table_cost_split.tex
+                           (a) one-off search cost (h, CPU-core-h, GPU-h) vs (b) final model
+                           (training s, prediction ms/1000, RAM)
+  fig_accuracy_vs_time.png G-mean vs time per dataset; filled = final training, hollow =
+                           GA search + final training. G-mean from paper_gmean.csv if present
+                           (accuracy_used_in_figure.csv says which source was used)
 """
 import glob
 import json
@@ -82,6 +88,9 @@ def load_runs():
         est_p = ga.get('estimated_seconds_distinct_parallel_folds') or ga.get('estimated_seconds_nominal_parallel_folds')
         row['ga_estimate_hours_parallel'] = est_p / 3600 if est_p else None
         row['ga_evaluations'] = ga.get('distinct_evaluations') or ga.get('nominal_evaluations')
+        # one fitness evaluation as the GA does it (GA-HESO: folds in parallel)
+        row['fitness_eval_seconds'] = (ga.get('fitness_eval_seconds_parallel_folds')
+                                       or ga.get('fitness_eval_seconds_sequential_folds'))
         for k, v in (r.get('phases') or {}).items():
             row['phase_' + k] = v
         for k, v in (r.get('model') or {}).items():
@@ -193,6 +202,343 @@ def scaling_table(s):
                          'exponent_b': b, 'n_datasets': len(g),
                          'note': 'time ~ n_rows^b fitted on dataset means; datasets also differ in features/imbalance'})
     return pd.DataFrame(rows)
+
+
+def _uses_gpu(g):
+    return any(c in g and (pd.to_numeric(g[c], errors='coerce').fillna(0) > 0).any()
+               for c in ('gpu_util_mean', 'peak_gpu_mb'))
+
+
+def load_full_ga():
+    """Measured full-GA searches (measure_full_ga.py): (method, dataset) -> list of records."""
+    out = {}
+    for path in glob.glob(os.path.join(HERE, 'raw_full_ga', '*', '*', 'run_*.json')):
+        if path.endswith('.progress.json'):
+            continue
+        with open(path) as f:
+            r = json.load(f)
+        if r.get('status') == 'ok':
+            out.setdefault((r['method'], r['dataset']), []).append(r)
+    return out
+
+
+def cost_split(df, outdir):
+    """(a) one-off search cost vs (b) cost of the final model, per method x dataset.
+
+    search_hours           GA methods: one fitness evaluation x number of evaluations
+                           (distinct chromosomes when known); SOTA: 0, they are not tuned
+    search_cpu_core_hours  search_hours x measured CPU/wall ratio
+    search_gpu_hours       search_hours if the method trains on the GPU, else 0
+    final_train_s          training the final model, 5 folds (median over runs)
+    predict_ms_per_1000    prediction time per 1000 samples (GA methods)
+    total_hours            search + final training
+    """
+    rows = []
+    full = load_full_ga()
+    for (m, d), g in df.groupby(['method', 'dataset'], observed=True):
+        kind = cfg.METHODS[m]['kind']
+        est_h = float(g.ga_estimate_hours.median()) if kind == 'ga' and g.ga_estimate_hours.notna().any() else np.nan
+        measured = full.get((m, d), [])
+        meas_h = float(np.mean([r['total_hours'] for r in measured])) if measured else np.nan
+        if measured:
+            search_h, source = meas_h, 'measured ({} full GA run{})'.format(len(measured), 's' if len(measured) > 1 else '')
+        elif kind == 'ga' and not np.isnan(est_h):
+            search_h, source = est_h, 'estimated (1 evaluation x number of evaluations)'
+        else:
+            search_h, source = 0.0, 'not tuned'
+        if m == 'ga_heso' and 'ga_estimate_hours_parallel' in g and g.ga_estimate_hours_parallel.notna().any():
+            search_h_par = float(g.ga_estimate_hours_parallel.median())
+        else:
+            search_h_par = np.nan
+        train_s = float(g.train_seconds.median()) if g.train_seconds.notna().any() else float(g.wall_seconds.median())
+        cpu_ratio = float(g.cpu_utilisation.median()) if g.cpu_utilisation.notna().any() else np.nan
+        rows.append({
+            'method': m, 'method_label': cfg.METHODS[m]['label'], 'kind': kind, 'dataset': d,
+            'n_rows': int(g.n_rows.iloc[0]),
+            'ga_evaluations': g.ga_evaluations.median() if 'ga_evaluations' in g else np.nan,
+            'search_hours': search_h,
+            'search_source': source,
+            'search_hours_measured': meas_h,
+            'search_runs_measured': len(measured),
+            'search_hours_measured_std': float(np.std([r['total_hours'] for r in measured], ddof=1))
+            if len(measured) > 1 else np.nan,
+            'search_hours_measured_min': float(np.min([r['total_hours'] for r in measured])) if measured else np.nan,
+            'search_hours_measured_max': float(np.max([r['total_hours'] for r in measured])) if measured else np.nan,
+            'search_hours_estimated': est_h,
+            'estimate_error_pct': 100 * (est_h - meas_h) / meas_h if measured and not np.isnan(est_h) else np.nan,
+            'search_evaluations_measured': float(np.mean([r['evaluations'] for r in measured])) if measured else np.nan,
+            'search_hours_folds_parallel': search_h_par,
+            'search_cpu_core_hours': search_h * cpu_ratio if search_h else 0.0,
+            'search_gpu_hours': search_h if (search_h and _uses_gpu(g)) else 0.0,
+            'final_train_s': train_s,
+            'final_wall_s': float(g.wall_seconds.median()),
+            'predict_ms_per_1000': float(g.inference_ms_per_1000.median())
+            if 'inference_ms_per_1000' in g and g.inference_ms_per_1000.notna().any() else np.nan,
+            'peak_rss_mb': float(g.peak_rss_mb.median()) if g.peak_rss_mb.notna().any() else np.nan,
+            'peak_gpu_mb': float(g.peak_gpu_mb.median()) if g.peak_gpu_mb.notna().any() else np.nan,
+            'total_hours': search_h + train_s / 3600,
+        })
+    c = pd.DataFrame(rows)
+    c.to_csv(os.path.join(outdir, 'cost_split.csv'), index=False)
+
+    # LaTeX: one block per dataset, (a) search | (b) final model
+    lines = [r'\begin{table}[ht]', r'\centering',
+             r'\caption{One-off search cost (a) vs.\ cost of the final model (b). Final model: medians over '
+             r'the timed runs. Search: measured full GA run; $^\dagger$ projected from one fitness evaluation '
+             r'$\times$ number of evaluations. SOTA methods are not tuned.}',
+             r'\begin{tabular}{llrrrrr}', r'\hline',
+             r' & & \multicolumn{2}{c}{(a) search} & \multicolumn{3}{c}{(b) final model} \\',
+             r'Dataset & Method & time [h] & GPU [h] & train [s] & predict [ms/1000] & RAM [MB] \\', r'\hline']
+    for d in [x for x in cfg.DATASETS if x in set(c.dataset)]:
+        for i, (_, r) in enumerate(c[c.dataset == d].iterrows()):
+            lines.append('{} & {} & {} & {} & {} & {} & {} \\\\'.format(
+                cfg.DATASETS[d]['label'] if i == 0 else '', r.method_label,
+                (_fmt(r.search_hours) + ('' if r.search_source.startswith('measured') else r'$^\dagger$'))
+                if r.kind == 'ga' else '--',
+                _fmt(r.search_gpu_hours) if r.kind == 'ga' else '--',
+                _fmt(r.final_train_s), _fmt(r.predict_ms_per_1000), _fmt(r.peak_rss_mb)))
+        lines.append(r'\hline')
+    lines += [r'\end{tabular}', r'\label{tab:cost_split}', r'\end{table}', '']
+    with open(os.path.join(outdir, 'table_cost_split.tex'), 'w', encoding='utf-8') as f:
+        f.write('\n'.join(lines))
+    return c
+
+
+# G-mean for the accuracy-vs-time figure. This experiment does not measure accuracy;
+# the figure should show the G-mean the PAPER reports. Put those values into
+# PAPER_GMEAN_CSV (columns method,dataset,gmean); without it, GA methods use the
+# fitness the GA reported and SOTA methods the G-mean of the timed upstream run.
+PAPER_GMEAN_CSV = os.path.join(HERE, 'paper_gmean.csv')
+
+
+def accuracy_values(df, outdir):
+    rows = []
+    for (m, d), g in df.groupby(['method', 'dataset'], observed=True):
+        if cfg.METHODS[m]['kind'] == 'ga' and g.gmean_reported_by_ga.notna().any():
+            rows.append({'method': m, 'dataset': d, 'gmean': float(g.gmean_reported_by_ga.median()),
+                         'source': 'GA-reported fitness (checkpoint)'})
+        elif g.gmean.notna().any():
+            rows.append({'method': m, 'dataset': d, 'gmean': float(g.gmean.median()),
+                         'source': 'timed upstream run'})
+    acc = pd.DataFrame(rows, columns=['method', 'dataset', 'gmean', 'source'])
+    if os.path.exists(PAPER_GMEAN_CSV):
+        paper = pd.read_csv(PAPER_GMEAN_CSV)
+        for _, p in paper.iterrows():
+            hit = (acc.method == p.method) & (acc.dataset == p.dataset)
+            if hit.any():
+                acc.loc[hit, ['gmean', 'source']] = [float(p.gmean), 'paper_gmean.csv']
+            else:
+                acc.loc[len(acc)] = [p.method, p.dataset, float(p.gmean), 'paper_gmean.csv']
+    acc.to_csv(os.path.join(outdir, 'accuracy_used_in_figure.csv'), index=False)
+    return acc
+
+
+def plot_accuracy_vs_time(cost, acc, outdir):
+    """G-mean vs time, one panel per dataset. Filled marker: final training only.
+    GA-tuned methods also get a hollow marker at search + final training, joined by
+    a thin line - the horizontal distance is what the search costs."""
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    t = cost.merge(acc[['method', 'dataset', 'gmean']], on=['method', 'dataset'], how='inner')
+    if t.empty:
+        return
+    datasets = [d for d in cfg.DATASETS if d in set(t.dataset)]
+    methods = [m for m in cfg.METHODS if m in set(t.method)]
+    col = _colors(methods)
+    fig, axes = plt.subplots(1, len(datasets), figsize=(3.8 * len(datasets), 3.6), squeeze=False)
+    for ax, d in zip(axes[0], datasets):
+        _style(ax)
+        ax.grid(axis='x', which='major', color=GRID, linewidth=0.8)
+        for _, r in t[t.dataset == d].iterrows():
+            c = col[r.method]
+            ax.scatter(r.final_train_s, r.gmean, s=64, color=c, edgecolor='white', linewidth=2, zorder=4)
+            if r.kind == 'ga' and r.search_hours > 0:
+                total_s = r.total_hours * 3600
+                ax.plot([r.final_train_s, total_s], [r.gmean, r.gmean], color=c, linewidth=1, alpha=0.6, zorder=2)
+                ax.scatter(total_s, r.gmean, s=64, facecolor='white', edgecolor=c, linewidth=2, zorder=4)
+        ax.set_xscale('log')
+        ax.set_title('{}  (n = {})'.format(cfg.DATASETS[d]['label'], int(t[t.dataset == d].n_rows.iloc[0])),
+                     fontsize=9, color=INK)
+        ax.set_xlabel('Time [s], log scale', fontsize=8, color=INK)
+    axes[0][0].set_ylabel('G-mean', fontsize=8, color=INK)
+    from matplotlib.lines import Line2D
+    handles = [Line2D([], [], marker='o', linestyle='', markersize=7, color=col[m], markeredgecolor='white',
+                      label=cfg.METHODS[m]['label']) for m in methods]
+    handles += [Line2D([], [], marker='o', linestyle='', markersize=7, color=INK_MUTED, label='final model training'),
+                Line2D([], [], marker='o', linestyle='', markersize=7, markerfacecolor='white',
+                       markeredgecolor=INK_MUTED, label='GA search + final training')]
+    fig.legend(handles=handles, fontsize=7, frameon=False, loc='center left', bbox_to_anchor=(1.0, 0.5))
+    fig.tight_layout()
+    fig.savefig(os.path.join(outdir, 'fig_accuracy_vs_time.png'), dpi=200, bbox_inches='tight')
+    plt.close(fig)
+
+
+def _ga_curves(cost):
+    """(method, dataset) -> list of curves [(seconds array, best-so-far array), ...] and source.
+    Measured full GA runs when present; otherwise the paper's checkpoint curve
+    (convergence_curves.csv from ga_convergence.py) with the ESTIMATED search time spread
+    evenly over the generations."""
+    out = {}
+    for (m, d), recs in load_full_ga().items():
+        cs = [(np.array([p['cumulative_seconds'] for p in r['curve']]), np.array([p['best_so_far'] for p in r['curve']]))
+              for r in recs if r.get('curve')]
+        if cs:
+            out[(m, d)] = (cs, 'measured ({} run{})'.format(len(cs), 's' if len(cs) > 1 else ''))
+    path = os.path.join(cfg.SUMMARY_DIR, 'convergence_curves.csv')
+    if os.path.exists(path):
+        cv = pd.read_csv(path)
+        for (m, d), g in cv.groupby(['method', 'dataset']):
+            if (m, d) in out:
+                continue
+            hit = cost[(cost.method == m) & (cost.dataset == d)]
+            if hit.empty or not hit.search_hours_estimated.notna().any():
+                continue
+            g = g.sort_values('generation')
+            total = float(hit.search_hours_estimated.iloc[0]) * 3600
+            secs = total * (g.generation.to_numpy() + 1) / (g.generation.max() + 1)
+            out[(m, d)] = ([(secs, g.best_so_far.to_numpy(float))], 'paper checkpoint, estimated time')
+    return out
+
+
+def ga_vs_sota(df, cost, acc, outdir):
+    """Compares every GA-tuned method with every SOTA method on each dataset, two ways:
+
+    A  untuned   the random first generation of the paper's GA = the method WITHOUT
+                 tuning; cost = one fitness evaluation. Share of untuned configurations
+                 that already reach the SOTA G-mean.
+    C  time-to-quality  along the GA's best-so-far curve: search time until it reaches
+                 the SOTA G-mean (and as a multiple of the SOTA training time), and the
+                 best G-mean reached within the SOTA training time.
+    """
+    gm = acc.set_index(['method', 'dataset'])['gmean'].to_dict()
+    path = os.path.join(cfg.SUMMARY_DIR, 'untuned_values.csv')
+    untuned = pd.read_csv(path) if os.path.exists(path) else pd.DataFrame(columns=['method', 'dataset', 'gmean'])
+    curves = _ga_curves(cost)
+    eval_s = df.groupby(['method', 'dataset'], observed=True)['fitness_eval_seconds'].median().to_dict() \
+        if 'fitness_eval_seconds' in df else {}
+    # a measured first generation gives the real time of an untuned evaluation
+    for (m, d), recs in load_full_ga().items():
+        g0 = [r['per_generation']['0'] for r in recs if '0' in (r.get('per_generation') or {})]
+        if g0:
+            eval_s[(m, d)] = float(np.median([g['seconds'] / g['evaluations'] for g in g0]))
+
+    rows = []
+    sota = cost[cost.kind == 'sota']
+    for (m, d), g in cost[cost.kind == 'ga'].groupby(['method', 'dataset'], observed=True):
+        u = untuned[(untuned.method == m) & (untuned.dataset == d)].gmean.to_numpy(float)
+        cs, src = curves.get((m, d), ([], None))
+        for _, s in sota[sota.dataset == d].iterrows():
+            target, s_time = gm.get((s.method, d)), float(s.final_train_s)
+            row = {'ga_method': m, 'ga_label': cfg.METHODS[m]['label'], 'dataset': d,
+                   'sota_method': s.method, 'sota_label': s.method_label,
+                   'sota_gmean': target, 'sota_train_s': s_time,
+                   # A
+                   'untuned_n': len(u), 'untuned_gmean_median': float(np.median(u)) if len(u) else np.nan,
+                   'untuned_gmean_q1': float(np.percentile(u, 25)) if len(u) else np.nan,
+                   'untuned_gmean_q3': float(np.percentile(u, 75)) if len(u) else np.nan,
+                   'untuned_share_beating_sota_pct': 100 * float(np.mean(u >= target))
+                   if len(u) and target is not None else np.nan,
+                   'untuned_eval_s': eval_s.get((m, d), np.nan),
+                   'untuned_eval_vs_sota_train': eval_s.get((m, d), np.nan) / s_time if s_time else np.nan,
+                   # C
+                   'curve_source': src, 'curve_runs': len(cs)}
+            if cs and target is not None:
+                t_beat = []
+                within = []
+                for secs, best in cs:
+                    hit = np.flatnonzero(best >= target)
+                    t_beat.append(float(secs[hit[0]]) if len(hit) else np.nan)
+                    ok = secs <= s_time
+                    within.append(float(best[ok].max()) if ok.any() else np.nan)
+                t_beat = np.array(t_beat)
+                reached = ~np.isnan(t_beat)
+                row.update({
+                    'runs_reaching_sota': int(reached.sum()),
+                    'time_to_sota_s_median': float(np.median(t_beat[reached])) if reached.any() else np.nan,
+                    'time_to_sota_s_min': float(np.min(t_beat[reached])) if reached.any() else np.nan,
+                    'time_to_sota_s_max': float(np.max(t_beat[reached])) if reached.any() else np.nan,
+                    'time_to_sota_vs_sota_train': float(np.median(t_beat[reached])) / s_time
+                    if reached.any() and s_time else np.nan,
+                    'gmean_within_sota_train_time': float(np.nanmedian(within)) if not np.all(np.isnan(within))
+                    else np.nan,
+                })
+            rows.append(row)
+    out = pd.DataFrame(rows)
+    out.to_csv(os.path.join(outdir, 'ga_vs_sota.csv'), index=False)
+    if not out.empty:
+        lines = [r'\begin{table}[ht]', r'\centering',
+                 r'\caption{GA-tuned methods vs.\ SOTA. Untuned: share of random (initial-population) '
+                 r'configurations reaching the SOTA G-mean, cost of one evaluation. Search: GA time until '
+                 r'the best-so-far G-mean reaches the SOTA G-mean, in hours and as a multiple of the SOTA '
+                 r'training time (--: not reached).}',
+                 r'\begin{tabular}{lllrrrr}', r'\hline',
+                 r' & & & \multicolumn{2}{c}{untuned} & \multicolumn{2}{c}{GA search to SOTA level} \\',
+                 r'Dataset & Method & vs. & reach [\%] & eval [s] & time [h] & $\times$ SOTA train \\', r'\hline']
+        for d in [x for x in cfg.DATASETS if x in set(out.dataset)]:
+            first = True
+            for _, r in out[out.dataset == d].iterrows():
+                lines.append('{} & {} & {} & {} & {} & {} & {} \\\\'.format(
+                    cfg.DATASETS[d]['label'] if first else '', r.ga_label, r.sota_label,
+                    _fmt(r.untuned_share_beating_sota_pct), _fmt(r.untuned_eval_s),
+                    _fmt(r.get('time_to_sota_s_median', np.nan) / 3600), _fmt(r.get('time_to_sota_vs_sota_train', np.nan))))
+                first = False
+            lines.append(r'\hline')
+        lines += [r'\end{tabular}', r'\label{tab:ga_vs_sota}', r'\end{table}', '']
+        with open(os.path.join(outdir, 'table_ga_vs_sota.tex'), 'w', encoding='utf-8') as f:
+            f.write('\n'.join(lines))
+    return out, curves, untuned
+
+
+def plot_time_to_quality(gvs, curves, untuned, cost, acc, outdir):
+    """Per dataset: GA best-so-far G-mean vs cumulative search time (lines, one per run),
+    the untuned method (hollow diamond: median, bar: IQR of the random first generation,
+    at the time of one evaluation) and the SOTA methods (dots at their training time)."""
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    from matplotlib.lines import Line2D
+    if not curves and untuned.empty:
+        return
+    gm = acc.set_index(['method', 'dataset'])['gmean'].to_dict()
+    datasets = [d for d in cfg.DATASETS if d in set(cost.dataset)]
+    methods = [m for m in cfg.METHODS if m in set(cost.method)]
+    col = _colors(methods)
+    eval_s = gvs.drop_duplicates(['ga_method', 'dataset']).set_index(['ga_method', 'dataset'])['untuned_eval_s'] \
+        .to_dict() if not gvs.empty else {}
+    fig, axes = plt.subplots(1, len(datasets), figsize=(3.9 * len(datasets), 3.8), squeeze=False)
+    for ax, d in zip(axes[0], datasets):
+        _style(ax)
+        ax.grid(axis='x', which='major', color=GRID, linewidth=0.8)
+        for m in [x for x in methods if cfg.METHODS[x]['kind'] == 'ga']:
+            cs, _ = curves.get((m, d), ([], None))
+            for secs, best in cs:
+                ax.step(secs, best, where='post', color=col[m], linewidth=2 if len(cs) == 1 else 1.2,
+                        alpha=1 if len(cs) == 1 else 0.55, zorder=3)
+            u = untuned[(untuned.method == m) & (untuned.dataset == d)].gmean.to_numpy(float)
+            x = eval_s.get((m, d))
+            if len(u) and x and not np.isnan(x):
+                q1, med, q3 = np.percentile(u, [25, 50, 75])
+                ax.plot([x, x], [q1, q3], color=col[m], linewidth=2, zorder=4)
+                ax.scatter(x, med, marker='D', s=48, facecolor='white', edgecolor=col[m], linewidth=2, zorder=5)
+        for _, s in cost[(cost.dataset == d) & (cost.kind == 'sota')].iterrows():
+            y = gm.get((s.method, d))
+            if y is not None:
+                ax.scatter(s.final_train_s, y, s=64, color=col[s.method], edgecolor='white', linewidth=2, zorder=6)
+        ax.set_xscale('log')
+        ax.set_title(cfg.DATASETS[d]['label'], fontsize=9, color=INK)
+        ax.set_xlabel('Time [s], log scale', fontsize=8, color=INK)
+    axes[0][0].set_ylabel('G-mean', fontsize=8, color=INK)
+    handles = [Line2D([], [], color=col[m], linewidth=2, label=cfg.METHODS[m]['label'] + ' (GA search)')
+               for m in methods if cfg.METHODS[m]['kind'] == 'ga']
+    handles += [Line2D([], [], marker='o', linestyle='', markersize=7, color=col[m], markeredgecolor='white',
+                       label=cfg.METHODS[m]['label']) for m in methods if cfg.METHODS[m]['kind'] == 'sota']
+    handles += [Line2D([], [], marker='D', linestyle='', markersize=6, markerfacecolor='white',
+                       markeredgecolor=INK_MUTED, label='untuned: median, IQR of random configs')]
+    fig.legend(handles=handles, fontsize=7, frameon=False, loc='center left', bbox_to_anchor=(1.0, 0.5))
+    fig.tight_layout()
+    fig.savefig(os.path.join(outdir, 'fig_time_to_quality.png'), dpi=200, bbox_inches='tight')
+    plt.close(fig)
 
 
 def environment_check(df):
@@ -351,6 +697,15 @@ def main():
         plot_boxplots(df, metric, cfg.SUMMARY_DIR)
     plot_scaling(s, cfg.SUMMARY_DIR)
     plot_phases(s, cfg.SUMMARY_DIR)
+    cost = cost_split(df, cfg.SUMMARY_DIR)
+    acc = accuracy_values(df, cfg.SUMMARY_DIR)
+    plot_accuracy_vs_time(cost, acc, cfg.SUMMARY_DIR)
+    gvs, curves, untuned = ga_vs_sota(df, cost, acc, cfg.SUMMARY_DIR)
+    plot_time_to_quality(gvs, curves, untuned, cost, acc, cfg.SUMMARY_DIR)
+    with pd.option_context('display.width', 160, 'display.float_format', '{:.3g}'.format):
+        print('\nCost split (a) search vs (b) final model:\n' + cost[
+            ['method_label', 'dataset', 'search_hours', 'search_gpu_hours', 'final_train_s',
+             'predict_ms_per_1000', 'total_hours']].to_string(index=False))
 
     view = s[s.metric == 'wall_seconds'][['method_label', 'dataset', 'n', 'mean', 'std', 'median', 'min',
                                           'max', 'cv_pct', 'ratio_to_ga_heso']]

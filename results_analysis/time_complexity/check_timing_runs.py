@@ -10,7 +10,8 @@ Checks
   completeness   timed runs and warm-ups per (method, dataset) vs. the plan
   failures       run_NN.json.error (with the error message), leftover .tmp files
   per run        status ok, wall time > 0, 5 folds, G-mean present and > 0
-  G-mean         retrained vs. value reported by the GA (GA methods), spread over runs
+  G-mean         only with --check-gmean: retrained vs. GA-reported value, spread over runs
+                 (always: G-mean > 0, i.e. the model really trained)
   timing         coefficient of variation over the runs, runs > 3x the median
   environment    one host type / CPU / GPU per comparison, CUDA for GA-HESO,
                  GPU memory recorded (pynvml), thread settings
@@ -107,7 +108,7 @@ def check_pair(method, dataset, args):
                 fail('{} G-mean = {} (model predicts one class only / did not train)'.format(rt, g))
         if kind == 'ga':
             gr = r.get('gmean_reported_by_ga')
-            if g is not None and gr is not None and abs(g - gr) > args.gmean_tol:
+            if args.check_gmean and g is not None and gr is not None and abs(g - gr) > args.gmean_tol:
                 warn('{} G-mean {:.4f} vs GA-reported {:.4f} (diff {:+.4f})'.format(rt, g, gr, g - gr))
             for f in r.get('folds') or []:
                 ep = f.get('epochs_trained')
@@ -135,7 +136,7 @@ def check_pair(method, dataset, args):
         slow = [round(w) for w in walls if w > 3 * med]
         if slow:
             warn('{} {} run(s) > 3x median ({:.0f}s): {}'.format(tag, len(slow), med, slow))
-    if len(gmeans) >= 2 and max(gmeans) - min(gmeans) > args.gmean_tol:
+    if args.check_gmean and len(gmeans) >= 2 and max(gmeans) - min(gmeans) > args.gmean_tol:
         warn('{} G-mean varies over runs: {:.4f} - {:.4f} (pipeline not deterministic)'.format(
             tag, min(gmeans), max(gmeans)))
     if len(hosts) > 1:
@@ -173,6 +174,8 @@ def main():
     ap.add_argument('--runs', type=int, default=cfg.N_RUNS)
     ap.add_argument('--warmup', type=int, default=cfg.N_WARMUP)
     ap.add_argument('--raw', default=cfg.RAW_DIR)
+    ap.add_argument('--check-gmean', action='store_true',
+                    help='also compare G-mean with the GA-reported value (off: this is a timing experiment)')
     ap.add_argument('--gmean-tol', type=float, default=0.02)
     ap.add_argument('--cv-tol', type=float, default=20.0, help='warn above this wall-time CV in %%')
     ap.add_argument('--logs', default=None, help='glob of slurm logs, e.g. "logs/slurm_time_*.log"')

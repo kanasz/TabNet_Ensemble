@@ -351,36 +351,63 @@ def _baseline_model_info(method, clf):
         return {}
 
 
+def _timed_method(obj, name, fp, phase, sizes=None):
+    """Replaces obj.<name> on this instance by a wrapper that adds its wall time to
+    `phase`. The imblearn Pipeline (memory=None) calls the step objects themselves,
+    not clones, so the wrapper is what runs - the computation is unchanged."""
+    original = getattr(obj, name)
+
+    def wrapper(*a, **kw):
+        with fp.time(phase):
+            out = original(*a, **kw)
+        if sizes is not None and isinstance(out, tuple) and len(out) == 2:
+            sizes['n_resampled'] = len(out[1])
+        return out
+    setattr(obj, name, wrapper)
+
+
 def run_ga_baseline(method, dataset, phases):
-    """Same steps as the imblearn Pipeline in GaTuner / GaXGBoostTuner.eval_func
-    (preprocess -> resample -> classifier), called one by one so each is timed."""
+    """Runs the SAME imblearn Pipeline as GaTuner / GaXGBoostTuner.eval_func, with the
+    labels passed exactly as eval_func passes them (pandas Series / object array, not
+    re-cast to int: a re-cast changed TabNet's result). Each step's fit / fit_resample
+    is wrapped with a timer, so the phases are still timed separately."""
+    from imblearn.pipeline import Pipeline
     from base_functions import get_preprocessor
     stem, ga, tuner, solution = _load_checkpoint(method, dataset)
-    X, y = tuner.X_orig, np.asarray(tuner.y_orig).astype(int)
+    X, y = tuner.X_orig.copy(), tuner.y_orig.copy()
 
     folds, infos = [], []
     for index, (train_index, test_index) in enumerate(zip(tuner.train_indices, tuner.test_indices)):
         fp = _Phases()
         X_train, X_valid = X.iloc[train_index], X.iloc[test_index]
-        y_train, y_valid = y[train_index], y[test_index]
+        if method == 'smote_xgboost':  # GaXGBoostTuner indexes np.array(y)
+            y_train, y_valid = np.array(y)[train_index], np.array(y)[test_index]
+        else:                          # GaTuner indexes the Series itself
+            y_train, y_valid = y[train_index], y[test_index]
         clf = _baseline_classifier(method, tuner, solution)
         resampler = _baseline_resampler(method, tuner)
+        preprocessor = get_preprocessor(tuner.numerical_cols, tuner.categorical_cols)
 
-        with fp.time('preprocess'):
-            preprocessor = get_preprocessor(tuner.numerical_cols, tuner.categorical_cols)
-            Xt = preprocessor.fit_transform(X_train)
-        yt = y_train
+        sizes = {'n_resampled': len(train_index)}
+        _timed_method(preprocessor, 'fit_transform', fp, 'preprocess')
         if resampler is not None:
-            with fp.time('resample'):
-                Xt, yt = resampler.fit_resample(Xt, yt)
-        with fp.time('fit'):
-            clf.fit(Xt, yt)
+            _timed_method(resampler, 'fit_resample', fp, 'resample', sizes)
+        _timed_method(clf, 'fit', fp, 'fit')
+        steps = [('preprocessor', preprocessor)]
+        if resampler is not None:
+            steps.append(('resample', resampler))
+        steps.append(('clf', clf))
+        pipeline = Pipeline(steps)
+
+        pipeline.fit(X_train, y_train)
+        if 'fit' not in fp.seconds:
+            raise RuntimeError('timing wrapper was bypassed (Pipeline cloned a step?) - phases would be wrong')
         with fp.time('predict'):
-            y_pred = np.asarray(clf.predict(preprocessor.transform(X_valid))).ravel()
+            y_pred = np.asarray(pipeline.predict(X_valid)).ravel()
 
         info = _baseline_model_info(method, clf)
         infos.append(info)
-        folds.append({'fold': index, 'n_train': len(train_index), 'n_train_resampled': int(len(yt)),
+        folds.append({'fold': index, 'n_train': len(train_index), 'n_train_resampled': int(sizes['n_resampled']),
                       'n_test': len(test_index), 'gmean': _gmean(y_valid, y_pred),
                       'seconds': fp.seconds, **{k: v for k, v in info.items() if k == 'epochs_trained'}})
         for k, v in fp.seconds.items():
